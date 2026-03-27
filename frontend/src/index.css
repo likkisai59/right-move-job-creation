@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #f1f5f9;
+    color: #1e293b;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    margin: 0;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  input, select, textarea, button {
+    font-family: inherit;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Sidebar active indicator */
+.sidebar-item-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 70%;
+  background: #3b82f6;
+  border-radius: 0 2px 2px 0;
+}
+
+/* Progress bar animation */
+@keyframes progress-fill {
+  from { width: 0%; }
+  to { width: var(--progress-width); }
+}
+
+.progress-bar-animated {
+  animation: progress-fill 1s ease-out forwards;
+}
+
+/* Tag chip animation */
+@keyframes chipIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.chip-enter {
+  animation: chipIn 0.15s ease-out;
+}
+
+/* File drop zone */
+.drop-zone-active {
+  border-color: #3b82f6 !important;
+  background-color: #eff6ff !important;
+}
+
+/* Table hover */
+.table-row-hover:hover {
+  background-color: #f8fafc;
+}
+
+/* Focus ring */
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}

@@ -1,0 +1,55 @@
+from fastapi import APIRouter, Depends, status, Query
+from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from typing import Optional
+
+from app.core.database import get_db
+from app.schemas.candidate import CandidateCreateRequest, CandidateResponse
+from app.services.candidate_service import create_candidate, get_all_candidates, get_candidate_by_id
+from app.utils.response import success_response, error_response
+
+router = APIRouter(prefix="/api/candidates", tags=["Candidates"])
+
+@router.post("", status_code=status.HTTP_201_CREATED)
+def add_candidate(payload: CandidateCreateRequest, db: Session = Depends(get_db)):
+    try:
+        new_candidate = create_candidate(db, payload)
+        data = CandidateResponse.model_validate(new_candidate).model_dump(mode="json")
+        return JSONResponse(status_code=201, content=success_response("Candidate created successfully", data))
+    except IntegrityError:
+        db.rollback()
+        return JSONResponse(
+            status_code=400, 
+            content=error_response("A candidate with this email address already exists.")
+        )
+    except Exception as exc:
+        db.rollback()
+        return JSONResponse(status_code=500, content=error_response(str(exc)))
+
+@router.get("", status_code=status.HTTP_200_OK)
+def list_candidates(
+    search: Optional[str] = Query(None, description="General search on name, skills, or code"),
+    candidate_code: Optional[str] = Query(None, description="Partial matching on candidate code"),
+    skills: Optional[str] = Query(None, description="Partial matching on skills"),
+    total_experience: Optional[str] = Query(None, description="Partial matching on total experience"),
+    current_location: Optional[str] = Query(None, description="Partial matching on current location"),
+    db: Session = Depends(get_db)
+):
+    try:
+        candidates = get_all_candidates(db, search, candidate_code, skills, total_experience, current_location)
+        data = [CandidateResponse.model_validate(c).model_dump(mode="json") for c in candidates]
+        return JSONResponse(status_code=200, content=success_response("Candidates fetched successfully", data))
+    except Exception as exc:
+        return JSONResponse(status_code=500, content=error_response(str(exc)))
+
+@router.get("/{candidate_id}", status_code=status.HTTP_200_OK)
+def get_candidate(candidate_id: int, db: Session = Depends(get_db)):
+    try:
+        candidate = get_candidate_by_id(db, candidate_id)
+        if not candidate:
+            return JSONResponse(status_code=404, content=error_response(message="Candidate not found"))
+        data = CandidateResponse.model_validate(candidate).model_dump(mode="json")
+        return JSONResponse(status_code=200, content=success_response("Candidate fetched successfully", data))
+    except Exception as exc:
+        return JSONResponse(status_code=500, content=error_response(str(exc)))
