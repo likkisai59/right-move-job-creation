@@ -25,6 +25,8 @@ def add_candidate(payload: CandidateCreateRequest, db: Session = Depends(get_db)
         )
     except Exception as exc:
         db.rollback()
+        import traceback
+        traceback.print_exc()  # This will print the full error to the console
         return JSONResponse(status_code=500, content=error_response(str(exc)))
 
 @router.get("", status_code=status.HTTP_200_OK)
@@ -41,6 +43,8 @@ def list_candidates(
         data = [CandidateResponse.model_validate(c).model_dump(mode="json") for c in candidates]
         return JSONResponse(status_code=200, content=success_response("Candidates fetched successfully", data))
     except Exception as exc:
+        import traceback
+        traceback.print_exc()  # This will print the full error to the console
         return JSONResponse(status_code=500, content=error_response(str(exc)))
 
 @router.get("/{candidate_id}", status_code=status.HTTP_200_OK)

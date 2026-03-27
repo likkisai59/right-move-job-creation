@@ -5,7 +5,9 @@
 # ─────────────────────────────────────────────────────────────
 
 from urllib.parse import quote_plus
+from typing import Optional, Self
 from pydantic_settings import BaseSettings
+from pydantic import model_validator
 
 
 class Settings(BaseSettings):
@@ -16,26 +18,32 @@ class Settings(BaseSettings):
     DB_USER: str = "root"
     DB_PASSWORD: str = ""
 
+    # This field will be populated from the DATABASE_URL environment variable if it exists.
+    # Otherwise, it will be assembled in the validator below.
+    DATABASE_URL: Optional[str] = None
+
     # App
     APP_NAME: str = "Right Move CRM"
     APP_ENV: str = "development"
 
-    @property
-    def DATABASE_URL(self) -> str:
+    @model_validator(mode="after")
+    def assemble_db_url(self) -> Self:
         """
-        Builds the SQLAlchemy-compatible MySQL connection string.
-        Uses quote_plus() to safely encode special characters in the password
-        (e.g. @, #, $ are common in passwords and break URL parsing).
+        If DATABASE_URL was not provided in the environment/env file,
+        build it from the individual DB_ variables.
         """
-        safe_password = quote_plus(self.DB_PASSWORD)
-        return (
-            f"mysql+pymysql://{self.DB_USER}:{safe_password}"
-            f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
-        )
+        if not self.DATABASE_URL:
+            safe_password = quote_plus(str(self.DB_PASSWORD))
+            self.DATABASE_URL = (
+                f"mysql+pymysql://{self.DB_USER}:{safe_password}"
+                f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+            )
+        return self
 
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
+        "extra": "ignore",  # Allow extra env vars without crashing
     }
 
 

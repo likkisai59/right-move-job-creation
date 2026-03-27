@@ -61,7 +61,7 @@ const AddCandidatePage = () => {
           )}
 
           <CandidateForm
-            defaultValues={{ id: defaultId }}
+            defaultValues={{ id: defaultId, skills: [] }}
             onSubmit={handleSubmit}
             onCancel={handleCancel}
             loading={loading}

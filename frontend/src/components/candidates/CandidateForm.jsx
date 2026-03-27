@@ -15,6 +15,25 @@ const SectionTitle = ({ children }) => (
   </div>
 );
 
+const DEFAULT_FORM_VALUES = {
+  id: '',
+  fullName: '',
+  phone: '',
+  email: '',
+  currentLocation: '',
+  currentCompany: '',
+  totalExperience: '',
+  relevantExperience: '',
+  highestEducation: '',
+  skills: [],
+  currentCTC: '',
+  expectedCTC: '',
+  noticePeriod: '',
+  reasonForChange: '',
+  resumeFile: null,
+  skills_draft: '', // Track unsaved skill text
+};
+
 const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) => {
   const {
     register,
@@ -23,37 +42,40 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
     formState: { errors },
     reset,
     setValue,
+    getValues,
     watch,
   } = useForm({
-    defaultValues: defaultValues || {
-      id: '',
-      fullName: '',
-      phone: '',
-      email: '',
-      currentLocation: '',
-      currentCompany: '',
-      totalExperience: '',
-      relevantExperience: '',
-      highestEducation: '',
-      skills: [],
-      currentCTC: '',
-      expectedCTC: '',
-      noticePeriod: '',
-      reasonForChange: '',
-      resumeFile: null,
-    },
+    defaultValues: { ...DEFAULT_FORM_VALUES, ...defaultValues },
   });
 
   const [resumeFile, setResumeFile] = useState(null);
 
   useEffect(() => {
     if (defaultValues) {
-      reset(defaultValues);
+      reset({ ...DEFAULT_FORM_VALUES, ...defaultValues });
     }
   }, [defaultValues, reset]);
 
   const handleFormSubmit = (data) => {
-    onSubmit({ ...data, resumeFile });
+    // Collect final skills: existing chips + any unsaved draft text
+    const finalSkills = [...(data.skills || [])];
+    const draftText = data.skills_draft?.trim();
+
+    if (draftText) {
+      // Support comma-separated draft text if any
+      const splitDraft = draftText.split(',').map(s => s.trim()).filter(Boolean);
+      splitDraft.forEach(skill => {
+        if (!finalSkills.includes(skill)) {
+          finalSkills.push(skill);
+        }
+      });
+    }
+
+    // Pass the finalized data upward
+    const submissionData = { ...data, skills: finalSkills };
+    delete submissionData.skills_draft; // Clean up the helper field
+    
+    onSubmit({ ...submissionData, resumeFile });
   };
 
   return (
@@ -156,13 +178,17 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
             name="skills"
             control={control}
             rules={{
-              validate: (val) =>
-                (val && val.length > 0) || 'At least one skill is required',
+              validate: (val) => {
+                const draft = getValues('skills_draft')?.trim();
+                return (val && val.length > 0) || (draft && draft.length > 0) || 'At least one skill is required';
+              }
             }}
             render={({ field }) => (
               <SkillsInput
                 value={field.value || []}
                 onChange={field.onChange}
+                draftValue={watch('skills_draft')}
+                onDraftChange={(val) => setValue('skills_draft', val, { shouldValidate: true })}
                 placeholder="Type a skill and press Enter"
                 error={errors.skills?.message}
               />

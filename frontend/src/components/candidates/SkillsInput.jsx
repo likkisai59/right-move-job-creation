@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { X, Plus } from 'lucide-react';
 
-const SkillsInput = ({ value = [], onChange, placeholder = 'Type a skill and press Enter', error }) => {
-  const [inputVal, setInputVal] = useState('');
-
+const SkillsInput = ({ 
+  value = [], 
+  onChange, 
+  draftValue = '', 
+  onDraftChange, 
+  placeholder = 'Type a skill and press Enter', 
+  error 
+}) => {
   const addSkill = () => {
-    const trimmed = inputVal.trim();
+    const trimmed = draftValue?.trim();
     if (!trimmed) return;
     
     // Support comma-separated typing
@@ -15,7 +20,7 @@ const SkillsInput = ({ value = [], onChange, placeholder = 'Type a skill and pre
     if (uniqueSkills.length > 0) {
       onChange([...value, ...uniqueSkills]);
     }
-    setInputVal('');
+    onDraftChange('');
   };
 
   const removeSkill = (skill) => {
@@ -27,7 +32,7 @@ const SkillsInput = ({ value = [], onChange, placeholder = 'Type a skill and pre
       e.preventDefault();
       addSkill();
     }
-    if (e.key === 'Backspace' && !inputVal && value.length > 0) {
+    if (e.key === 'Backspace' && !draftValue && value.length > 0) {
       removeSkill(value[value.length - 1]);
     }
   };
@@ -63,17 +68,16 @@ const SkillsInput = ({ value = [], onChange, placeholder = 'Type a skill and pre
         <div className="flex items-center gap-1.5 flex-1 min-w-[120px]">
           <input
             type="text"
-            value={inputVal}
-            onChange={(e) => setInputVal(e.target.value)}
+            value={draftValue}
+            onChange={(e) => onDraftChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            onBlur={addSkill}
             placeholder={value.length === 0 ? placeholder : 'Add more...'}
             className="flex-1 text-sm bg-transparent outline-none text-gray-900 placeholder-gray-400 py-0.5"
           />
           <button
             type="button"
             onClick={addSkill}
-            disabled={!inputVal.trim()}
+            disabled={!draftValue?.trim()}
             className="shrink-0 px-2.5 py-1 rounded-md bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Add
