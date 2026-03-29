@@ -1,23 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import PageContainer from '../../components/layout/PageContainer';
 import Card from '../../components/common/Card';
 import CandidateForm from '../../components/candidates/CandidateForm';
-import { createCandidate } from '../../api/candidatesApi';
-import { generateCandidateId } from '../../utils/formatters';
+import { createCandidate, fetchNextCandidateId } from '../../api/candidatesApi';
 
 const AddCandidatePage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [nextId, setNextId] = useState('Loading...');
 
-  const defaultId = generateCandidateId();
+  useEffect(() => {
+    const getNextId = async () => {
+      try {
+        const id = await fetchNextCandidateId();
+        setNextId(id);
+      } catch (err) {
+        console.error('Failed to fetch next ID:', err);
+        setNextId('CAN-ERR');
+      }
+    };
+    getNextId();
+  }, []);
 
   const handleSubmit = async (data) => {
     setLoading(true);
     try {
       await createCandidate(data);
+
       setSuccess(true);
       setTimeout(() => navigate('/candidates'), 1500);
     } catch (err) {
@@ -61,11 +73,12 @@ const AddCandidatePage = () => {
           )}
 
           <CandidateForm
-            defaultValues={{ id: defaultId, skills: [] }}
+            defaultValues={{ id: nextId, skills: [] }}
             onSubmit={handleSubmit}
             onCancel={handleCancel}
             loading={loading}
           />
+
         </Card>
       </div>
     </PageContainer>

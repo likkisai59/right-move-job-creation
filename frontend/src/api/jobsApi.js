@@ -10,17 +10,34 @@ import api from './axios';
 // Helper to map backend snake_case response to frontend camelCase expected shape
 const mapToFrontend = (dbRecord) => {
   if (!dbRecord) return null;
+  const requirements = dbRecord.requirements || [];
+  
+  // Create an aggregate job title for the table view
+  let displayTitle = '—';
+  if (requirements.length > 0) {
+    displayTitle = requirements[0].job_title;
+    if (requirements.length > 1) {
+      displayTitle += ` (+${requirements.length - 1} more)`;
+    }
+  }
+
   return {
-    id: dbRecord.id, // primary key for fetching/editing
+    id: dbRecord.id,
     jobCode: dbRecord.job_code,
-    date: dbRecord.job_date, // YYYY-MM-DD
+    date: dbRecord.job_date,
     companyName: dbRecord.company_name,
-    jobTitle: dbRecord.job_title,
-    numberOfCandidates: dbRecord.candidates_required,
-    experience: dbRecord.experience_required,
-    budget: dbRecord.budgeted_package,
-    assignedRecruiter: dbRecord.assigned_recruiter,
-    // Frontend expects UI statuses like 'active', 'on-hold', 'closed', 'draft'
+    jobTitle: displayTitle,
+    budget: requirements.length > 0 ? requirements[0].budget : '—',
+    requirements: requirements.map(req => ({
+      id: req.id,
+      job_title: req.job_title,
+      budget: req.budget,
+      experience: req.experience,
+      num_candidates: req.num_candidates
+    })),
+    numberOfCandidates: requirements.reduce((sum, r) => sum + r.num_candidates, 0),
+    experience: requirements.map(r => r.experience).join(', '),
+    assignedTo: dbRecord.assigned_to,
     status: (dbRecord.status || 'ACTIVE').toLowerCase().replace('_', '-'),
   };
 };
@@ -30,15 +47,18 @@ const mapToBackend = (formData) => {
   return {
     job_date: formData.date,
     company_name: formData.companyName,
-    job_title: formData.jobTitle,
-    candidates_required: Number(formData.numberOfCandidates),
-    experience_required: formData.experience,
-    budgeted_package: formData.budget || '',
-    assigned_recruiter: formData.assignedRecruiter,
-    // Backend expects ENUM uppercase 'ACTIVE', 'ON_HOLD'
+    requirements: (formData.requirements || []).map(req => ({
+      job_title: req.job_title,
+      budget: req.budget,
+      experience: req.experience,
+      num_candidates: Number(req.num_candidates)
+    })),
+    assigned_to: formData.assignedTo,
     status: (formData.status || 'active').toUpperCase().replace('-', '_'),
   };
 };
+
+
 
 // ── GET /api/jobs ──────────────────────────────────────────
 export const fetchJobs = async (params = {}) => {

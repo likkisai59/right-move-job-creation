@@ -6,10 +6,21 @@ from typing import Optional
 
 from app.core.database import get_db
 from app.schemas.candidate import CandidateCreateRequest, CandidateResponse
-from app.services.candidate_service import create_candidate, get_all_candidates, get_candidate_by_id
+from app.services.candidate_service import create_candidate, get_all_candidates, get_candidate_by_id, generate_candidate_code
 from app.utils.response import success_response, error_response
 
 router = APIRouter(prefix="/api/candidates", tags=["Candidates"])
+
+@router.get("/next-id", status_code=status.HTTP_200_OK)
+def get_next_candidate_id(db: Session = Depends(get_db)):
+    try:
+        next_id = generate_candidate_code(db)
+        return JSONResponse(
+            status_code=200, 
+            content=success_response("Next candidate ID fetched", {"next_id": next_id})
+        )
+    except Exception as exc:
+        return JSONResponse(status_code=500, content=error_response(str(exc)))
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def add_candidate(payload: CandidateCreateRequest, db: Session = Depends(get_db)):

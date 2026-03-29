@@ -1,26 +1,10 @@
-# services/job_service.py
-# ─────────────────────────────────────────────────────────────
-# Business logic layer for job requirements.
-#
-# The route layer only calls this service.
-# All DB operations and business rules live here — keeps
-# routes thin and logic testable.
-#
-# Functions:
-#   generate_job_code     → internal helper, called by create
-#   create_job_requirement → Task 1: POST /api/jobs
-#   get_all_jobs          → Task 2: GET  /api/jobs
-#   get_job_by_id         → Task 2: GET  /api/jobs/{id}
-#   update_job            → Task 2: PUT  /api/jobs/{id}
-# ─────────────────────────────────────────────────────────────
-
 from datetime import date
 from typing import List, Optional
 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from app.models.job_requirement import JobRequirement
+from app.models.job_requirement import Job, JobRequirement
 from app.schemas.job_requirement import JobCreateRequest, JobUpdateRequest
 
 
@@ -31,46 +15,39 @@ from app.schemas.job_requirement import JobCreateRequest, JobUpdateRequest
 def generate_job_code(db: Session) -> str:
     """
     Auto-generates the next job code in the format JOB-0001.
-
-    Strategy:
-      - Uses MAX(id) + 1 so codes are always monotonically increasing
-        and never collide even if records are deleted.
-      - Falls back to 1 when the table is empty.
-      - Pads the sequence number to 4 digits (e.g. JOB-0001).
     """
-    max_id = db.query(func.max(JobRequirement.id)).scalar() or 0
+    max_id = db.query(func.max(Job.id)).scalar() or 0
     next_number = max_id + 1
     return f"JOB-{next_number:04d}"
 
 
 # ─────────────────────────────────────────────────────────────
-# TASK 1: CREATE
+# CREATE
 # ─────────────────────────────────────────────────────────────
 
-def create_job_requirement(db: Session, payload: JobCreateRequest) -> JobRequirement:
+def create_job_requirement(db: Session, payload: JobCreateRequest) -> Job:
     """
-    Creates a new job requirement record in the database.
-
-    Steps:
-      1. Generate a unique job code.
-      2. Build the ORM model instance from the validated payload.
-      3. Add to session, commit, and refresh to load DB-generated fields
-         (id, created_at, updated_at).
-      4. Return the saved record.
+    Creates a new job with multiple requirements.
     """
     job_code = generate_job_code(db)
 
-    new_job = JobRequirement(
+    new_job = Job(
         job_code=job_code,
         job_date=payload.job_date,
         company_name=payload.company_name,
-        job_title=payload.job_title,
-        candidates_required=payload.candidates_required,
-        experience_required=payload.experience_required,
-        budgeted_package=payload.budgeted_package,
-        assigned_recruiter=payload.assigned_recruiter,
+        assigned_to=payload.assigned_to,
         status=payload.status or "ACTIVE",
     )
+
+    # Add requirements
+    for req in payload.requirements:
+        new_requirement = JobRequirement(
+            job_title=req.job_title,
+            budget=req.budget,
+            experience=req.experience,
+            num_candidates=req.num_candidates
+        )
+        new_job.requirements.append(new_requirement)
 
     db.add(new_job)
     db.commit()
@@ -79,7 +56,7 @@ def create_job_requirement(db: Session, payload: JobCreateRequest) -> JobRequire
 
 
 # ─────────────────────────────────────────────────────────────
-# TASK 2: LIST
+# LIST
 # ─────────────────────────────────────────────────────────────
 
 def get_all_jobs(
@@ -87,112 +64,82 @@ def get_all_jobs(
     search: Optional[str] = None,
     company_name: Optional[str] = None,
     job_date: Optional[date] = None,
-) -> List[JobRequirement]:
+) -> List[Job]:
     """
-    Returns all job requirements, with optional filtering.
-
-    Filters:
-      - company_name : case-insensitive partial match on company_name
-      - job_date     : exact match on job_date (YYYY-MM-DD)
-      - Both filters can be combined.
-      - No filters → returns all jobs ordered by created_at DESC.
-
-    Args:
-        db           : Active SQLAlchemy session.
-        company_name : Optional partial company name to filter by.
-        job_date     : Optional exact date to filter by.
-
-    Returns:
-        List of JobRequirement ORM instances.
+    Returns all jobs with their requirements.
     """
-    query = db.query(JobRequirement)
+    query = db.query(Job)
 
     if search:
         search_term = f"%{search.strip()}%"
-        query = query.filter(
+        # Since job_title moved to JobRequirement, we need to join for search.
+        query = query.join(JobRequirement).filter(
             or_(
-                JobRequirement.company_name.ilike(search_term),
+                Job.company_name.ilike(search_term),
                 JobRequirement.job_title.ilike(search_term)
             )
-        )
+        ).distinct()
 
     if company_name:
-        # ilike performs a case-insensitive LIKE search
         query = query.filter(
-            JobRequirement.company_name.ilike(f"%{company_name.strip()}%")
+            Job.company_name.ilike(f"%{company_name.strip()}%")
         )
 
     if job_date:
-        query = query.filter(JobRequirement.job_date == job_date)
+        query = query.filter(Job.job_date == job_date)
 
-    return query.order_by(JobRequirement.created_at.desc()).all()
+    return query.order_by(Job.created_at.desc()).all()
 
 
 # ─────────────────────────────────────────────────────────────
-# TASK 2: GET BY ID
+# GET BY ID
 # ─────────────────────────────────────────────────────────────
 
-def get_job_by_id(db: Session, job_id: int) -> Optional[JobRequirement]:
+def get_job_by_id(db: Session, job_id: int) -> Optional[Job]:
     """
-    Fetches a single job requirement by its primary key.
-
-    Returns None if no record with that id exists.
-    The route layer is responsible for returning a 404 in that case.
-
-    Args:
-        db     : Active SQLAlchemy session.
-        job_id : Primary key of the job_requirements row.
-
-    Returns:
-        JobRequirement ORM instance, or None.
+    Fetches a single job by its ID.
     """
-    return db.query(JobRequirement).filter(JobRequirement.id == job_id).first()
+    return db.query(Job).filter(Job.id == job_id).first()
 
 
 # ─────────────────────────────────────────────────────────────
-# TASK 2: UPDATE
+# UPDATE
 # ─────────────────────────────────────────────────────────────
 
 def update_job(
     db: Session,
     job_id: int,
     payload: JobUpdateRequest,
-) -> Optional[JobRequirement]:
+) -> Optional[Job]:
     """
-    Updates an existing job requirement.
-
-    Steps:
-      1. Fetch the record — return None if not found (route gives 404).
-      2. Apply all validated fields from the payload to the ORM object.
-      3. Commit the transaction and refresh to get the updated timestamps.
-      4. Return the updated record.
-
-    Note: job_code is intentionally NOT updated — it is a permanent
-    business key assigned at creation and must never change.
-
-    Args:
-        db      : Active SQLAlchemy session.
-        job_id  : Primary key of the record to update.
-        payload : Validated update data from the Pydantic schema.
-
-    Returns:
-        Updated JobRequirement ORM instance, or None if not found.
+    Updates an existing job and its requirements.
     """
-    job = db.query(JobRequirement).filter(JobRequirement.id == job_id).first()
+    job = db.query(Job).filter(Job.id == job_id).first()
 
     if job is None:
         return None
 
-    # Apply all updatable fields
+    # Apply parent fields
     job.job_date = payload.job_date
     job.company_name = payload.company_name
-    job.job_title = payload.job_title
-    job.candidates_required = payload.candidates_required
-    job.experience_required = payload.experience_required
-    job.budgeted_package = payload.budgeted_package
-    job.assigned_recruiter = payload.assigned_recruiter
+    job.assigned_to = payload.assigned_to
     job.status = payload.status or "ACTIVE"
+
+    # Update requirements (replace existing ones)
+    job.requirements = []
+    
+    # Add new requirements
+    for req in payload.requirements:
+        new_requirement = JobRequirement(
+            job_title=req.job_title,
+            budget=req.budget,
+            experience=req.experience,
+            num_candidates=req.num_candidates
+        )
+        job.requirements.append(new_requirement)
 
     db.commit()
     db.refresh(job)
     return job
+
+

@@ -85,11 +85,12 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
         <Input
           label="Candidate ID"
-          placeholder="Enter candidate ID"
-          required
+          placeholder="Generating..."
+          readOnly
           error={errors.id?.message}
-          {...register('id', { required: 'Candidate ID is required' })}
+          {...register('id')}
         />
+
         <Input
           label="Full Name"
           placeholder="Enter full name"

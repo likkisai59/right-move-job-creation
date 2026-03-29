@@ -88,3 +88,10 @@ export const deleteCandidate = async (id) => {
   const response = await api.delete(`/candidates/${id}`);
   return { data: response.data };
 };
+
+// ── GET /api/candidates/next-id ────────────────────────────
+export const fetchNextCandidateId = async () => {
+  const response = await api.get('/candidates/next-id');
+  return response.data.data.next_id;
+};
+

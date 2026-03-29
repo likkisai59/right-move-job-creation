@@ -46,7 +46,7 @@ const JobTable = ({ jobs = [], loading = false, onEdit }) => {
       header: 'Budget',
     },
     {
-      key: 'assignedRecruiter',
+      key: 'assignedTo',
       header: 'Recruiter',
     },
     {
