@@ -5,7 +5,7 @@ import Select from '../common/Select';
 import Button from '../common/Button';
 import FileUpload from '../common/FileUpload';
 import SkillsInput from './SkillsInput';
-import { NOTICE_PERIODS, EXPERIENCE_OPTIONS, EDUCATION_OPTIONS } from '../../utils/constants';
+import { NOTICE_PERIODS, EXPERIENCE_OPTIONS, EDUCATION_OPTIONS, COUNTRY_CODES } from '../../utils/constants';
 
 const SectionTitle = ({ children }) => (
   <div className="mb-5">
@@ -17,7 +17,9 @@ const SectionTitle = ({ children }) => (
 
 const DEFAULT_FORM_VALUES = {
   id: '',
-  fullName: '',
+  firstName: '',
+  lastName: '',
+  countryCode: '+91',
   phone: '',
   email: '',
   currentLocation: '',
@@ -84,6 +86,21 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
       <SectionTitle>Personal Details</SectionTitle>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
         <Input
+          label="First Name"
+          placeholder="Enter first name"
+          required
+          error={errors.firstName?.message}
+          {...register('firstName', { required: 'First name is required' })}
+        />
+        <Input
+          label="Last Name"
+          placeholder="Enter last name"
+          required
+          error={errors.lastName?.message}
+          {...register('lastName', { required: 'Last name is required' })}
+        />
+        
+        <Input
           label="Candidate ID"
           placeholder="Generating..."
           readOnly
@@ -91,27 +108,34 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           {...register('id')}
         />
 
-        <Input
-          label="Full Name"
-          placeholder="Enter full name"
-          required
-          error={errors.fullName?.message}
-          {...register('fullName', { required: 'Full name is required' })}
-        />
-        <Input
-          label="Phone Number"
-          type="tel"
-          placeholder="Enter phone number"
-          required
-          error={errors.phone?.message}
-          {...register('phone', {
-            required: 'Phone number is required',
-            pattern: {
-              value: /^[+]?[\d\s\-()]{8,15}$/,
-              message: 'Enter a valid phone number',
-            },
-          })}
-        />
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+            Phone Number <span className="text-red-500">*</span>
+          </label>
+          <div className="flex gap-2">
+            <div className="w-28">
+              <Select
+                options={COUNTRY_CODES}
+                error={errors.countryCode?.message}
+                {...register('countryCode', { required: true })}
+              />
+            </div>
+            <div className="flex-1">
+              <Input
+                type="tel"
+                placeholder="Enter phone number"
+                error={errors.phone?.message}
+                {...register('phone', {
+                  required: 'Phone number is required',
+                  pattern: {
+                    value: /^[0-9]{8,15}$/,
+                    message: 'Enter 8-15 digits',
+                  },
+                })}
+              />
+            </div>
+          </div>
+        </div>
         <Input
           label="Email Address"
           type="email"

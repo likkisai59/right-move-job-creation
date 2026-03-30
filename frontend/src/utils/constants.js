@@ -71,3 +71,13 @@ export const ALLOWED_RESUME_TYPES = [
 ];
 
 export const MAX_RESUME_SIZE_MB = 5;
+export const COUNTRY_CODES = [
+  { value: '+91', label: '+91 (India)' },
+  { value: '+1', label: '+1 (USA)' },
+  { value: '+44', label: '+44 (UK)' },
+  { value: '+971', label: '+971 (UAE)' },
+  { value: '+65', label: '+65 (Singapore)' },
+  { value: '+61', label: '+61 (Australia)' },
+  { value: '+1-CA', label: '+1 (Canada)' },
+  { value: '+49', label: '+49 (Germany)' },
+];

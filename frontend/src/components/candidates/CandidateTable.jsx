@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Pencil } from 'lucide-react';
+import { Eye, Pencil, Trash2 } from 'lucide-react';
 import Table from '../common/Table';
 import Badge from '../common/Badge';
 import EmptyState from '../common/EmptyState';
@@ -8,7 +8,7 @@ import Button from '../common/Button';
 import { Users } from 'lucide-react';
 import { truncateText } from '../../utils/formatters';
 
-const CandidateTable = ({ candidates = [], loading = false }) => {
+const CandidateTable = ({ candidates = [], loading = false, onDelete }) => {
   const navigate = useNavigate();
 
   const columns = [
@@ -20,11 +20,11 @@ const CandidateTable = ({ candidates = [], loading = false }) => {
       ),
     },
     {
-      key: 'fullName',
+      key: 'firstName',
       header: 'Full Name',
       minWidth: '150px',
-      render: (val) => (
-        <span className="font-medium text-gray-900">{val}</span>
+      render: (_, row) => (
+        <span className="font-medium text-gray-900">{`${row.firstName} ${row.lastName}`}</span>
       ),
     },
     {
@@ -88,11 +88,28 @@ const CandidateTable = ({ candidates = [], loading = false }) => {
           <button
             onClick={(e) => {
               e.stopPropagation();
+              console.log('Navigating to candidate:', row.id);
+              if (row.id) {
+                navigate(`/candidates/${row.id}`);
+              } else {
+                console.error('Candidate ID is undefined');
+              }
             }}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
             title="View candidate"
           >
             <Eye size={15} />
+          </button>
+          
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete && onDelete(row);
+            }}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+            title="Delete candidate"
+          >
+            <Trash2 size={15} />
           </button>
         </div>
       ),

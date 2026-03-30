@@ -3,7 +3,9 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 class CandidateCreateRequest(BaseModel):
-    full_name: str = Field(..., min_length=1)
+    first_name: str = Field(..., min_length=1)
+    last_name: str = Field(..., min_length=1)
+    country_code: str = Field("+91", min_length=1)
     phone_number: str = Field(..., min_length=1)
     email_address: str = Field(..., min_length=1)
     current_location: Optional[str] = None
@@ -18,11 +20,14 @@ class CandidateCreateRequest(BaseModel):
     reason_for_job_change: Optional[str] = None
     resume_file_name: Optional[str] = None
     resume_file_path: Optional[str] = None
+    resume_url: Optional[str] = None
 
 class CandidateResponse(BaseModel):
     id: int
     candidate_code: str
-    full_name: str
+    first_name: str
+    last_name: str
+    country_code: str
     phone_number: str
     email_address: str
     current_location: Optional[str] = None
@@ -37,6 +42,7 @@ class CandidateResponse(BaseModel):
     reason_for_job_change: Optional[str] = None
     resume_file_name: Optional[str] = None
     resume_file_path: Optional[str] = None
+    resume_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     

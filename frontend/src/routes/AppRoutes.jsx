@@ -8,6 +8,7 @@ import CreateJobPage from '../pages/jobs/CreateJobPage';
 import EditJobPage from '../pages/jobs/EditJobPage';
 import CandidateListPage from '../pages/candidates/CandidateListPage';
 import AddCandidatePage from '../pages/candidates/AddCandidatePage';
+import CandidateDetails from '../pages/candidates/CandidateDetails';
 import GlobalSearchPage from '../pages/GlobalSearchPage';
 
 const AppRoutes = () => {
@@ -35,6 +36,7 @@ const AppRoutes = () => {
             <Route path="/jobs/edit/:id" element={<EditJobPage />} />
             <Route path="/candidates" element={<CandidateListPage />} />
             <Route path="/candidates/create" element={<AddCandidatePage />} />
+            <Route path="/candidates/:id" element={<CandidateDetails />} />
             <Route path="/search" element={<GlobalSearchPage />} />
             {/* Catch-all */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

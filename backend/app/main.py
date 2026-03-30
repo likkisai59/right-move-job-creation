@@ -14,6 +14,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+import os
 
 from app.core.config import settings
 from app.core.database import engine, Base
@@ -67,6 +69,14 @@ app.add_middleware(
 # ── Register Routers ──────────────────────────────────────────
 app.include_router(jobs.router)
 app.include_router(candidates.router)
+
+# ── Static Files ──────────────────────────────────────────────
+# Ensure uploads directory exists
+if not os.path.exists("uploads"):
+    os.makedirs("uploads")
+
+# Mount /uploads to serve resumes and other files
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # ── Health Check ──────────────────────────────────────────────
 @app.get("/", tags=["Health"], summary="Root / Health Check")

@@ -7,7 +7,9 @@ const mapToFrontend = (dbRecord) => {
   return {
     id: dbRecord.id,
     candidateCode: dbRecord.candidate_code,
-    fullName: dbRecord.full_name,
+    firstName: dbRecord.first_name,
+    lastName: dbRecord.last_name,
+    countryCode: dbRecord.country_code,
     phone: dbRecord.phone_number,
     email: dbRecord.email_address,
     currentLocation: dbRecord.current_location,
@@ -22,6 +24,7 @@ const mapToFrontend = (dbRecord) => {
     reasonForChange: dbRecord.reason_for_job_change,
     resumeFileName: dbRecord.resume_file_name,
     resumeFilePath: dbRecord.resume_file_path,
+    resumeUrl: dbRecord.resume_url,
     appliedDate: dbRecord.created_at ? dbRecord.created_at.split('T')[0] : null,
   };
 };
@@ -29,7 +32,9 @@ const mapToFrontend = (dbRecord) => {
 // Map frontend camelCase to backend snake_case expected payload
 const mapToBackend = (formData) => {
   return {
-    full_name: formData.fullName,
+    first_name: formData.firstName,
+    last_name: formData.lastName,
+    country_code: formData.countryCode,
     phone_number: formData.phone,
     email_address: formData.email,
     current_location: formData.currentLocation,
@@ -71,8 +76,40 @@ export const fetchCandidateById = async (id) => {
 
 // ── POST /api/candidates ─────────────────────────────────────
 export const createCandidate = async (candidateData) => {
-  const payload = mapToBackend(candidateData);
-  const response = await api.post('/candidates', payload);
+  const formData = new FormData();
+  
+  // Basic Fields
+  formData.append('first_name', candidateData.firstName);
+  formData.append('last_name', candidateData.lastName);
+  formData.append('email_address', candidateData.email);
+  formData.append('phone_number', candidateData.phone);
+  formData.append('country_code', candidateData.countryCode || '+91');
+  
+  // Optional / Additional Fields
+  if (candidateData.currentLocation) formData.append('current_location', candidateData.currentLocation);
+  if (candidateData.currentCompany) formData.append('current_last_company', candidateData.currentCompany);
+  if (candidateData.totalExperience) formData.append('total_experience', candidateData.totalExperience);
+  if (candidateData.relevantExperience) formData.append('relevant_experience_years', candidateData.relevantExperience);
+  if (candidateData.highestEducation) formData.append('highest_education', candidateData.highestEducation);
+  
+  const skills = Array.isArray(candidateData.skills) ? candidateData.skills.join(', ') : candidateData.skills;
+  if (skills) formData.append('skills', skills);
+  
+  if (candidateData.currentCTC) formData.append('current_ctc', candidateData.currentCTC);
+  if (candidateData.expectedCTC) formData.append('expected_ctc', candidateData.expectedCTC);
+  if (candidateData.noticePeriod) formData.append('notice_period', candidateData.noticePeriod);
+  if (candidateData.reasonForChange) formData.append('reason_for_job_change', candidateData.reasonForChange);
+  
+  // The resume file itself
+  if (candidateData.resumeFile) {
+    formData.append('file', candidateData.resumeFile);
+  }
+
+  const response = await api.post('/candidates', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return { data: mapToFrontend(response.data.data) };
 };
 

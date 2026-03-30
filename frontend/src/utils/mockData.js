@@ -61,8 +61,10 @@ export const mockJobs = [
 export const mockCandidates = [
   {
     id: 'CAN-001',
-    fullName: 'Aditya Kumar',
-    phone: '+91 98765 43210',
+    firstName: 'Aditya',
+    lastName: 'Kumar',
+    countryCode: '+91',
+    phone: '98765 43210',
     email: 'aditya.kumar@email.com',
     currentLocation: 'Bangalore',
     currentCompany: 'Mindtree Ltd',
@@ -79,8 +81,10 @@ export const mockCandidates = [
   },
   {
     id: 'CAN-002',
-    fullName: 'Sneha Patel',
-    phone: '+91 87654 32109',
+    firstName: 'Sneha',
+    lastName: 'Patel',
+    countryCode: '+91',
+    phone: '87654 32109',
     email: 'sneha.patel@email.com',
     currentLocation: 'Pune',
     currentCompany: 'Accenture',
@@ -97,8 +101,10 @@ export const mockCandidates = [
   },
   {
     id: 'CAN-003',
-    fullName: 'Rohan Desai',
-    phone: '+91 76543 21098',
+    firstName: 'Rohan',
+    lastName: 'Desai',
+    countryCode: '+91',
+    phone: '76543 21098',
     email: 'rohan.desai@email.com',
     currentLocation: 'Mumbai',
     currentCompany: 'Mastech Digital',

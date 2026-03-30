@@ -5,7 +5,7 @@ import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
 import CandidateTable from '../../components/candidates/CandidateTable';
 import CandidateFilters from '../../components/candidates/CandidateFilters';
-import { fetchCandidates } from '../../api/candidatesApi';
+import { fetchCandidates, deleteCandidate } from '../../api/candidatesApi';
 
 const CandidateListPage = () => {
   const navigate = useNavigate();
@@ -18,6 +18,23 @@ const CandidateListPage = () => {
     try {
       const res = await fetchCandidates(activeFilters);
       setCandidates(res.data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteCandidate = async (candidate) => {
+    if (!window.confirm(`Are you sure you want to delete ${candidate.firstName} ${candidate.lastName}?`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await deleteCandidate(candidate.id);
+      await loadCandidates(); // Refresh list
+    } catch (error) {
+      console.error('Delete failed:', error);
+      alert('Failed to delete candidate');
     } finally {
       setLoading(false);
     }
@@ -48,7 +65,11 @@ const CandidateListPage = () => {
         </div>
 
         {/* Table */}
-        <CandidateTable candidates={candidates} loading={loading} />
+        <CandidateTable 
+          candidates={candidates} 
+          loading={loading} 
+          onDelete={handleDeleteCandidate}
+        />
       </div>
     </PageContainer>
   );

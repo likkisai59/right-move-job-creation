@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, status, Query
+import shutil
+import os
+from datetime import datetime
+from fastapi import APIRouter, Depends, status, Query, File, UploadFile, Form
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -6,7 +9,7 @@ from typing import Optional
 
 from app.core.database import get_db
 from app.schemas.candidate import CandidateCreateRequest, CandidateResponse
-from app.services.candidate_service import create_candidate, get_all_candidates, get_candidate_by_id, generate_candidate_code
+from app.services.candidate_service import create_candidate, get_all_candidates, get_candidate_by_id, generate_candidate_code, delete_candidate
 from app.utils.response import success_response, error_response
 
 router = APIRouter(prefix="/api/candidates", tags=["Candidates"])
@@ -23,8 +26,58 @@ def get_next_candidate_id(db: Session = Depends(get_db)):
         return JSONResponse(status_code=500, content=error_response(str(exc)))
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-def add_candidate(payload: CandidateCreateRequest, db: Session = Depends(get_db)):
+async def add_candidate(
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    email_address: str = Form(...),
+    phone_number: str = Form(...),
+    country_code: str = Form("+91"),
+    current_location: Optional[str] = Form(None),
+    current_last_company: Optional[str] = Form(None),
+    total_experience: Optional[str] = Form(None),
+    relevant_experience_years: Optional[str] = Form(None),
+    highest_education: Optional[str] = Form(None),
+    skills: Optional[str] = Form(None),
+    current_ctc: Optional[str] = Form(None),
+    expected_ctc: Optional[str] = Form(None),
+    notice_period: Optional[str] = Form(None),
+    reason_for_job_change: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)
+):
     try:
+        resume_url = None
+        resume_file_name = None
+        
+        if file:
+            filename = f"{int(datetime.now().timestamp())}_{file.filename}"
+            filepath = os.path.join("uploads", filename)
+            with open(filepath, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+            resume_url = f"/uploads/{filename}"
+            resume_file_name = file.filename
+
+        # Reconstruct the payload object to pass to service
+        payload = CandidateCreateRequest(
+            first_name=first_name,
+            last_name=last_name,
+            email_address=email_address,
+            phone_number=phone_number,
+            country_code=country_code,
+            current_location=current_location,
+            current_last_company=current_last_company,
+            total_experience=total_experience,
+            relevant_experience_years=relevant_experience_years,
+            highest_education=highest_education,
+            skills=skills,
+            current_ctc=current_ctc,
+            expected_ctc=expected_ctc,
+            notice_period=notice_period,
+            reason_for_job_change=reason_for_job_change,
+            resume_file_name=resume_file_name,
+            resume_url=resume_url
+        )
+
         new_candidate = create_candidate(db, payload)
         data = CandidateResponse.model_validate(new_candidate).model_dump(mode="json")
         return JSONResponse(status_code=201, content=success_response("Candidate created successfully", data))
@@ -67,4 +120,15 @@ def get_candidate(candidate_id: int, db: Session = Depends(get_db)):
         data = CandidateResponse.model_validate(candidate).model_dump(mode="json")
         return JSONResponse(status_code=200, content=success_response("Candidate fetched successfully", data))
     except Exception as exc:
+        return JSONResponse(status_code=500, content=error_response(str(exc)))
+
+@router.delete("/{candidate_id}", status_code=status.HTTP_200_OK)
+def remove_candidate(candidate_id: int, db: Session = Depends(get_db)):
+    try:
+        success = delete_candidate(db, candidate_id)
+        if not success:
+            return JSONResponse(status_code=404, content=error_response(message="Candidate not found"))
+        return JSONResponse(status_code=200, content=success_response("Candidate deleted successfully"))
+    except Exception as exc:
+        db.rollback()
         return JSONResponse(status_code=500, content=error_response(str(exc)))

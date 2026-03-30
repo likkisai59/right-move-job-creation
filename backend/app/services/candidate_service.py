@@ -30,7 +30,8 @@ def get_all_candidates(
         search_term = f"%{search.strip()}%"
         query = query.filter(
             or_(
-                Candidate.full_name.ilike(search_term),
+                Candidate.first_name.ilike(search_term),
+                Candidate.last_name.ilike(search_term),
                 Candidate.skills.ilike(search_term),
                 Candidate.candidate_code.ilike(search_term),
                 Candidate.total_experience.ilike(search_term)
@@ -50,3 +51,11 @@ def get_all_candidates(
 
 def get_candidate_by_id(db: Session, candidate_id: int) -> Optional[Candidate]:
     return db.query(Candidate).filter(Candidate.id == candidate_id).first()
+
+def delete_candidate(db: Session, candidate_id: int) -> bool:
+    candidate = get_candidate_by_id(db, candidate_id)
+    if not candidate:
+        return False
+    db.delete(candidate)
+    db.commit()
+    return True

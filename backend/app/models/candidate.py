@@ -10,8 +10,10 @@ class Candidate(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     candidate_code = Column(String(50), unique=True, nullable=False, index=True)
-    full_name = Column(String(255), nullable=False)
-    phone_number = Column(String(50), nullable=False)
+    first_name = Column(String(255), nullable=False)
+    last_name = Column(String(255), nullable=False)
+    phone_number = Column(String(20), nullable=False)
+    country_code = Column(String(10), nullable=False, default="+91")
     email_address = Column(String(255), nullable=False, unique=True)
     current_location = Column(String(255), nullable=True)
     current_last_company = Column(String(255), nullable=True)
@@ -25,6 +27,7 @@ class Candidate(Base):
     reason_for_job_change = Column(Text, nullable=True)
     resume_file_name = Column(String(255), nullable=True)
     resume_file_path = Column(String(500), nullable=True)
+    resume_url = Column(String(255), nullable=True)
 
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
