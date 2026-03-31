@@ -19,6 +19,10 @@ const mapToFrontend = (dbRecord) => {
     relevantExperience: dbRecord.relevant_experience_years,
     highestEducation: dbRecord.highest_education,
     skills: dbRecord.skills ? dbRecord.skills.split(',').map(s => s.trim()) : [],
+    mappedJobId: dbRecord.mapped_job_id,
+    relevantExperienceBySkill: dbRecord.relevant_experience_by_skill 
+      ? (() => { try { return JSON.parse(dbRecord.relevant_experience_by_skill); } catch(e) { return []; } })()
+      : [],
     currentCTC: dbRecord.current_ctc,
     expectedCTC: dbRecord.expected_ctc,
     noticePeriod: dbRecord.notice_period,
@@ -96,6 +100,11 @@ export const createCandidate = async (candidateData) => {
   if (candidateData.totalExperience) formData.append('total_experience', candidateData.totalExperience);
   if (candidateData.relevantExperience) formData.append('relevant_experience_years', candidateData.relevantExperience);
   if (candidateData.highestEducation) formData.append('highest_education', candidateData.highestEducation);
+  
+  if (candidateData.mappedJobId) formData.append('mapped_job_id', candidateData.mappedJobId);
+  if (candidateData.relevantExperienceBySkill && candidateData.relevantExperienceBySkill.length > 0) {
+    formData.append('relevant_experience_by_skill', JSON.stringify(candidateData.relevantExperienceBySkill));
+  }
   
   const skills = Array.isArray(candidateData.skills) ? candidateData.skills.join(', ') : candidateData.skills;
   if (skills) formData.append('skills', skills);

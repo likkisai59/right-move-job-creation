@@ -15,6 +15,8 @@ class CandidateCreateRequest(BaseModel):
     relevant_experience_years: Optional[str] = None
     highest_education: Optional[str] = None
     skills: Optional[str] = None
+    mapped_job_id: Optional[int] = None
+    relevant_experience_by_skill: Optional[str] = None
     current_ctc: Optional[str] = None
     expected_ctc: Optional[str] = None
     notice_period: Optional[str] = None
@@ -38,6 +40,8 @@ class CandidateResponse(BaseModel):
     relevant_experience_years: Optional[str] = None
     highest_education: Optional[str] = None
     skills: Optional[str] = None
+    mapped_job_id: Optional[int] = None
+    relevant_experience_by_skill: Optional[str] = None
     current_ctc: Optional[str] = None
     expected_ctc: Optional[str] = None
     notice_period: Optional[str] = None

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { Plus, Trash2 } from 'lucide-react';
 import Input from '../common/Input';
 import Select from '../common/Select';
 import Button from '../common/Button';
 import FileUpload from '../common/FileUpload';
 import SkillsInput from './SkillsInput';
+import { fetchJobs } from '../../api/jobsApi';
 import { NOTICE_PERIODS, EXPERIENCE_OPTIONS, EDUCATION_OPTIONS, COUNTRY_CODES } from '../../utils/constants';
 
 const SectionTitle = ({ children }) => (
@@ -34,7 +36,9 @@ const DEFAULT_FORM_VALUES = {
   noticePeriod: '',
   reasonForChange: '',
   resumeFile: null,
-  skills_draft: '', // Track unsaved skill text
+  skills_draft: '',
+  mappedJobId: '',
+  relevantExperienceBySkill: [],
 };
 
 const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) => {
@@ -51,13 +55,37 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
     defaultValues: { ...DEFAULT_FORM_VALUES, ...defaultValues },
   });
 
+  const { fields: expFields, append: appendExp, remove: removeExp } = useFieldArray({
+    control,
+    name: 'relevantExperienceBySkill',
+  });
+
   const [resumeFile, setResumeFile] = useState(null);
+  const [jobs, setJobs] = useState([]);
+  const selectedCategory = watch('businessCategory');
 
   useEffect(() => {
     if (defaultValues) {
       reset({ ...DEFAULT_FORM_VALUES, ...defaultValues });
     }
   }, [defaultValues, reset]);
+
+  useEffect(() => {
+    const loadJobs = async () => {
+      try {
+        const { data } = await fetchJobs({ businessCategory: selectedCategory });
+        setJobs(data);
+      } catch (err) {
+        console.error('Failed to load jobs', err);
+      }
+    };
+    loadJobs();
+  }, [selectedCategory]);
+
+  const jobOptions = [
+    { value: '', label: 'Select mapped job (Optional)' },
+    ...jobs.map(j => ({ value: j.id, label: `${j.jobCode} | ${j.companyName} | ${j.jobTitle}` }))
+  ];
 
   const handleFormSubmit = (data) => {
     // Collect final skills: existing chips + any unsaved draft text
@@ -83,7 +111,18 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} noValidate>
-      {/* SECTION 1: Personal Details */}
+      {/* SECTION 1: Job Mapping (New) */}
+      <SectionTitle>Sourcing & Job Mapping</SectionTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+        <Select
+          label="Mapped Job Requirement"
+          options={jobOptions}
+          error={errors.mappedJobId?.message}
+          {...register('mappedJobId')}
+        />
+      </div>
+
+      {/* SECTION 2: Personal Details */}
       <SectionTitle>Personal Details</SectionTitle>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
         <Input
@@ -236,7 +275,60 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
         </div>
       </div>
 
-      {/* SECTION 3: Compensation & Availability */}
+      {/* SECTION 3: Relevant Experience by Skill (New) */}
+      <SectionTitle>Relevant Experience by Skill (Optional)</SectionTitle>
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm text-gray-500">Add detailed experience for specific tools or skills.</p>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => appendExp({ skill: '', experience: '' })}
+            icon={Plus}
+          >
+            Add Skill
+          </Button>
+        </div>
+        <div className="space-y-4">
+          {expFields.map((field, index) => (
+            <div key={field.id} className="p-5 bg-gray-50 rounded-xl border border-gray-200 relative flex flex-col md:flex-row gap-4 items-start md:items-center">
+              <div className="flex-1 w-full">
+                <Input
+                  label="Skill / Technology"
+                  placeholder="e.g. React"
+                  required
+                  error={errors.relevantExperienceBySkill?.[index]?.skill?.message}
+                  {...register(`relevantExperienceBySkill.${index}.skill`, { required: 'Skill is required' })}
+                />
+              </div>
+              <div className="flex-1 w-full">
+                <Input
+                  label="Experience (in years)"
+                  type="number"
+                  placeholder="e.g. 3"
+                  required
+                  error={errors.relevantExperienceBySkill?.[index]?.experience?.message}
+                  {...register(`relevantExperienceBySkill.${index}.experience`, { 
+                    required: 'Experience is required',
+                    min: { value: 0, message: 'Must be 0 or greater' }
+                  })}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => removeExp(index)}
+                className="w-10 h-10 mt-6 shrink-0 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-all"
+                title="Remove skill"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* SECTION 4: Compensation & Availability */}
       <SectionTitle>Compensation & Availability</SectionTitle>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
         <Input
@@ -282,7 +374,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
         </div>
       </div>
 
-      {/* SECTION 4: Resume Upload */}
+      {/* SECTION 5: Resume Upload */}
       <SectionTitle>Resume Upload</SectionTitle>
       <div className="mb-8">
         <FileUpload

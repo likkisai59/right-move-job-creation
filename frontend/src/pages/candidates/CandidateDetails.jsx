@@ -93,6 +93,14 @@ const CandidateDetails = () => {
               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
                 {candidate.businessCategory || 'IT'}
               </span>
+              {candidate.mappedJobId && (
+                <>
+                  <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-50 text-blue-700">
+                    Mapped Job ID: {candidate.mappedJobId}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -167,6 +175,22 @@ const CandidateDetails = () => {
                 ))}
               </div>
             </div>
+
+            {candidate.relevantExperienceBySkill && candidate.relevantExperienceBySkill.length > 0 && (
+              <div className="mb-10">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Detailed Skill Experience</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {candidate.relevantExperienceBySkill.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-gray-50/50">
+                      <span className="font-semibold text-gray-900">{item.skill}</span>
+                      <span className="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
+                        {item.experience} yr{item.experience > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-gray-50 pt-8">
               <div>

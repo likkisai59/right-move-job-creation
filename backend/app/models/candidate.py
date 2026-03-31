@@ -22,6 +22,8 @@ class Candidate(Base):
     relevant_experience_years = Column(String(100), nullable=True)
     highest_education = Column(String(255), nullable=True)
     skills = Column(Text, nullable=True)
+    mapped_job_id = Column(Integer, nullable=True)
+    relevant_experience_by_skill = Column(Text, nullable=True)
     current_ctc = Column(String(100), nullable=True)
     expected_ctc = Column(String(100), nullable=True)
     notice_period = Column(String(100), nullable=True)
