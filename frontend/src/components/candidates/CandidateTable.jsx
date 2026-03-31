@@ -28,6 +28,15 @@ const CandidateTable = ({ candidates = [], loading = false, onDelete }) => {
       ),
     },
     {
+      key: 'businessCategory',
+      header: 'Category',
+      render: (val) => (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
+          {val || 'IT'}
+        </span>
+      ),
+    },
+    {
       key: 'skills',
       header: 'Skills',
       minWidth: '200px',

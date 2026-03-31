@@ -16,12 +16,13 @@ const Dashboard = () => {
   const [pipeline, setPipeline] = useState([]);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [category, setCategory] = useState('All');
 
   useEffect(() => {
     const loadData = async () => {
       try {
         const [statsRes, pipelineRes, appsRes] = await Promise.all([
-          fetchDashboardStats(),
+          fetchDashboardStats(category),
           fetchPipelineData(),
           fetchRecentApplications(),
         ]);
@@ -33,7 +34,7 @@ const Dashboard = () => {
       }
     };
     loadData();
-  }, []);
+  }, [category]);
 
   const statCards = [
     {
@@ -70,7 +71,21 @@ const Dashboard = () => {
     <PageContainer
       title="Dashboard"
       subtitle="Welcome back, Admin"
-      actions={<QuickActions />}
+      actions={
+        <div className="flex items-center gap-3">
+          <select 
+            value={category} 
+            onChange={(e) => setCategory(e.target.value)}
+            className="border border-gray-200 rounded-lg text-sm px-3 py-2 bg-white text-gray-700 outline-none hover:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-colors shadow-sm cursor-pointer"
+          >
+            <option value="All">All Categories</option>
+            <option value="IT">IT</option>
+            <option value="ITSM">ITSM</option>
+            <option value="BPO">BPO</option>
+          </select>
+          <QuickActions />
+        </div>
+      }
     >
       <div className="flex flex-col gap-6 animate-fade-in">
         {/* Stats row */}

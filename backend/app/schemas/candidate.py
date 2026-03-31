@@ -6,6 +6,7 @@ class CandidateCreateRequest(BaseModel):
     first_name: str = Field(..., min_length=1)
     last_name: str = Field(..., min_length=1)
     country_code: str = Field("+91", min_length=1)
+    business_category: str = Field(default="IT", description="Options: IT, ITSM, BPO")
     phone_number: str = Field(..., min_length=1)
     email_address: str = Field(..., min_length=1)
     current_location: Optional[str] = None
@@ -28,6 +29,7 @@ class CandidateResponse(BaseModel):
     first_name: str
     last_name: str
     country_code: str
+    business_category: str
     phone_number: str
     email_address: str
     current_location: Optional[str] = None

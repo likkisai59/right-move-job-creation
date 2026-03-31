@@ -24,6 +24,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
     defaultValues: defaultValues || {
       date: '',
       companyName: '',
+      businessCategory: 'IT',
       requirements: [{ job_title: '', budget: '', experience: '', num_candidates: '' }],
       assignedTo: '',
       status: 'ACTIVE',
@@ -63,6 +64,19 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
             required: 'Company name is required',
             minLength: { value: 2, message: 'Must be at least 2 characters' },
           })}
+        />
+
+        {/* Business Category */}
+        <Select
+          label="Business Category"
+          required
+          options={[
+            { value: 'IT', label: 'IT' },
+            { value: 'ITSM', label: 'ITSM' },
+            { value: 'BPO', label: 'BPO' },
+          ]}
+          error={errors.businessCategory?.message}
+          {...register('businessCategory', { required: 'Business category is required' })}
         />
 
         {/* Recruiter */}

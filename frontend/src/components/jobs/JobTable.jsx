@@ -26,6 +26,15 @@ const JobTable = ({ jobs = [], loading = false, onEdit }) => {
       ),
     },
     {
+      key: 'businessCategory',
+      header: 'Category',
+      render: (val) => (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
+          {val || 'IT'}
+        </span>
+      ),
+    },
+    {
       key: 'jobTitle',
       header: 'Job Title',
       minWidth: '180px',

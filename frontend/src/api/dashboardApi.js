@@ -4,11 +4,11 @@ import { fetchJobs } from './jobsApi';
 import { fetchCandidates } from './candidatesApi';
 
 // Mock implementation - replace with real API calls when backend is ready
-export const fetchDashboardStats = async () => {
+export const fetchDashboardStats = async (category = "All") => {
   try {
     const [jobsRes, candidatesRes] = await Promise.all([
-      fetchJobs(),
-      fetchCandidates()
+      fetchJobs({ businessCategory: category }),
+      fetchCandidates({ businessCategory: category })
     ]);
     const jobsData = jobsRes.data || [];
     const candidatesData = candidatesRes.data || [];

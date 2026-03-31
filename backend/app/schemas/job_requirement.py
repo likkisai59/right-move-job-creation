@@ -52,6 +52,7 @@ class RequirementResponse(BaseModel):
 class JobCreateRequest(BaseModel):
     job_date: date = Field(..., description="Date of the job requirement (YYYY-MM-DD)")
     company_name: str = Field(..., min_length=1, description="Name of the hiring company")
+    business_category: str = Field(default="IT", description="Options: IT, ITSM, BPO")
     requirements: List[RequirementCreate] = Field(..., min_length=1, description="List of hiring requirements")
     assigned_to: str = Field(..., min_length=1, description="Name of the assigned recruiter")
     status: Optional[str] = Field(default="ACTIVE", description="Status: ACTIVE | ON_HOLD | CLOSED | DRAFT")
@@ -99,6 +100,7 @@ class JobCreateRequest(BaseModel):
 class JobUpdateRequest(BaseModel):
     job_date: date = Field(..., description="Date of the job requirement (YYYY-MM-DD)")
     company_name: str = Field(..., min_length=1, description="Name of the hiring company")
+    business_category: str = Field(default="IT", description="Options: IT, ITSM, BPO")
     requirements: List[RequirementCreate] = Field(..., min_length=1, description="List of hiring requirements")
     assigned_to: str = Field(..., min_length=1, description="Name of the assigned recruiter")
     status: Optional[str] = Field(default="ACTIVE", description="Status: ACTIVE | ON_HOLD | CLOSED | DRAFT")
@@ -132,6 +134,7 @@ class JobResponse(BaseModel):
     job_code: str
     job_date: date
     company_name: str
+    business_category: str
     requirements: List[RequirementResponse]
     assigned_to: str
     status: str

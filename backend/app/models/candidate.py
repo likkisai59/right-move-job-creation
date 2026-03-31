@@ -14,6 +14,7 @@ class Candidate(Base):
     last_name = Column(String(255), nullable=False)
     phone_number = Column(String(20), nullable=False)
     country_code = Column(String(10), nullable=False, default="+91")
+    business_category = Column(String(50), nullable=False, default="IT")
     email_address = Column(String(255), nullable=False, unique=True)
     current_location = Column(String(255), nullable=True)
     current_last_company = Column(String(255), nullable=True)

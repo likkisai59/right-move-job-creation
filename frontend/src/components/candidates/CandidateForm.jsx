@@ -20,6 +20,7 @@ const DEFAULT_FORM_VALUES = {
   firstName: '',
   lastName: '',
   countryCode: '+91',
+  businessCategory: 'IT',
   phone: '',
   email: '',
   currentLocation: '',
@@ -136,6 +137,19 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
             </div>
           </div>
         </div>
+
+        <Select
+          label="Business Category"
+          required
+          options={[
+            { value: 'IT', label: 'IT' },
+            { value: 'ITSM', label: 'ITSM' },
+            { value: 'BPO', label: 'BPO' },
+          ]}
+          error={errors.businessCategory?.message}
+          {...register('businessCategory', { required: 'Business category is required' })}
+        />
+
         <Input
           label="Email Address"
           type="email"

@@ -32,6 +32,7 @@ async def add_candidate(
     email_address: str = Form(...),
     phone_number: str = Form(...),
     country_code: str = Form("+91"),
+    business_category: str = Form("IT"),
     current_location: Optional[str] = Form(None),
     current_last_company: Optional[str] = Form(None),
     total_experience: Optional[str] = Form(None),
@@ -64,6 +65,7 @@ async def add_candidate(
             email_address=email_address,
             phone_number=phone_number,
             country_code=country_code,
+            business_category=business_category,
             current_location=current_location,
             current_last_company=current_last_company,
             total_experience=total_experience,
@@ -100,10 +102,11 @@ def list_candidates(
     skills: Optional[str] = Query(None, description="Partial matching on skills"),
     total_experience: Optional[str] = Query(None, description="Partial matching on total experience"),
     current_location: Optional[str] = Query(None, description="Partial matching on current location"),
+    business_category: Optional[str] = Query(None, description="Filter by IT, ITSM, BPO"),
     db: Session = Depends(get_db)
 ):
     try:
-        candidates = get_all_candidates(db, search, candidate_code, skills, total_experience, current_location)
+        candidates = get_all_candidates(db, search, candidate_code, skills, total_experience, current_location, business_category)
         data = [CandidateResponse.model_validate(c).model_dump(mode="json") for c in candidates]
         return JSONResponse(status_code=200, content=success_response("Candidates fetched successfully", data))
     except Exception as exc:

@@ -10,6 +10,7 @@ const mapToFrontend = (dbRecord) => {
     firstName: dbRecord.first_name,
     lastName: dbRecord.last_name,
     countryCode: dbRecord.country_code,
+    businessCategory: dbRecord.business_category || 'IT',
     phone: dbRecord.phone_number,
     email: dbRecord.email_address,
     currentLocation: dbRecord.current_location,
@@ -63,6 +64,9 @@ export const fetchCandidates = async (params = {}) => {
   if (params.skills) queryParams.skills = params.skills;
   if (params.totalExperience) queryParams.total_experience = params.totalExperience;
   if (params.currentLocation) queryParams.current_location = params.currentLocation;
+  if (params.businessCategory && params.businessCategory !== 'All') {
+    queryParams.business_category = params.businessCategory;
+  }
 
   const response = await api.get('/candidates', { params: queryParams });
   return { data: response.data.data.map(mapToFrontend) };
@@ -84,6 +88,7 @@ export const createCandidate = async (candidateData) => {
   formData.append('email_address', candidateData.email);
   formData.append('phone_number', candidateData.phone);
   formData.append('country_code', candidateData.countryCode || '+91');
+  formData.append('business_category', candidateData.businessCategory || 'IT');
   
   // Optional / Additional Fields
   if (candidateData.currentLocation) formData.append('current_location', candidateData.currentLocation);

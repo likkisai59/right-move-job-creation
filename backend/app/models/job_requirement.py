@@ -37,6 +37,7 @@ class Job(Base):
     # ── Core Fields ───────────────────────────────────────────
     job_date = Column(Date, nullable=False)
     company_name = Column(String(255), nullable=False)
+    business_category = Column(String(50), nullable=False, server_default="IT")
     
     # Name of the recruiter assigned to this requirement
     assigned_to = Column(String(255), nullable=False)

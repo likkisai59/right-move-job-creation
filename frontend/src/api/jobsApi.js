@@ -26,6 +26,7 @@ const mapToFrontend = (dbRecord) => {
     jobCode: dbRecord.job_code,
     date: dbRecord.job_date,
     companyName: dbRecord.company_name,
+    businessCategory: dbRecord.business_category || 'IT',
     jobTitle: displayTitle,
     budget: requirements.length > 0 ? requirements[0].budget : '—',
     requirements: requirements.map(req => ({
@@ -47,6 +48,7 @@ const mapToBackend = (formData) => {
   return {
     job_date: formData.date,
     company_name: formData.companyName,
+    business_category: formData.businessCategory || 'IT',
     requirements: (formData.requirements || []).map(req => ({
       job_title: req.job_title,
       budget: req.budget,
@@ -66,6 +68,9 @@ export const fetchJobs = async (params = {}) => {
   if (params.search) queryParams.search = params.search;
   if (params.company) queryParams.company_name = params.company;
   if (params.date) queryParams.job_date = params.date;
+  if (params.businessCategory && params.businessCategory !== 'All') {
+    queryParams.business_category = params.businessCategory;
+  }
 
   const response = await api.get('/jobs', { params: queryParams });
   

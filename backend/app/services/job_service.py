@@ -35,6 +35,7 @@ def create_job_requirement(db: Session, payload: JobCreateRequest) -> Job:
         job_code=job_code,
         job_date=payload.job_date,
         company_name=payload.company_name,
+        business_category=payload.business_category,
         assigned_to=payload.assigned_to,
         status=payload.status or "ACTIVE",
     )
@@ -64,6 +65,7 @@ def get_all_jobs(
     search: Optional[str] = None,
     company_name: Optional[str] = None,
     job_date: Optional[date] = None,
+    business_category: Optional[str] = None,
 ) -> List[Job]:
     """
     Returns all jobs with their requirements.
@@ -87,6 +89,9 @@ def get_all_jobs(
 
     if job_date:
         query = query.filter(Job.job_date == job_date)
+
+    if business_category and business_category.upper() != "ALL":
+        query = query.filter(Job.business_category == business_category.upper())
 
     return query.order_by(Job.created_at.desc()).all()
 
@@ -122,6 +127,7 @@ def update_job(
     # Apply parent fields
     job.job_date = payload.job_date
     job.company_name = payload.company_name
+    job.business_category = payload.business_category
     job.assigned_to = payload.assigned_to
     job.status = payload.status or "ACTIVE"
 

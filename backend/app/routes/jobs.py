@@ -105,6 +105,7 @@ def list_jobs(
     search: Optional[str] = Query(None, description="General search on company name or job title"),
     company_name: Optional[str] = Query(None, description="Partial matching on company name"),
     job_date: Optional[date] = Query(None, description="Exact matching on YYYY-MM-DD"),
+    business_category: Optional[str] = Query(None, description="Filter by IT, ITSM, BPO"),
     db: Session = Depends(get_db),
 ):
     """
@@ -112,7 +113,13 @@ def list_jobs(
     GET /api/jobs?company_name=Infosys&job_date=2026-03-15
     """
     try:
-        jobs_orm = get_all_jobs(db=db, search=search, company_name=company_name, job_date=job_date)
+        jobs_orm = get_all_jobs(
+            db=db, 
+            search=search, 
+            company_name=company_name, 
+            job_date=job_date,
+            business_category=business_category
+        )
 
         # Convert list of ORM objects → list of JSON-safe dicts
         # Pydantic v2 TypeAdapter or list comprehension

@@ -23,6 +23,7 @@ def get_all_candidates(
     skills: Optional[str] = None,
     total_experience: Optional[str] = None,
     current_location: Optional[str] = None,
+    business_category: Optional[str] = None,
 ) -> List[Candidate]:
     query = db.query(Candidate)
 
@@ -46,6 +47,9 @@ def get_all_candidates(
         query = query.filter(Candidate.total_experience.ilike(f"%{total_experience.strip()}%"))
     if current_location:
         query = query.filter(Candidate.current_location.ilike(f"%{current_location.strip()}%"))
+        
+    if business_category and business_category.upper() != "ALL":
+        query = query.filter(Candidate.business_category == business_category.upper())
 
     return query.order_by(Candidate.created_at.desc()).all()
 

@@ -89,6 +89,10 @@ const CandidateDetails = () => {
               <span className="text-sm text-gray-500">
                 Applied on {candidate.appliedDate || '—'}
               </span>
+              <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
+                {candidate.businessCategory || 'IT'}
+              </span>
             </div>
           </div>
         </div>
@@ -175,7 +179,7 @@ const CandidateDetails = () => {
               </div>
               <div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Notice Period</p>
-                <Badge variant="yellow">{candidate.noticePeriod}</Badge>
+                <Badge color="yellow" label={candidate.noticePeriod || '—'} />
               </div>
             </div>
 
