@@ -5,6 +5,7 @@ import Input from '../common/Input';
 import Select from '../common/Select';
 import Button from '../common/Button';
 import { mockRecruiters } from '../../utils/mockData';
+import { fetchOrganizations } from '../../api/organizationsApi';
 
 const JOB_STATUS_OPTIONS = [
   { value: 'ACTIVE', label: 'Active' },
@@ -18,11 +19,13 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors },
     reset,
   } = useForm({
     defaultValues: defaultValues || {
       date: '',
+      organizationId: '',
       companyName: '',
       businessCategory: 'IT',
       requirements: [{ job_title: '', budget: '', experience: '', num_candidates: '' }],
@@ -30,6 +33,34 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
       status: 'ACTIVE',
     },
   });
+
+  const [organizations, setOrganizations] = React.useState([]);
+
+  useEffect(() => {
+    const loadOrgs = async () => {
+      try {
+        const { data } = await fetchOrganizations({ status: 'ACTIVE' });
+        setOrganizations(data);
+      } catch (err) {
+        console.error('Failed to load orgs', err);
+      }
+    };
+    loadOrgs();
+  }, []);
+
+  const handleOrgChange = (e) => {
+    const orgId = Number(e.target.value);
+    const org = organizations.find(o => o.id === orgId);
+    if (org) {
+      // Set the hidden fallback string
+      import('react-hook-form').then(m => m.useFormContext?.().setValue('companyName', org.name));
+    }
+  };
+
+  const orgOptions = [
+    { value: '', label: 'Select Organization' },
+    ...organizations.map(o => ({ value: o.id, label: o.name }))
+  ];
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -54,17 +85,24 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
           {...register('date', { required: 'Date is required' })}
         />
 
-        {/* Company Name */}
-        <Input
-          label="Company Name"
-          placeholder="Enter company name"
+        {/* Organization Name */}
+        <Select
+          label="Organization"
           required
-          error={errors.companyName?.message}
-          {...register('companyName', {
-            required: 'Company name is required',
-            minLength: { value: 2, message: 'Must be at least 2 characters' },
+          options={orgOptions}
+          error={errors.organizationId?.message}
+          {...register('organizationId', {
+            required: 'Organization is required',
+            onChange: (e) => {
+              const orgId = Number(e.target.value);
+              const org = organizations.find(o => o.id === orgId);
+              if (org) {
+                setValue('companyName', org.name, { shouldValidate: true });
+              }
+            }
           })}
         />
+        <input type="hidden" {...register('companyName')} />
 
         {/* Business Category */}
         <Select

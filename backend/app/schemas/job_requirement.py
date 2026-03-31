@@ -52,6 +52,7 @@ class RequirementResponse(BaseModel):
 class JobCreateRequest(BaseModel):
     job_date: date = Field(..., description="Date of the job requirement (YYYY-MM-DD)")
     company_name: str = Field(..., min_length=1, description="Name of the hiring company")
+    organization_id: Optional[int] = Field(default=None, description="Linked Organization Master ID")
     business_category: str = Field(default="IT", description="Options: IT, ITSM, BPO")
     requirements: List[RequirementCreate] = Field(..., min_length=1, description="List of hiring requirements")
     assigned_to: str = Field(..., min_length=1, description="Name of the assigned recruiter")
@@ -100,6 +101,7 @@ class JobCreateRequest(BaseModel):
 class JobUpdateRequest(BaseModel):
     job_date: date = Field(..., description="Date of the job requirement (YYYY-MM-DD)")
     company_name: str = Field(..., min_length=1, description="Name of the hiring company")
+    organization_id: Optional[int] = Field(default=None, description="Linked Organization Master ID")
     business_category: str = Field(default="IT", description="Options: IT, ITSM, BPO")
     requirements: List[RequirementCreate] = Field(..., min_length=1, description="List of hiring requirements")
     assigned_to: str = Field(..., min_length=1, description="Name of the assigned recruiter")
@@ -134,6 +136,7 @@ class JobResponse(BaseModel):
     job_code: str
     job_date: date
     company_name: str
+    organization_id: Optional[int] = None
     business_category: str
     requirements: List[RequirementResponse]
     assigned_to: str

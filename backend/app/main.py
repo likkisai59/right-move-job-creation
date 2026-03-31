@@ -23,10 +23,12 @@ from app.core.database import engine, Base
 # Import models so SQLAlchemy knows about them before create_all()
 from app.models import job_requirement  # noqa: F401
 from app.models import candidate  # noqa: F401
+from app.models import organization  # noqa: F401
 
 # Import routers
 from app.routes import jobs
 from app.routes import candidates
+from app.routes import organizations
 
 
 # ── Lifespan: runs once on startup ────────────────────────────
@@ -69,6 +71,7 @@ app.add_middleware(
 # ── Register Routers ──────────────────────────────────────────
 app.include_router(jobs.router)
 app.include_router(candidates.router)
+app.include_router(organizations.router)
 
 # ── Static Files ──────────────────────────────────────────────
 # Ensure uploads directory exists
