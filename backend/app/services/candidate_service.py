@@ -63,3 +63,33 @@ def delete_candidate(db: Session, candidate_id: int) -> bool:
     db.delete(candidate)
     db.commit()
     return True
+
+def check_candidate_exists(db: Session, full_name: Optional[str] = None, phone_number: Optional[str] = None) -> dict:
+    """
+    Checks if a candidate exists with the given full name or phone number.
+    Returns boolean flags for UI warnings.
+    """
+    results = {
+        "name_exists": False,
+        "phone_exists": False
+    }
+
+    if full_name:
+        # Normalize spaces (handle double spaces/tabs) and match case-insensitive
+        search_name = " ".join(full_name.split()).lower()
+        
+        # Concat and trim first_name + last_name in SQL for comparison
+        name_match = db.query(Candidate).filter(
+            func.lower(func.trim(func.concat(Candidate.first_name, " ", Candidate.last_name))) == search_name
+        ).first()
+        if name_match:
+            results["name_exists"] = True
+
+
+    if phone_number:
+        phone_match = db.query(Candidate).filter(Candidate.phone_number == phone_number.strip()).first()
+        if phone_match:
+            results["phone_exists"] = True
+
+    return results
+

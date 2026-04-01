@@ -14,6 +14,8 @@ const JOB_STATUS_OPTIONS = [
   { value: 'DRAFT', label: 'Draft' },
 ];
 
+
+
 const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) => {
   const {
     register,

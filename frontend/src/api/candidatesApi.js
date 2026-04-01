@@ -146,3 +146,10 @@ export const fetchNextCandidateId = async () => {
   return response.data.data.next_id;
 };
 
+// ── GET /api/candidates/check-duplicate ─────────────────────
+export const checkDuplicateCandidate = async (params) => {
+  const response = await api.get('/candidates/check-duplicate', { params });
+  return response.data.data;
+};
+
+

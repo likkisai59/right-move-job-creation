@@ -47,6 +47,7 @@ export const getInitials = (name) => {
 };
 
 export const getStatusColorClasses = (status) => {
+  const normalizedStatus = (status || '').toLowerCase().replace('_', '-');
   const map = {
     active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     closed: 'bg-red-50 text-red-700 border-red-200',
@@ -59,8 +60,9 @@ export const getStatusColorClasses = (status) => {
     rejected: 'bg-red-50 text-red-700 border-red-200',
     hired: 'bg-teal-50 text-teal-700 border-teal-200',
   };
-  return map[status] || 'bg-gray-100 text-gray-600 border-gray-200';
+  return map[normalizedStatus] || 'bg-gray-100 text-gray-600 border-gray-200';
 };
+
 
 export const getPipelineBarColor = (index) => {
   const colors = [

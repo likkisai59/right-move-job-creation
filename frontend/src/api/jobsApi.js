@@ -41,7 +41,8 @@ const mapToFrontend = (dbRecord) => {
     numberOfCandidates: requirements.reduce((sum, r) => sum + r.num_candidates, 0),
     experience: requirements.map(r => r.experience).join(', '),
     assignedTo: dbRecord.assigned_to,
-    status: (dbRecord.status || 'ACTIVE').toLowerCase().replace('_', '-'),
+    status: dbRecord.status || 'ACTIVE',
+
   };
 };
 
@@ -60,7 +61,8 @@ const mapToBackend = (formData) => {
       num_candidates: Number(req.num_candidates)
     })),
     assigned_to: formData.assignedTo,
-    status: (formData.status || 'active').toUpperCase().replace('-', '_'),
+    status: (formData.status || 'ACTIVE').toUpperCase(),
+
   };
 };
 

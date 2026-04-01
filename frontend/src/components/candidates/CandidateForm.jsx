@@ -8,6 +8,9 @@ import FileUpload from '../common/FileUpload';
 import SkillsInput from './SkillsInput';
 import { fetchJobs } from '../../api/jobsApi';
 import { NOTICE_PERIODS, EXPERIENCE_OPTIONS, EDUCATION_OPTIONS, COUNTRY_CODES } from '../../utils/constants';
+import { checkDuplicateCandidate } from '../../api/candidatesApi';
+import { AlertTriangle } from 'lucide-react';
+
 
 const SectionTitle = ({ children }) => (
   <div className="mb-5">
@@ -62,13 +65,17 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
 
   const [resumeFile, setResumeFile] = useState(null);
   const [jobs, setJobs] = useState([]);
+  const [warnings, setWarnings] = useState({ name: false, phone: false });
   const selectedCategory = watch('businessCategory');
+
 
   useEffect(() => {
     if (defaultValues) {
       reset({ ...DEFAULT_FORM_VALUES, ...defaultValues });
+      setWarnings({ name: false, phone: false }); // Reset warnings on form reset
     }
   }, [defaultValues, reset]);
+
 
   useEffect(() => {
     const loadJobs = async () => {
@@ -86,6 +93,39 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
     { value: '', label: 'Select mapped job (Optional)' },
     ...jobs.map(j => ({ value: j.id, label: `${j.jobCode} | ${j.companyName} | ${j.jobTitle}` }))
   ];
+  
+  const handleCheckDuplicates = async (field) => {
+    const values = getValues();
+    const params = {};
+    
+    if (field === 'name') {
+      const fullName = `${values.firstName || ''} ${values.lastName || ''}`.trim();
+      if (!fullName) {
+        setWarnings(prev => ({ ...prev, name: false }));
+        return;
+      }
+      params.full_name = fullName;
+    } else if (field === 'phone') {
+      if (!values.phone) {
+        setWarnings(prev => ({ ...prev, phone: false }));
+        return;
+      }
+      params.phone_number = values.phone;
+    }
+
+
+    try {
+      const results = await checkDuplicateCandidate(params);
+      setWarnings(prev => ({
+        ...prev,
+        name: field === 'name' ? results.name_exists : prev.name,
+        phone: field === 'phone' ? results.phone_exists : prev.phone,
+      }));
+    } catch (err) {
+      console.error('Duplicate check failed', err);
+    }
+  };
+
 
   const handleFormSubmit = (data) => {
     // Collect final skills: existing chips + any unsaved draft text
@@ -130,15 +170,29 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           placeholder="Enter first name"
           required
           error={errors.firstName?.message}
-          {...register('firstName', { required: 'First name is required' })}
+          {...register('firstName', { 
+            required: 'First name is required',
+            onBlur: () => handleCheckDuplicates('name')
+          })}
         />
-        <Input
-          label="Last Name"
-          placeholder="Enter last name"
-          required
-          error={errors.lastName?.message}
-          {...register('lastName', { required: 'Last name is required' })}
-        />
+        <div>
+          <Input
+            label="Last Name"
+            placeholder="Enter last name"
+            required
+            error={errors.lastName?.message}
+            {...register('lastName', { 
+              required: 'Last name is required',
+              onBlur: () => handleCheckDuplicates('name')
+            })}
+          />
+          {warnings.name && (
+            <div className="mt-1.5 flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 animate-pulse">
+              <AlertTriangle size={14} />
+              <span className="text-[11px] font-medium leading-none">A candidate with a similar name already exists. Please verify.</span>
+            </div>
+          )}
+        </div>
         
         <Input
           label="Candidate ID"
@@ -171,8 +225,15 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
                     value: /^[0-9]{8,15}$/,
                     message: 'Enter 8-15 digits',
                   },
+                  onBlur: () => handleCheckDuplicates('phone')
                 })}
               />
+              {warnings.phone && (
+                <div className="mt-1.5 flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 animate-pulse">
+                  <AlertTriangle size={14} />
+                  <span className="text-[11px] font-medium leading-none">This phone number is already used by another candidate.</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

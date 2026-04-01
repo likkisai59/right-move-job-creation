@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, Eye } from 'lucide-react';
+import { Pencil, Eye, CheckCircle2 } from 'lucide-react';
 import Table from '../common/Table';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
@@ -8,10 +8,25 @@ import EmptyState from '../common/EmptyState';
 import { Briefcase } from 'lucide-react';
 import { formatDate } from '../../utils/formatters';
 
+
 const JobTable = ({ jobs = [], loading = false, onEdit }) => {
   const navigate = useNavigate();
+  const [popoverId, setPopoverId] = useState(null);
+  const popoverRef = useRef(null);
+
+  // Close popover when clicking outside
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target)) {
+        setPopoverId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   const columns = [
+
     {
       key: 'date',
       header: 'Date',
@@ -37,12 +52,93 @@ const JobTable = ({ jobs = [], loading = false, onEdit }) => {
     {
       key: 'jobTitle',
       header: 'Job Title',
-      minWidth: '180px',
+      minWidth: '220px',
+      render: (val, row) => {
+        const hasMore = row.requirements && row.requirements.length > 1;
+        const firstTitle = row.requirements?.[0]?.job_title || val;
+        
+        return (
+          <div className="relative flex flex-col items-start gap-1">
+            <span className="font-medium text-gray-900 leading-tight">
+              {firstTitle}
+            </span>
+            {hasMore && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPopoverId(popoverId === row.id ? null : row.id);
+                }}
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-all border outline-none
+                  ${popoverId === row.id 
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
+                    : 'bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100 hover:border-blue-200'
+                  }`}
+              >
+                (+{row.requirements.length - 1} more)
+              </button>
+            )}
+
+            {/* Popover */}
+            {popoverId === row.id && (
+              <div 
+                ref={popoverRef}
+                className="absolute z-[999] top-full left-0 mt-3 w-72 bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.12)] border border-gray-100 p-4 animate-slide-up"
+              >
+                <div className="flex items-center gap-2 mb-3 border-b border-gray-50 pb-2.5">
+                  <div className="w-6 h-6 rounded-lg bg-blue-50 flex items-center justify-center">
+                    <Briefcase size={12} className="text-blue-600" />
+                  </div>
+                  <h4 className="text-xs font-bold text-gray-800 uppercase tracking-widest">
+                    Job Requirements ({row.requirements.length})
+                  </h4>
+                </div>
+                
+                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
+                  {row.requirements.map((req, idx) => (
+                    <div key={req.id || idx} className="flex flex-col gap-1 group">
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />
+                        <span className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                          {req.job_title}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 pl-4.5">
+                        <span className="text-[10px] text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
+                          {req.experience}
+                        </span>
+                        <span className="text-[10px] font-medium text-emerald-600">
+                           {req.budget}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Arrow pointer */}
+                <div className="absolute -top-1.5 left-6 w-3 h-3 bg-white border-t border-l border-gray-100 rotate-45" />
+              </div>
+            )}
+          </div>
+        );
+      },
     },
+
+    {
+      key: 'mandatorySkill',
+      header: 'Mandatory Skill',
+      minWidth: '150px',
+      render: (val) => (
+        <span className="text-gray-600 italic">
+          {val || '—'}
+        </span>
+      ),
+    },
+
     {
       key: 'numberOfCandidates',
-      header: '# Candidates',
+      header: 'Candidates',
       render: (val) => (
+
         <span className="text-center block">{val}</span>
       ),
     },

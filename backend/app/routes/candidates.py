@@ -9,7 +9,14 @@ from typing import Optional
 
 from app.core.database import get_db
 from app.schemas.candidate import CandidateCreateRequest, CandidateResponse
-from app.services.candidate_service import create_candidate, get_all_candidates, get_candidate_by_id, generate_candidate_code, delete_candidate
+from app.services.candidate_service import (
+    create_candidate, 
+    get_all_candidates, 
+    get_candidate_by_id, 
+    generate_candidate_code, 
+    delete_candidate,
+    check_candidate_exists
+)
 from app.utils.response import success_response, error_response
 
 router = APIRouter(prefix="/api/candidates", tags=["Candidates"])
@@ -24,6 +31,19 @@ def get_next_candidate_id(db: Session = Depends(get_db)):
         )
     except Exception as exc:
         return JSONResponse(status_code=500, content=error_response(str(exc)))
+
+@router.get("/check-duplicate", status_code=status.HTTP_200_OK)
+def check_duplicate(
+    full_name: Optional[str] = Query(None),
+    phone_number: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    try:
+        results = check_candidate_exists(db, full_name, phone_number)
+        return JSONResponse(status_code=200, content=success_response("Duplicate check completed", results))
+    except Exception as exc:
+        return JSONResponse(status_code=500, content=error_response(str(exc)))
+
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def add_candidate(
@@ -87,11 +107,20 @@ async def add_candidate(
         new_candidate = create_candidate(db, payload)
         data = CandidateResponse.model_validate(new_candidate).model_dump(mode="json")
         return JSONResponse(status_code=201, content=success_response("Candidate created successfully", data))
-    except IntegrityError:
+    except IntegrityError as exc:
         db.rollback()
+        # Distinguish between Email and Candidate Code duplicates
+        error_msg = str(exc.orig)
+        if "email_address" in error_msg:
+            message = "A candidate with this email address already exists."
+        elif "candidate_code" in error_msg:
+            message = "Candidate ID already exists."
+        else:
+            message = "Database unique constraint violation."
+            
         return JSONResponse(
             status_code=400, 
-            content=error_response("A candidate with this email address already exists.")
+            content=error_response(message)
         )
     except Exception as exc:
         db.rollback()
