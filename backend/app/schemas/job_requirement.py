@@ -55,6 +55,7 @@ class JobCreateRequest(BaseModel):
     organization_id: Optional[int] = Field(default=None, description="Linked Organization Master ID")
     business_category: str = Field(default="IT", description="Options: IT, ITSM, BPO")
     requirements: List[RequirementCreate] = Field(..., min_length=1, description="List of hiring requirements")
+    mandatory_skill: str = Field(..., min_length=1, description="Required core skill, e.g. 'React, Python'")
     assigned_to: str = Field(..., min_length=1, description="Name of the assigned recruiter")
     status: Optional[str] = Field(default="ACTIVE", description="Status: ACTIVE | ON_HOLD | CLOSED | DRAFT")
 
@@ -104,6 +105,7 @@ class JobUpdateRequest(BaseModel):
     organization_id: Optional[int] = Field(default=None, description="Linked Organization Master ID")
     business_category: str = Field(default="IT", description="Options: IT, ITSM, BPO")
     requirements: List[RequirementCreate] = Field(..., min_length=1, description="List of hiring requirements")
+    mandatory_skill: Optional[str] = Field(default=None, description="Required core skill")
     assigned_to: str = Field(..., min_length=1, description="Name of the assigned recruiter")
     status: Optional[str] = Field(default="ACTIVE", description="Status: ACTIVE | ON_HOLD | CLOSED | DRAFT")
 
@@ -138,6 +140,7 @@ class JobResponse(BaseModel):
     company_name: str
     organization_id: Optional[int] = None
     business_category: str
+    mandatory_skill: Optional[str] = None
     requirements: List[RequirementResponse]
     assigned_to: str
     status: str

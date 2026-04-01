@@ -28,6 +28,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
       organizationId: '',
       companyName: '',
       businessCategory: 'IT',
+      mandatorySkill: '',
       requirements: [{ job_title: '', budget: '', experience: '', num_candidates: '' }],
       assignedTo: '',
       status: 'ACTIVE',
@@ -134,6 +135,15 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
           label="Status"
           options={JOB_STATUS_OPTIONS}
           {...register('status')}
+        />
+
+        {/* Mandatory Skill */}
+        <Input
+          label="Mandatory Skill"
+          placeholder="e.g. React, Python"
+          required
+          error={errors.mandatorySkill?.message}
+          {...register('mandatorySkill', { required: 'Mandatory skill is required' })}
         />
       </div>
 

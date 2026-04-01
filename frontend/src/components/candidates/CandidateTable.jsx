@@ -63,6 +63,18 @@ const CandidateTable = ({ candidates = [], loading = false, onDelete }) => {
       header: 'Experience',
     },
     {
+      key: 'mappedJobId',
+      header: 'Mapped Job',
+      render: (val) =>
+        val ? (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+            Mapped
+          </span>
+        ) : (
+          <span className="text-gray-400 text-xs">—</span>
+        ),
+    },
+    {
       key: 'currentCTC',
       header: 'Current CTC',
       render: (val) => (val ? `₹${val} LPA` : '—'),

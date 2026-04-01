@@ -50,6 +50,10 @@ class Job(Base):
         default="ACTIVE",
     )
 
+    # Core Skill
+    mandatory_skill = Column(String(500), nullable=True) # Supporting text for multiple skills
+
+
     # ── Timestamps ────────────────────────────────────────────
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(

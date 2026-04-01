@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchCandidateById } from '../../api/candidatesApi';
+import { fetchJobById } from '../../api/jobsApi';
 import { Mail, Phone, MapPin, Building2, GraduationCap, Briefcase, FileText, ChevronLeft } from 'lucide-react';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
@@ -26,6 +27,7 @@ const CandidateDetails = () => {
   const navigate = useNavigate();
   const [candidate, setCandidate] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [mappedJob, setMappedJob] = useState(null);
 
   useEffect(() => {
     const loadCandidate = async () => {
@@ -34,6 +36,17 @@ const CandidateDetails = () => {
         const { data } = await fetchCandidateById(id);
         console.log('Candidate data loaded:', data);
         setCandidate(data);
+
+        // If candidate has a mapped job, fetch it
+        if (data?.mappedJobId) {
+          try {
+            const jobRes = await fetchJobById(data.mappedJobId);
+            setMappedJob(jobRes.data);
+          } catch (e) {
+            // Job might not exist — silently ignore
+            setMappedJob(null);
+          }
+        }
       } catch (error) {
         console.error('Failed to load candidate details:', error);
       } finally {
@@ -97,7 +110,9 @@ const CandidateDetails = () => {
                 <>
                   <span className="w-1 h-1 rounded-full bg-gray-300"></span>
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-50 text-blue-700">
-                    Mapped Job ID: {candidate.mappedJobId}
+                    {mappedJob
+                      ? `${mappedJob.jobCode} | ${mappedJob.companyName} | ${mappedJob.jobTitle}`
+                      : `Job ID: ${candidate.mappedJobId}`}
                   </span>
                 </>
               )}

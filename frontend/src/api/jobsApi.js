@@ -28,6 +28,7 @@ const mapToFrontend = (dbRecord) => {
     companyName: dbRecord.company_name,
     organizationId: dbRecord.organization_id || '',
     businessCategory: dbRecord.business_category || 'IT',
+    mandatorySkill: dbRecord.mandatory_skill || '',
     jobTitle: displayTitle,
     budget: requirements.length > 0 ? requirements[0].budget : '—',
     requirements: requirements.map(req => ({
@@ -51,6 +52,7 @@ const mapToBackend = (formData) => {
     company_name: formData.companyName,
     organization_id: formData.organizationId ? Number(formData.organizationId) : null,
     business_category: formData.businessCategory || 'IT',
+    mandatory_skill: formData.mandatorySkill,
     requirements: (formData.requirements || []).map(req => ({
       job_title: req.job_title,
       budget: req.budget,

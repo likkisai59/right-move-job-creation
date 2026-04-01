@@ -37,6 +37,7 @@ def create_job_requirement(db: Session, payload: JobCreateRequest) -> Job:
         company_name=payload.company_name,
         organization_id=payload.organization_id,
         business_category=payload.business_category,
+        mandatory_skill=payload.mandatory_skill,
         assigned_to=payload.assigned_to,
         status=payload.status or "ACTIVE",
     )
@@ -130,6 +131,7 @@ def update_job(
     job.company_name = payload.company_name
     job.organization_id = payload.organization_id
     job.business_category = payload.business_category
+    job.mandatory_skill = payload.mandatory_skill
     job.assigned_to = payload.assigned_to
     job.status = payload.status or "ACTIVE"
 
