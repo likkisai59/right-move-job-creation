@@ -22,11 +22,9 @@ export const JOB_STATUSES = {
 export const NOTICE_PERIODS = [
   { value: 'immediate', label: 'Immediate' },
   { value: '15-days', label: '15 Days' },
-  { value: '30-days', label: '30 Days' },
-  { value: '60-days', label: '60 Days' },
-  { value: '90-days', label: '90 Days' },
-  { value: '3-months', label: '3 Months' },
-  { value: '6-months', label: '6 Months' },
+  { value: '30-days', label: '1 Month' },
+  { value: '60-days', label: '2 Months' },
+  { value: '90-days', label: '3 Months' },
 ];
 
 export const EXPERIENCE_OPTIONS = [
