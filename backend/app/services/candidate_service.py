@@ -6,7 +6,7 @@ from typing import List, Optional
 
 def generate_candidate_code(db: Session) -> str:
     max_id = db.query(func.max(Candidate.id)).scalar() or 0
-    return f"CAN-{max_id + 1:04d}"
+    return f"CAN{max_id + 1:04d}"
 
 def create_candidate(db: Session, payload: CandidateCreateRequest) -> Candidate:
     code = generate_candidate_code(db)

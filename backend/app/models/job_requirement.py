@@ -83,7 +83,7 @@ class JobRequirement(Base):
     
     # MOVED FROM JOB
     job_title = Column(String(255), nullable=False)
-    budget = Column(String(100), nullable=False)
+    budget = Column('budgeted_package', String(100), nullable=False)
     
     # ORIGINAL FIELDS
     experience = Column(String(100), nullable=False)

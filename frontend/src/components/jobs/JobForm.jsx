@@ -6,6 +6,9 @@ import Select from '../common/Select';
 import Button from '../common/Button';
 import { mockRecruiters } from '../../utils/mockData';
 import { fetchOrganizations } from '../../api/organizationsApi';
+import SearchableSelect from '../common/SearchableSelect';
+
+
 
 const JOB_STATUS_OPTIONS = [
   { value: 'ACTIVE', label: 'Active' },
@@ -22,6 +25,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
     handleSubmit,
     control,
     setValue,
+    watch,
     formState: { errors },
     reset,
   } = useForm({
@@ -89,7 +93,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
         />
 
         {/* Organization Name */}
-        <Select
+        {/* <Select
           label="Organization"
           required
           options={orgOptions}
@@ -104,7 +108,23 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
               }
             }
           })}
+        /> */}
+
+        {/* Organization Name */}
+        <SearchableSelect
+          label="Organization"
+          required
+          placeholder="Select Organization"
+          options={organizations.map(o => ({ value: o.id, label: o.name }))}
+          value={watch('organizationId')}
+          onChange={(val) => {
+            setValue('organizationId', val, { shouldValidate: true });
+            const org = organizations.find(o => o.id === Number(val));
+            if (org) setValue('companyName', org.name, { shouldValidate: true });
+          }}
+          error={errors.organizationId?.message}
         />
+
         <input type="hidden" {...register('companyName')} />
 
         {/* Business Category */}
@@ -202,7 +222,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
                   placeholder="e.g. 10"
                   required
                   error={errors.requirements?.[index]?.num_candidates?.message}
-                  {...register(`requirements.${index}.num_candidates`, { 
+                  {...register(`requirements.${index}.num_candidates`, {
                     required: 'Required',
                     min: { value: 1, message: 'Min 1' }
                   })}

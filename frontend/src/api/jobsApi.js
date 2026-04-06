@@ -71,9 +71,11 @@ const mapToBackend = (formData) => {
 // ── GET /api/jobs ──────────────────────────────────────────
 export const fetchJobs = async (params = {}) => {
   const queryParams = {};
-  if (params.search) queryParams.search = params.search;
-  if (params.company) queryParams.company_name = params.company;
-  if (params.date) queryParams.job_date = params.date;
+  if (params.search)     queryParams.search          = params.search;
+  if (params.company)    queryParams.company_name    = params.company;
+  if (params.startDate)  queryParams.start_date      = params.startDate;
+  if (params.endDate)    queryParams.end_date        = params.endDate;
+  if (params.status)     queryParams.status          = params.status;
   if (params.businessCategory && params.businessCategory !== 'All') {
     queryParams.business_category = params.businessCategory;
   }

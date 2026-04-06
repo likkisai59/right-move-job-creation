@@ -12,11 +12,14 @@
 #   Route validates HTTP layer → calls service → returns response
 # ─────────────────────────────────────────────────────────────
 
+import csv
+import io
 from datetime import date
 from typing import Optional
 
+import openpyxl
 from fastapi import APIRouter, Depends, status, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -31,6 +34,7 @@ from app.services.job_service import (
     get_all_jobs,
     get_job_by_id,
     update_job,
+    get_filtered_jobs_for_export,
 )
 from app.utils.response import success_response, error_response
 
@@ -76,6 +80,9 @@ def create_job(
 
     except SQLAlchemyError as db_error:
         db.rollback()
+        import traceback
+        print("❌ DB ERROR:", str(db_error))
+        traceback.print_exc()
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=error_response(
@@ -84,6 +91,9 @@ def create_job(
             ),
         )
     except Exception as exc:
+        import traceback
+        print("❌ POST /api/jobs ERROR:", str(exc))
+        traceback.print_exc()
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=error_response(
@@ -104,20 +114,24 @@ def create_job(
 def list_jobs(
     search: Optional[str] = Query(None, description="General search on company name or job title"),
     company_name: Optional[str] = Query(None, description="Partial matching on company name"),
-    job_date: Optional[date] = Query(None, description="Exact matching on YYYY-MM-DD"),
+    start_date: Optional[date] = Query(None, description="Filter jobs from this date (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(None, description="Filter jobs up to this date (YYYY-MM-DD)"),
+    status_filter: Optional[str] = Query(None, alias="status", description="Filter by status: ACTIVE, CLOSED, ON_HOLD"),
     business_category: Optional[str] = Query(None, description="Filter by IT, ITSM, BPO"),
     db: Session = Depends(get_db),
 ):
     """
     GET /api/jobs
-    GET /api/jobs?company_name=Infosys&job_date=2026-03-15
+    GET /api/jobs?company_name=Infosys&start_date=2026-01-01&end_date=2026-03-31&status=ACTIVE
     """
     try:
         jobs_orm = get_all_jobs(
-            db=db, 
-            search=search, 
-            company_name=company_name, 
-            job_date=job_date,
+            db=db,
+            search=search,
+            company_name=company_name,
+            start_date=start_date,
+            end_date=end_date,
+            status=status_filter,
             business_category=business_category
         )
 
@@ -143,6 +157,101 @@ def list_jobs(
                 errors=[{"field": "server", "message": str(exc)}],
             ),
         )
+
+
+# ── GET /api/jobs/export ─────────────────────────────────────
+
+@router.get(
+    "/export",
+    summary="Export Job Requirements",
+    description="Export filtered jobs as CSV or Excel.",
+)
+def export_jobs(
+    start_date: Optional[date] = Query(None, description="Filter from date (YYYY-MM-DD)"),
+    end_date:   Optional[date] = Query(None, description="Filter to date (YYYY-MM-DD)"),
+    company:    Optional[str]  = Query(None, description="Partial match on company name"),
+    status_filter: Optional[str] = Query(None, alias="status", description="ACTIVE | CLOSED | ON_HOLD"),
+    format:     str            = Query("csv",  description="csv or excel"),
+    db: Session = Depends(get_db),
+):
+    """
+    GET /api/jobs/export?start_date=2026-01-01&end_date=2026-03-31&status=ACTIVE&format=csv
+    GET /api/jobs/export?format=excel
+    """
+    # ── 1. Fetch filtered data ──────────────────────────────────
+    jobs_orm = get_filtered_jobs_for_export(
+        db=db,
+        start_date=start_date,
+        end_date=end_date,
+        company=company,
+        status=status_filter,
+    )
+
+    # ── 2. Flatten ORM objects → list of plain dicts ────────────
+    HEADERS = [
+        "Job Code", "Date", "Company Name", "Business Category",
+        "Job Title(s)", "Mandatory Skill", "Assigned To",
+        "Total Candidates", "Status",
+    ]
+
+    rows = []
+    for job in jobs_orm:
+        titles = ", ".join(r.job_title for r in job.requirements) if job.requirements else "—"
+        total  = sum(r.num_candidates for r in job.requirements)
+        rows.append([
+            job.job_code,
+            str(job.job_date),
+            job.company_name,
+            job.business_category,
+            titles,
+            job.mandatory_skill or "—",
+            job.assigned_to,
+            total,
+            job.status,
+        ])
+
+    # ── 3a. CSV ─────────────────────────────────────────────────
+    if format.lower() == "csv":
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(HEADERS)
+        writer.writerows(rows)
+        output.seek(0)
+
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=jobs.csv"},
+        )
+
+    # ── 3b. Excel ───────────────────────────────────────────────
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Jobs"
+
+    # Header row — bold
+    ws.append(HEADERS)
+    for cell in ws[1]:
+        cell.font = openpyxl.styles.Font(bold=True)
+
+    # Data rows
+    for row in rows:
+        ws.append(row)
+
+    # Auto-fit column widths
+    for col in ws.columns:
+        max_len = max((len(str(cell.value or "")) for cell in col), default=10)
+        ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 50)
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=jobs.xlsx"},
+    )
 
 
 # ── GET /api/jobs/{id} ────────────────────────────────────────

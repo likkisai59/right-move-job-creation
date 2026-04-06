@@ -14,11 +14,11 @@ from app.schemas.job_requirement import JobCreateRequest, JobUpdateRequest
 
 def generate_job_code(db: Session) -> str:
     """
-    Auto-generates the next job code in the format JOB-0001.
+    Auto-generates the next job code in the format JOB0001.
     """
     max_id = db.query(func.max(Job.id)).scalar() or 0
     next_number = max_id + 1
-    return f"JOB-{next_number:04d}"
+    return f"JOB{next_number:04d}"
 
 
 # ─────────────────────────────────────────────────────────────
@@ -66,17 +66,18 @@ def get_all_jobs(
     db: Session,
     search: Optional[str] = None,
     company_name: Optional[str] = None,
-    job_date: Optional[date] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    status: Optional[str] = None,
     business_category: Optional[str] = None,
 ) -> List[Job]:
     """
-    Returns all jobs with their requirements.
+    Returns all jobs with their requirements, with optional filters.
     """
     query = db.query(Job)
 
     if search:
         search_term = f"%{search.strip()}%"
-        # Since job_title moved to JobRequirement, we need to join for search.
         query = query.join(JobRequirement).filter(
             or_(
                 Job.company_name.ilike(search_term),
@@ -89,11 +90,49 @@ def get_all_jobs(
             Job.company_name.ilike(f"%{company_name.strip()}%")
         )
 
-    if job_date:
-        query = query.filter(Job.job_date == job_date)
+    if start_date:
+        query = query.filter(Job.job_date >= start_date)
+
+    if end_date:
+        query = query.filter(Job.job_date <= end_date)
+
+    if status:
+        query = query.filter(Job.status == status.upper())
 
     if business_category and business_category.upper() != "ALL":
         query = query.filter(Job.business_category == business_category.upper())
+
+    return query.order_by(Job.created_at.desc()).all()
+
+
+# ─────────────────────────────────────────────────────────────
+# EXPORT QUERY
+# ─────────────────────────────────────────────────────────────
+
+def get_filtered_jobs_for_export(
+    db: Session,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    company: Optional[str] = None,
+    status: Optional[str] = None,
+) -> List[Job]:
+    """
+    Returns filtered jobs for export (CSV / Excel).
+    Same filter logic as get_all_jobs but used only by the export endpoint.
+    """
+    query = db.query(Job)
+
+    if company:
+        query = query.filter(Job.company_name.ilike(f"%{company.strip()}%"))
+
+    if start_date:
+        query = query.filter(Job.job_date >= start_date)
+
+    if end_date:
+        query = query.filter(Job.job_date <= end_date)
+
+    if status:
+        query = query.filter(Job.status == status.strip().upper())
 
     return query.order_by(Job.created_at.desc()).all()
 
