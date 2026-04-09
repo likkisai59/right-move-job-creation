@@ -24,6 +24,7 @@ def get_all_candidates(
     total_experience: Optional[str] = None,
     current_location: Optional[str] = None,
     business_category: Optional[str] = None,
+    notice_period: Optional[str] = None,
 ) -> List[Candidate]:
     query = db.query(Candidate)
 
@@ -47,11 +48,13 @@ def get_all_candidates(
         query = query.filter(Candidate.total_experience.ilike(f"%{total_experience.strip()}%"))
     if current_location:
         query = query.filter(Candidate.current_location.ilike(f"%{current_location.strip()}%"))
+    if notice_period:
+        query = query.filter(Candidate.notice_period.ilike(f"%{notice_period.strip()}%"))
         
     if business_category and business_category.upper() != "ALL":
         query = query.filter(Candidate.business_category == business_category.upper())
 
-    return query.order_by(Candidate.created_at.desc()).all()
+    return query.order_by(Candidate.id.asc()).all()
 
 def get_candidate_by_id(db: Session, candidate_id: int) -> Optional[Candidate]:
     return db.query(Candidate).filter(Candidate.id == candidate_id).first()

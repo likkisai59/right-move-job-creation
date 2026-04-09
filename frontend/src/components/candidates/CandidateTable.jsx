@@ -15,9 +15,17 @@ const CandidateTable = ({ candidates = [], loading = false, onDelete }) => {
     {
       key: 'id',
       header: 'Candidate ID',
-      render: (val) => (
-        <span className="font-mono text-xs text-gray-500">{val}</span>
-      ),
+      render: (val, row) => {
+        // Safely extract the candidate code from the backend. 
+        // If it's missing for some reason, automatically convert their integer DB ID to the CAN0000 format!
+        const displayCode = row.candidateCode || row.candidate_code || `CAN${String(val).padStart(4, '0')}`;
+
+        return (
+          <span className="font-mono text-xs text-blue-700 font-semibold bg-blue-50 px-2 py-1 rounded border border-blue-100">
+            {displayCode}
+          </span>
+        );
+      },
     },
     {
       key: 'firstName',
@@ -121,7 +129,7 @@ const CandidateTable = ({ candidates = [], loading = false, onDelete }) => {
           >
             <Eye size={15} />
           </button>
-          
+
           <button
             onClick={(e) => {
               e.stopPropagation();

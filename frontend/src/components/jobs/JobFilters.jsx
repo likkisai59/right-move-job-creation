@@ -4,10 +4,10 @@ import Input from '../common/Input';
 import Button from '../common/Button';
 
 const STATUS_OPTIONS = [
-  { value: '',         label: 'All Status' },
-  { value: 'ACTIVE',   label: 'Active' },
-  { value: 'CLOSED',   label: 'Closed' },
-  { value: 'ON_HOLD',  label: 'On Hold' },
+  { value: '', label: 'All Status' },
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'CLOSED', label: 'Closed' },
+  { value: 'ON_HOLD', label: 'On Hold' },
 ];
 
 const JobFilters = ({ filters, onChange, onClear }) => {
@@ -30,8 +30,13 @@ const JobFilters = ({ filters, onChange, onClear }) => {
 
       {/* Start Date */}
       <Input
-        type="date"
-        icon={Calendar}
+        type="text"
+        onFocus={(e) => {
+          e.target.type = 'date';
+          try { e.target.showPicker(); } catch (err) { }
+        }}
+        onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }}
+        // icon={Calendar}
         placeholder="Start date"
         value={filters.startDate || ''}
         onChange={(e) => handleChange('startDate', e.target.value)}
@@ -40,8 +45,13 @@ const JobFilters = ({ filters, onChange, onClear }) => {
 
       {/* End Date */}
       <Input
-        type="date"
-        icon={Calendar}
+        type="text"
+        onFocus={(e) => {
+          e.target.type = 'date';
+          try { e.target.showPicker(); } catch (err) { }
+        }}
+        onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }}
+        // icon={Calendar}
         placeholder="End date"
         value={filters.endDate || ''}
         onChange={(e) => handleChange('endDate', e.target.value)}

@@ -1,8 +1,11 @@
 import shutil
 import os
+import csv
+import io
+import openpyxl
 from datetime import datetime
 from fastapi import APIRouter, Depends, status, Query, File, UploadFile, Form
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import Optional
@@ -136,16 +139,85 @@ def list_candidates(
     total_experience: Optional[str] = Query(None, description="Partial matching on total experience"),
     current_location: Optional[str] = Query(None, description="Partial matching on current location"),
     business_category: Optional[str] = Query(None, description="Filter by IT, ITSM, BPO"),
+    notice_period: Optional[str] = Query(None, description="Filter by notice period"),
     db: Session = Depends(get_db)
 ):
     try:
-        candidates = get_all_candidates(db, search, candidate_code, skills, total_experience, current_location, business_category)
+        candidates = get_all_candidates(db, search, candidate_code, skills, total_experience, current_location, business_category, notice_period)
         data = [CandidateResponse.model_validate(c).model_dump(mode="json") for c in candidates]
         return JSONResponse(status_code=200, content=success_response("Candidates fetched successfully", data))
     except Exception as exc:
         import traceback
         traceback.print_exc()  # This will print the full error to the console
         return JSONResponse(status_code=500, content=error_response(str(exc)))
+
+@router.get("/export", summary="Export Candidates")
+def export_candidates(
+    search: Optional[str] = Query(None, description="General search on name, skills, or code"),
+    skills: Optional[str] = Query(None, description="Partial matching on skills"),
+    total_experience: Optional[str] = Query(None, description="Partial matching on total experience"),
+    business_category: Optional[str] = Query(None, description="Filter by IT, ITSM, BPO"),
+    notice_period: Optional[str] = Query(None, description="Filter by notice period"),
+    format: str = Query("csv", description="csv or excel"),
+    db: Session = Depends(get_db)
+):
+    candidates_orm = get_all_candidates(
+        db=db, search=search, skills=skills, total_experience=total_experience, 
+        business_category=business_category, notice_period=notice_period
+    )
+
+    HEADERS = [
+        "Candidate ID", "First Name", "Last Name", "Email", "Phone Number", 
+        "Category", "Skills", "Experience", "Current CTC", "Expected CTC", 
+        "Notice Period", "Location", "Reason for Change"
+    ]
+
+    rows = []
+    for c in candidates_orm:
+        rows.append([
+            c.candidate_code,
+            c.first_name,
+            c.last_name,
+            c.email_address,
+            c.phone_number,
+            c.business_category,
+            c.skills or "—",
+            c.total_experience or "—",
+            c.current_ctc or "—",
+            c.expected_ctc or "—",
+            c.notice_period or "—",
+            c.current_location or "—",
+            c.reason_for_job_change or "—",
+        ])
+
+    if format.lower() == "csv":
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(HEADERS)
+        writer.writerows(rows)
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=candidates.csv"},
+        )
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Candidates"
+    ws.append(HEADERS)
+    for row in rows:
+        ws.append(row)
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=candidates.xlsx"},
+    )
 
 @router.get("/{candidate_id}", status_code=status.HTTP_200_OK)
 def get_candidate(candidate_id: int, db: Session = Depends(get_db)):

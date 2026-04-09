@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Briefcase,
   Users,
+  Building2,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -13,6 +14,7 @@ const NAV_ITEMS = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { label: 'Jobs', path: '/jobs', icon: Briefcase },
   { label: 'Candidates', path: '/candidates', icon: Users },
+  { label: 'Organizations', path: '/organizations', icon: Building2 },
 ];
 
 const Sidebar = ({ collapsed, onToggle }) => {

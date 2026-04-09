@@ -10,6 +10,9 @@ import CandidateListPage from '../pages/candidates/CandidateListPage';
 import AddCandidatePage from '../pages/candidates/AddCandidatePage';
 import CandidateDetails from '../pages/candidates/CandidateDetails';
 import GlobalSearchPage from '../pages/GlobalSearchPage';
+import OrganizationCreatePage from '../pages/organizations/OrganizationCreatePage';
+import OrganizationListPage from '../pages/organizations/OrganizationListPage';
+// import OrganizationEditPage from '../pages/organizations/OrganizationEditPage';
 
 const AppRoutes = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -38,6 +41,11 @@ const AppRoutes = () => {
             <Route path="/candidates/create" element={<AddCandidatePage />} />
             <Route path="/candidates/:id" element={<CandidateDetails />} />
             <Route path="/search" element={<GlobalSearchPage />} />
+
+            {/* Organizations */}
+            <Route path="/organizations" element={<OrganizationListPage />} />
+            <Route path="/organizations/create" element={<OrganizationCreatePage />} />
+
             {/* Catch-all */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>

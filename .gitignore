@@ -1,10 +1,9 @@
 # Python
 backend/venv/
-backend/__pycache__/
-backend/*/__pycache__/
-backend/*.pyc
-backend/*.pyo
-backend/*.pyd
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
 backend/.env
 backend/.pytest_cache/
 backend/coverage/
