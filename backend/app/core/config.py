@@ -4,10 +4,14 @@
 # a clean Settings object used across the application.
 # ─────────────────────────────────────────────────────────────
 
+from pathlib import Path
 from urllib.parse import quote_plus
 from typing import Optional, Self
 from pydantic_settings import BaseSettings
 from pydantic import model_validator
+
+# Resolve the .env file path relative to this file's directory (app/.env)
+ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
 
 class Settings(BaseSettings):
@@ -41,7 +45,7 @@ class Settings(BaseSettings):
         return self
 
     model_config = {
-        "env_file": ".env",
+        "env_file": str(ENV_FILE),
         "env_file_encoding": "utf-8",
         "extra": "ignore",  # Allow extra env vars without crashing
     }

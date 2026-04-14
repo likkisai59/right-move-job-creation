@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import Optional
 
+from pydantic import ValidationError, BaseModel, Field
 from app.core.database import get_db
 from app.schemas.candidate import CandidateCreateRequest, CandidateResponse
 from app.services.candidate_service import (
@@ -110,6 +111,15 @@ async def add_candidate(
         new_candidate = create_candidate(db, payload)
         data = CandidateResponse.model_validate(new_candidate).model_dump(mode="json")
         return JSONResponse(status_code=201, content=success_response("Candidate created successfully", data))
+    except ValidationError as exc:
+        # Extract the first error message
+        error_msg = exc.errors()[0]['msg']
+        # Pydantic adds 'Value error, ' prefix for raise ValueError in validators
+        clean_msg = error_msg.replace('Value error, ', '')
+        return JSONResponse(
+            status_code=400,
+            content=error_response(clean_msg)
+        )
     except IntegrityError as exc:
         db.rollback()
         # Distinguish between Email and Candidate Code duplicates

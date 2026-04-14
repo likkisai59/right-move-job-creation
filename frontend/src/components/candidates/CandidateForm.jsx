@@ -56,6 +56,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
     watch,
   } = useForm({
     defaultValues: { ...DEFAULT_FORM_VALUES, ...defaultValues },
+    mode: 'onChange',
   });
 
   const { fields: expFields, append: appendExp, remove: removeExp } = useFieldArray({
@@ -67,6 +68,15 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
   const [jobs, setJobs] = useState([]);
   const [warnings, setWarnings] = useState({ name: false, phone: false });
   const selectedCategory = watch('businessCategory');
+  const totalExperience = watch('totalExperience');
+
+  // Fresher logic: Clear relevant experience if total experience is changed to 'fresher'
+  useEffect(() => {
+    if (totalExperience === 'fresher') {
+      setValue('relevantExperience', '0');
+      setValue('relevantExperienceBySkill', []);
+    }
+  }, [totalExperience, setValue]);
 
 
   useEffect(() => {
@@ -172,6 +182,11 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           error={errors.firstName?.message}
           {...register('firstName', { 
             required: 'First name is required',
+            pattern: {
+              value: /^[A-Za-z ]+$/,
+              message: 'Name should contain only alphabets'
+            },
+            validate: value => value.trim().length > 0 || 'Name should contain only alphabets',
             onBlur: () => handleCheckDuplicates('name')
           })}
         />
@@ -183,6 +198,11 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
             error={errors.lastName?.message}
             {...register('lastName', { 
               required: 'Last name is required',
+              pattern: {
+                value: /^[A-Za-z ]+$/,
+                message: 'Name should contain only alphabets'
+              },
+              validate: value => value.trim().length > 0 || 'Name should contain only alphabets',
               onBlur: () => handleCheckDuplicates('name')
             })}
           />
@@ -295,8 +315,15 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           label="Relevant Experience (Years)"
           type="number"
           placeholder="e.g. 3"
+          disabled={totalExperience === 'fresher'}
           error={errors.relevantExperience?.message}
           {...register('relevantExperience', {
+            validate: value => {
+              if (totalExperience === 'fresher' && parseFloat(value) > 0) {
+                return 'Freshers cannot have relevant experience';
+              }
+              return true;
+            },
             min: { value: 0, message: 'Cannot be negative' },
           })}
         />
@@ -307,38 +334,11 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           error={errors.highestEducation?.message}
           {...register('highestEducation')}
         />
-
-        {/* Skills - spans full width */}
-        <div className="md:col-span-2">
-          <label className="text-sm font-medium text-gray-700 flex items-center gap-1 mb-1.5">
-            Skills <span className="text-red-500">*</span>
-          </label>
-          <Controller
-            name="skills"
-            control={control}
-            rules={{
-              validate: (val) => {
-                const draft = getValues('skills_draft')?.trim();
-                return (val && val.length > 0) || (draft && draft.length > 0) || 'At least one skill is required';
-              }
-            }}
-            render={({ field }) => (
-              <SkillsInput
-                value={field.value || []}
-                onChange={field.onChange}
-                draftValue={watch('skills_draft')}
-                onDraftChange={(val) => setValue('skills_draft', val, { shouldValidate: true })}
-                placeholder="Type a skill and press Enter"
-                error={errors.skills?.message}
-              />
-            )}
-          />
-        </div>
       </div>
 
       {/* SECTION 3: Relevant Experience by Skill (New) */}
       <SectionTitle>Relevant Experience by Skill (Optional)</SectionTitle>
-      <div className="mb-8">
+      <div className={`mb-8 ${totalExperience === 'fresher' ? 'opacity-50 pointer-events-none' : ''}`}>
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-gray-500">Add detailed experience for specific tools or skills.</p>
           <Button
@@ -347,6 +347,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
             size="sm"
             onClick={() => appendExp({ skill: '', experience: '' })}
             icon={Plus}
+            disabled={totalExperience === 'fresher'}
           >
             Add Skill
           </Button>
@@ -387,6 +388,33 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
             </div>
           ))}
         </div>
+      </div>
+
+      {/* SECTION 4: Other Skills */}
+      <div className="mb-8">
+        <label className="text-sm font-medium text-gray-700 flex items-center gap-1 mb-1.5">
+          Other Skills <span className="text-red-500">*</span>
+        </label>
+        <Controller
+          name="skills"
+          control={control}
+          rules={{
+            validate: (val) => {
+              const draft = getValues('skills_draft')?.trim();
+              return (val && val.length > 0) || (draft && draft.length > 0) || 'At least one skill is required';
+            }
+          }}
+          render={({ field }) => (
+            <SkillsInput
+              value={field.value || []}
+              onChange={field.onChange}
+              draftValue={watch('skills_draft')}
+              onDraftChange={(val) => setValue('skills_draft', val, { shouldValidate: true })}
+              placeholder="Type a skill and press Enter"
+              error={errors.skills?.message}
+            />
+          )}
+        />
       </div>
 
       {/* SECTION 4: Compensation & Availability */}

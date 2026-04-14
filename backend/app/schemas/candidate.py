@@ -1,10 +1,39 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
+import re
 
 class CandidateCreateRequest(BaseModel):
     first_name: str = Field(..., min_length=1)
     last_name: str = Field(..., min_length=1)
+
+    @field_validator('first_name', 'last_name')
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Name cannot be empty")
+        if not re.match(r"^[A-Za-z ]+$", v):
+            raise ValueError("Name should contain only alphabets")
+        return v
+
+    @model_validator(mode='after')
+    def validate_fresher_experience(self) -> 'CandidateCreateRequest':
+        total_exp = self.total_experience
+        relevant_exp = self.relevant_experience_years
+        
+        if total_exp == 'fresher':
+            if relevant_exp:
+                try:
+                    if float(relevant_exp) > 0:
+                        raise ValueError("Freshers cannot have relevant experience")
+                except ValueError as e:
+                    if "Freshers cannot have relevant experience" in str(e):
+                        raise e
+                except TypeError:
+                    pass
+        return self
+
     country_code: str = Field("+91", min_length=1)
     business_category: str = Field(default="IT", description="Options: IT, ITSM, BPO")
     phone_number: str = Field(..., min_length=1)
