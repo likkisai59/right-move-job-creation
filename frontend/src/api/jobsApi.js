@@ -11,7 +11,7 @@ import api from './axios';
 const mapToFrontend = (dbRecord) => {
   if (!dbRecord) return null;
   const requirements = dbRecord.requirements || [];
-  
+
   // Create an aggregate job title for the table view
   let displayTitle = '—';
   if (requirements.length > 0) {
@@ -42,7 +42,8 @@ const mapToFrontend = (dbRecord) => {
     experience: requirements.map(r => r.experience).join(', '),
     assignedTo: dbRecord.assigned_to,
     status: dbRecord.status || 'ACTIVE',
-
+    created_at: dbRecord.created_at,
+    updated_at: dbRecord.updated_at,
   };
 };
 
@@ -71,17 +72,17 @@ const mapToBackend = (formData) => {
 // ── GET /api/jobs ──────────────────────────────────────────
 export const fetchJobs = async (params = {}) => {
   const queryParams = {};
-  if (params.search)     queryParams.search          = params.search;
-  if (params.company)    queryParams.company_name    = params.company;
-  if (params.startDate)  queryParams.start_date      = params.startDate;
-  if (params.endDate)    queryParams.end_date        = params.endDate;
-  if (params.status)     queryParams.status          = params.status;
+  if (params.search) queryParams.search = params.search;
+  if (params.company) queryParams.company_name = params.company;
+  if (params.startDate) queryParams.start_date = params.startDate;
+  if (params.endDate) queryParams.end_date = params.endDate;
+  if (params.status) queryParams.status = params.status;
   if (params.businessCategory && params.businessCategory !== 'All') {
     queryParams.business_category = params.businessCategory;
   }
 
   const response = await api.get('/jobs', { params: queryParams });
-  
+
   return {
     data: response.data.data.map(mapToFrontend)
   };
@@ -96,9 +97,16 @@ export const fetchJobById = async (id) => {
 // ── POST /api/jobs ────────────────────────────────────────────
 export const createJob = async (formData) => {
   const payload = mapToBackend(formData);
-  const response = await api.post('/jobs', payload);
-  // Return in the same shape the rest of the app expects: { data: {...} }
-  return { data: mapToFrontend(response.data.data) };
+  console.log('Final Job Payload:', payload);
+  try {
+    const response = await api.post('/jobs', payload);
+    return { data: mapToFrontend(response.data.data) };
+  } catch (error) {
+    if (error.response?.status === 422) {
+      console.error('Validation Error Details:', error.response.data);
+    }
+    throw error;
+  }
 };
 
 // ── PUT /api/jobs/{id} ────────────────────────────────────────
@@ -112,4 +120,24 @@ export const updateJob = async (id, formData) => {
 export const deleteJob = async (id) => {
   const response = await api.delete(`/jobs/${id}`);
   return { data: response.data };
+};
+
+// ── GET /api/jobs/{id}/matching-candidates ────────────────────
+export const fetchMatchingCandidates = async (id) => {
+  const response = await api.get(`/jobs/${id}/matching-candidates`);
+  return { data: response.data.data };
+};
+
+// ── POST /api/jobs/{id}/shortlist ─────────────────────────────
+export const shortlistCandidate = async (jobId, candidateId) => {
+  const response = await api.post(`/jobs/${jobId}/shortlist`, {
+    candidate_id: candidateId
+  });
+  return { data: response.data };
+};
+
+// ── GET /api/jobs/{id}/shortlisted ────────────────────────────
+export const fetchShortlistedCandidates = async (id) => {
+  const response = await api.get(`/jobs/${id}/shortlisted`);
+  return { data: response.data.data };
 };

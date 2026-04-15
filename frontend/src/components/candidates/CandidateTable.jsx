@@ -7,6 +7,7 @@ import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
 import { Users } from 'lucide-react';
 import { truncateText } from '../../utils/formatters';
+import TimeStamp from '../common/TimeStamp';
 
 const CandidateTable = ({ candidates = [], loading = false, onDelete }) => {
   const navigate = useNavigate();
@@ -32,7 +33,10 @@ const CandidateTable = ({ candidates = [], loading = false, onDelete }) => {
       header: 'Full Name',
       minWidth: '150px',
       render: (_, row) => (
-        <span className="font-medium text-gray-900">{`${row.firstName} ${row.lastName}`}</span>
+        <div className="flex flex-col">
+          <span className="font-medium text-gray-900">{`${row.firstName} ${row.lastName}`}</span>
+          <TimeStamp created={row.created_at} updated={row.updated_at} />
+        </div>
       ),
     },
     {

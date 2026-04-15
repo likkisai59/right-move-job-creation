@@ -16,7 +16,8 @@ const OrganizationCreatePage = () => {
       setTimeout(() => navigate('/organizations'), 500);
     } catch (error) {
       console.error('Failed to create organization:', error);
-      alert('Failed to save organization. Please check if the name already exists.');
+      const errorMsg = error.response?.data?.message || 'Failed to save organization. Please try again.';
+      alert(errorMsg);
       setSaving(false);
     }
   };

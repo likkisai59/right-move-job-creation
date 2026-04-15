@@ -7,6 +7,7 @@ import Button from '../common/Button';
 import EmptyState from '../common/EmptyState';
 import { Briefcase } from 'lucide-react';
 import { formatDate } from '../../utils/formatters';
+import TimeStamp from '../common/TimeStamp';
 
 
 const JobTable = ({ jobs = [], loading = false, onEdit }) => {
@@ -63,6 +64,7 @@ const JobTable = ({ jobs = [], loading = false, onEdit }) => {
             <span className="font-medium text-gray-900 leading-tight">
               {firstTitle}
             </span>
+            <TimeStamp created={row.created_at} updated={row.updated_at} />
             {hasMore && (
               <button
                 onClick={(e) => {
@@ -319,6 +321,17 @@ const JobTable = ({ jobs = [], loading = false, onEdit }) => {
       header: 'Actions',
       render: (_, row) => (
         <div className="flex items-center gap-1.5">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/jobs/${row.id}`);
+            }}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+            title="View details"
+          >
+            <Eye size={15} />
+          </button>
+          
           <button
             onClick={(e) => {
               e.stopPropagation();

@@ -6,13 +6,14 @@ import Dashboard from '../pages/Dashboard';
 import JobListPage from '../pages/jobs/JobListPage';
 import CreateJobPage from '../pages/jobs/CreateJobPage';
 import EditJobPage from '../pages/jobs/EditJobPage';
+import JobDetailsPage from '../pages/jobs/JobDetailsPage';
 import CandidateListPage from '../pages/candidates/CandidateListPage';
 import AddCandidatePage from '../pages/candidates/AddCandidatePage';
 import CandidateDetails from '../pages/candidates/CandidateDetails';
 import GlobalSearchPage from '../pages/GlobalSearchPage';
 import OrganizationCreatePage from '../pages/organizations/OrganizationCreatePage';
 import OrganizationListPage from '../pages/organizations/OrganizationListPage';
-// import OrganizationEditPage from '../pages/organizations/OrganizationEditPage';
+import OrganizationEditPage from '../pages/organizations/OrganizationEditPage';
 
 const AppRoutes = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -36,6 +37,7 @@ const AppRoutes = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/jobs" element={<JobListPage />} />
             <Route path="/jobs/create" element={<CreateJobPage />} />
+            <Route path="/jobs/:id" element={<JobDetailsPage />} />
             <Route path="/jobs/edit/:id" element={<EditJobPage />} />
             <Route path="/candidates" element={<CandidateListPage />} />
             <Route path="/candidates/create" element={<AddCandidatePage />} />
@@ -45,6 +47,7 @@ const AppRoutes = () => {
             {/* Organizations */}
             <Route path="/organizations" element={<OrganizationListPage />} />
             <Route path="/organizations/create" element={<OrganizationCreatePage />} />
+            <Route path="/organizations/edit/:id" element={<OrganizationEditPage />} />
 
             {/* Catch-all */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

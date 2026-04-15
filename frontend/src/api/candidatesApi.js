@@ -20,8 +20,8 @@ const mapToFrontend = (dbRecord) => {
     highestEducation: dbRecord.highest_education,
     skills: dbRecord.skills ? dbRecord.skills.split(',').map(s => s.trim()) : [],
     mappedJobId: dbRecord.mapped_job_id,
-    relevantExperienceBySkill: dbRecord.relevant_experience_by_skill 
-      ? (() => { try { return JSON.parse(dbRecord.relevant_experience_by_skill); } catch(e) { return []; } })()
+    relevantExperienceBySkill: dbRecord.relevant_experience_by_skill
+      ? (() => { try { return JSON.parse(dbRecord.relevant_experience_by_skill); } catch (e) { return []; } })()
       : [],
     currentCTC: dbRecord.current_ctc,
     expectedCTC: dbRecord.expected_ctc,
@@ -61,7 +61,7 @@ const mapToBackend = (formData) => {
 export const fetchCandidates = async (params = {}) => {
   const queryParams = {};
   if (params.search) {
-     queryParams.search = params.search;
+    queryParams.search = params.search;
   }
   // Allow explicit backend filters too:
   if (params.candidateCode) queryParams.candidate_code = params.candidateCode;
@@ -85,7 +85,7 @@ export const fetchCandidateById = async (id) => {
 // ── POST /api/candidates ─────────────────────────────────────
 export const createCandidate = async (candidateData) => {
   const formData = new FormData();
-  
+
   // Basic Fields
   formData.append('first_name', candidateData.firstName);
   formData.append('last_name', candidateData.lastName);
@@ -93,27 +93,27 @@ export const createCandidate = async (candidateData) => {
   formData.append('phone_number', candidateData.phone);
   formData.append('country_code', candidateData.countryCode || '+91');
   formData.append('business_category', candidateData.businessCategory || 'IT');
-  
+
   // Optional / Additional Fields
   if (candidateData.currentLocation) formData.append('current_location', candidateData.currentLocation);
   if (candidateData.currentCompany) formData.append('current_last_company', candidateData.currentCompany);
   if (candidateData.totalExperience) formData.append('total_experience', candidateData.totalExperience);
   if (candidateData.relevantExperience) formData.append('relevant_experience_years', candidateData.relevantExperience);
   if (candidateData.highestEducation) formData.append('highest_education', candidateData.highestEducation);
-  
+
   if (candidateData.mappedJobId) formData.append('mapped_job_id', candidateData.mappedJobId);
   if (candidateData.relevantExperienceBySkill && candidateData.relevantExperienceBySkill.length > 0) {
     formData.append('relevant_experience_by_skill', JSON.stringify(candidateData.relevantExperienceBySkill));
   }
-  
+
   const skills = Array.isArray(candidateData.skills) ? candidateData.skills.join(', ') : candidateData.skills;
   if (skills) formData.append('skills', skills);
-  
+
   if (candidateData.currentCTC) formData.append('current_ctc', candidateData.currentCTC);
   if (candidateData.expectedCTC) formData.append('expected_ctc', candidateData.expectedCTC);
   if (candidateData.noticePeriod) formData.append('notice_period', candidateData.noticePeriod);
   if (candidateData.reasonForChange) formData.append('reason_for_job_change', candidateData.reasonForChange);
-  
+
   // The resume file itself
   if (candidateData.resumeFile) {
     formData.append('file', candidateData.resumeFile);

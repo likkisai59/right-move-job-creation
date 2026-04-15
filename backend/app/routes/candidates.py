@@ -40,10 +40,11 @@ def get_next_candidate_id(db: Session = Depends(get_db)):
 def check_duplicate(
     full_name: Optional[str] = Query(None),
     phone_number: Optional[str] = Query(None),
+    email_address: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
     try:
-        results = check_candidate_exists(db, full_name, phone_number)
+        results = check_candidate_exists(db, full_name, phone_number, email_address)
         return JSONResponse(status_code=200, content=success_response("Duplicate check completed", results))
     except Exception as exc:
         return JSONResponse(status_code=500, content=error_response(str(exc)))

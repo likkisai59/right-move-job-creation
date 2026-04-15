@@ -23,7 +23,9 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
+from pydantic import BaseModel
 from app.core.database import get_db
+from app.schemas.candidate import CandidateResponse
 from app.schemas.job_requirement import (
     JobCreateRequest,
     JobUpdateRequest,
@@ -35,6 +37,9 @@ from app.services.job_service import (
     get_job_by_id,
     update_job,
     get_filtered_jobs_for_export,
+    get_matching_candidates,
+    shortlist_candidate,
+    get_shortlisted_candidates,
 )
 from app.utils.response import success_response, error_response
 
@@ -349,3 +354,67 @@ def update_job_endpoint(
                 errors=[{"field": "server", "message": str(exc)}],
             ),
         )
+
+# ─────────────────────────────────────────────────────────────
+# MATCHING & SHORTLISTING ROUTES
+# ─────────────────────────────────────────────────────────────
+
+@router.get("/{job_id}/matching-candidates")
+def matching_candidates(job_id: int, db: Session = Depends(get_db)):
+    """
+    GET /api/jobs/{job_id}/matching-candidates
+    
+    Returns all matching candidates with match scores and shortlist status.
+    """
+    try:
+        result = get_matching_candidates(db, job_id)
+        return JSONResponse(
+            status_code=200,
+            content=success_response("Matching candidates fetched", result)
+        )
+    except Exception as exc:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content=error_response(str(exc)))
+
+@router.post("/{job_id}/shortlist/{candidate_id}")
+def shortlist(job_id: int, candidate_id: int, db: Session = Depends(get_db)):
+    """
+    POST /api/jobs/{job_id}/shortlist/{candidate_id}
+    
+    Shortlists a candidate for a specific job.
+    """
+    try:
+        shortlist_candidate(db, job_id, candidate_id)
+        return JSONResponse(
+            status_code=200,
+            content=success_response("Candidate shortlisted successfully")
+        )
+    except ValueError as val_err:
+        return JSONResponse(
+            status_code=400,
+            content=error_response(str(val_err))
+        )
+    except Exception as exc:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content=error_response(str(exc)))
+
+@router.get("/{job_id}/shortlisted-candidates")
+def shortlisted_candidates(job_id: int, db: Session = Depends(get_db)):
+    """
+    GET /api/jobs/{job_id}/shortlisted-candidates
+    
+    Returns all shortlisted candidates for a specific job.
+    """
+    try:
+        candidates = get_shortlisted_candidates(db, job_id)
+        data = [CandidateResponse.model_validate(c).model_dump(mode="json") for c in candidates]
+        return JSONResponse(
+            status_code=200,
+            content=success_response("Shortlisted candidates fetched", data)
+        )
+    except Exception as exc:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content=error_response(str(exc)))

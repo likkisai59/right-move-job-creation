@@ -34,6 +34,7 @@ def get_all_candidates(
             or_(
                 Candidate.first_name.ilike(search_term),
                 Candidate.last_name.ilike(search_term),
+                func.concat(Candidate.first_name, ' ', Candidate.last_name).ilike(search_term),
                 Candidate.skills.ilike(search_term),
                 Candidate.candidate_code.ilike(search_term),
                 Candidate.total_experience.ilike(search_term)
@@ -54,7 +55,7 @@ def get_all_candidates(
     if business_category and business_category.upper() != "ALL":
         query = query.filter(Candidate.business_category == business_category.upper())
 
-    return query.order_by(Candidate.id.asc()).all()
+    return query.order_by(Candidate.created_at.desc()).all()
 
 def get_candidate_by_id(db: Session, candidate_id: int) -> Optional[Candidate]:
     return db.query(Candidate).filter(Candidate.id == candidate_id).first()
@@ -67,14 +68,20 @@ def delete_candidate(db: Session, candidate_id: int) -> bool:
     db.commit()
     return True
 
-def check_candidate_exists(db: Session, full_name: Optional[str] = None, phone_number: Optional[str] = None) -> dict:
+def check_candidate_exists(
+    db: Session, 
+    full_name: Optional[str] = None, 
+    phone_number: Optional[str] = None,
+    email_address: Optional[str] = None
+) -> dict:
     """
-    Checks if a candidate exists with the given full name or phone number.
+    Checks if a candidate exists with the given full name, phone number or email.
     Returns boolean flags for UI warnings.
     """
     results = {
         "name_exists": False,
-        "phone_exists": False
+        "phone_exists": False,
+        "email_exists": False
     }
 
     if full_name:
@@ -93,6 +100,13 @@ def check_candidate_exists(db: Session, full_name: Optional[str] = None, phone_n
         phone_match = db.query(Candidate).filter(Candidate.phone_number == phone_number.strip()).first()
         if phone_match:
             results["phone_exists"] = True
+
+    if email_address:
+        email_match = db.query(Candidate).filter(
+            func.lower(Candidate.email_address) == email_address.strip().lower()
+        ).first()
+        if email_match:
+            results["email_exists"] = True
 
     return results
 

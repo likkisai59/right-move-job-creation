@@ -40,6 +40,8 @@ class RequirementResponse(BaseModel):
     budget: str
     experience: str
     num_candidates: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     model_config = {
         "from_attributes": True
@@ -144,8 +146,8 @@ class JobResponse(BaseModel):
     requirements: List[RequirementResponse]
     assigned_to: str
     status: str
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     model_config = {
         "from_attributes": True

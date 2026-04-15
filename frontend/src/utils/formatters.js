@@ -10,6 +10,36 @@ export const formatDate = (dateString) => {
   });
 };
 
+export const formatFullDateTime = (dateString) => {
+  if (!dateString) return '—';
+  const date = new Date(dateString);
+  return date.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  }).replace(/, /g, ', ');
+};
+
+export const formatRelativeTime = (dateString) => {
+  if (!dateString) return '—';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now - date) / 1000);
+
+  if (diffInSeconds < 0) return 'just now'; // Handle slight clock skew
+  if (diffInSeconds < 60) return 'just now';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} mins ago`;
+  const hours = Math.floor(diffInSeconds / 3600);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+  const days = Math.floor(diffInSeconds / 86400);
+  if (days < 7) return `${days} day${days === 1 ? '' : 's'} ago`;
+  
+  return formatDate(dateString);
+};
+
 export const formatCurrency = (amount) => {
   if (!amount) return '—';
   return `₹${amount} LPA`;

@@ -54,6 +54,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
     setValue,
     getValues,
     watch,
+    setError,
   } = useForm({
     defaultValues: { ...DEFAULT_FORM_VALUES, ...defaultValues },
     mode: 'onChange',
@@ -66,7 +67,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
 
   const [resumeFile, setResumeFile] = useState(null);
   const [jobs, setJobs] = useState([]);
-  const [warnings, setWarnings] = useState({ name: false, phone: false });
+  const [warnings, setWarnings] = useState({ name: false, phone: false, email: false });
   const selectedCategory = watch('businessCategory');
   const totalExperience = watch('totalExperience');
 
@@ -82,7 +83,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
   useEffect(() => {
     if (defaultValues) {
       reset({ ...DEFAULT_FORM_VALUES, ...defaultValues });
-      setWarnings({ name: false, phone: false }); // Reset warnings on form reset
+      setWarnings({ name: false, phone: false, email: false }); // Reset warnings on form reset
     }
   }, [defaultValues, reset]);
 
@@ -121,6 +122,12 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
         return;
       }
       params.phone_number = values.phone;
+    } else if (field === 'email') {
+      if (!values.email) {
+        setWarnings(prev => ({ ...prev, email: false }));
+        return;
+      }
+      params.email_address = values.email;
     }
 
 
@@ -130,7 +137,16 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
         ...prev,
         name: field === 'name' ? results.name_exists : prev.name,
         phone: field === 'phone' ? results.phone_exists : prev.phone,
+        email: field === 'email' ? results.email_exists : prev.email,
       }));
+
+      // Strict blocking for Email and Phone
+      if (field === 'email' && results.email_exists) {
+        setError('email', { type: 'manual', message: 'This email is already registered.' });
+      }
+      if (field === 'phone' && results.phone_exists) {
+        setError('phone', { type: 'manual', message: 'This phone number is already registered.' });
+      }
     } catch (err) {
       console.error('Duplicate check failed', err);
     }
@@ -138,6 +154,13 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
 
 
   const handleFormSubmit = (data) => {
+    // Final check for strict duplicates
+    if (warnings.email || warnings.phone) {
+      if (warnings.email) setError('email', { type: 'manual', message: 'This email is already registered.' });
+      if (warnings.phone) setError('phone', { type: 'manual', message: 'This phone number is already registered.' });
+      return;
+    }
+
     // Collect final skills: existing chips + any unsaved draft text
     const finalSkills = [...(data.skills || [])];
     const draftText = data.skills_draft?.trim();
@@ -248,10 +271,10 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
                   onBlur: () => handleCheckDuplicates('phone')
                 })}
               />
-              {warnings.phone && (
-                <div className="mt-1.5 flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 animate-pulse">
+              {warnings.phone && !errors.phone && (
+                <div className="mt-1.5 flex items-center gap-1.5 text-red-600 bg-red-50 px-3 py-1.5 rounded-lg border border-red-100">
                   <AlertTriangle size={14} />
-                  <span className="text-[11px] font-medium leading-none">This phone number is already used by another candidate.</span>
+                  <span className="text-[11px] font-medium leading-none">This phone number is already registered.</span>
                 </div>
               )}
             </div>
@@ -270,20 +293,29 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           {...register('businessCategory', { required: 'Business category is required' })}
         />
 
-        <Input
-          label="Email Address"
-          type="email"
-          placeholder="Enter email address"
-          required
-          error={errors.email?.message}
-          {...register('email', {
-            required: 'Email is required',
-            pattern: {
-              value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-              message: 'Enter a valid email address',
-            },
-          })}
-        />
+        <div className="flex flex-col">
+          <Input
+            label="Email Address"
+            type="email"
+            placeholder="Enter email address"
+            required
+            error={errors.email?.message}
+            {...register('email', {
+              required: 'Email is required',
+              pattern: {
+                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                message: 'Enter a valid email address',
+              },
+              onBlur: () => handleCheckDuplicates('email')
+            })}
+          />
+          {warnings.email && !errors.email && (
+            <div className="mt-1.5 flex items-center gap-1.5 text-red-600 bg-red-50 px-3 py-1.5 rounded-lg border border-red-100">
+              <AlertTriangle size={14} />
+              <span className="text-[11px] font-medium leading-none">This email is already registered.</span>
+            </div>
+          )}
+        </div>
         <Input
           label="Current Location"
           placeholder="Enter location"

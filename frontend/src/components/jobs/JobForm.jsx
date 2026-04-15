@@ -46,8 +46,8 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
   useEffect(() => {
     const loadOrgs = async () => {
       try {
-        const { data } = await fetchOrganizations({ status: 'ACTIVE' });
-        setOrganizations(data);
+        const response = await fetchOrganizations();
+        setOrganizations(response.data || []);
       } catch (err) {
         console.error('Failed to load orgs', err);
       }
@@ -66,7 +66,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
 
   const orgOptions = [
     { value: '', label: 'Select Organization' },
-    ...organizations.map(o => ({ value: o.id, label: o.name }))
+    ...organizations.map(o => ({ value: o.id, label: o.organization_name }))
   ];
 
   const { fields, append, remove } = useFieldArray({
@@ -104,7 +104,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
               const orgId = Number(e.target.value);
               const org = organizations.find(o => o.id === orgId);
               if (org) {
-                setValue('companyName', org.name, { shouldValidate: true });
+                setValue('companyName', org.organization_name, { shouldValidate: true });
               }
             }
           })}
@@ -115,17 +115,21 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
           label="Organization"
           required
           placeholder="Select Organization"
-          options={organizations.map(o => ({ value: o.id, label: o.name }))}
+          options={organizations.map(o => ({ value: o.id, label: o.organization_name }))}
           value={watch('organizationId')}
           onChange={(val) => {
             setValue('organizationId', val, { shouldValidate: true });
             const org = organizations.find(o => o.id === Number(val));
-            if (org) setValue('companyName', org.name, { shouldValidate: true });
+            if (org) {
+              setValue('companyName', org.organization_name, { shouldValidate: true });
+            } else {
+              setValue('companyName', '', { shouldValidate: true });
+            }
           }}
           error={errors.organizationId?.message}
         />
-
-        <input type="hidden" {...register('companyName')} />
+        <input type="hidden" {...register('organizationId', { required: 'Organization is required' })} />
+        <input type="hidden" {...register('companyName', { required: 'Company name is required' })} />
 
         {/* Business Category */}
         <Select

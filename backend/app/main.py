@@ -24,6 +24,7 @@ from app.core.database import engine, Base
 from app.models import job_requirement  # noqa: F401
 from app.models import candidate  # noqa: F401
 from app.models import organization  # noqa: F401
+from app.models import job_candidate  # noqa: F401
 
 # Import routers
 from app.routes import jobs
@@ -58,11 +59,7 @@ app = FastAPI(
 # Allows the React frontend (localhost:5173) to call this API.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",   # Vite dev server (frontend)
-        "http://localhost:3000",   # fallback if on CRA or Next
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

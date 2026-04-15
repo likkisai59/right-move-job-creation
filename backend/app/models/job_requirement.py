@@ -89,6 +89,15 @@ class JobRequirement(Base):
     experience = Column(String(100), nullable=False)
     num_candidates = Column(Integer, nullable=False)
 
+    # ── Timestamps ────────────────────────────────────────────
+    created_at = Column(DateTime, nullable=True, server_default=func.now())
+    updated_at = Column(
+        DateTime,
+        nullable=True,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
     # Relationship back to current job
     job = relationship("Job", back_populates="requirements")
 
