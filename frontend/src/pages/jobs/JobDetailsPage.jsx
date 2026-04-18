@@ -17,9 +17,16 @@ import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
 import { PageLoader } from '../../components/common/Loader';
 import EmptyState from '../../components/common/EmptyState';
-import { fetchJobById, fetchMatchingCandidates, shortlistCandidate, fetchShortlistedCandidates } from '../../api/jobsApi';
 import TimeStamp from '../../components/common/TimeStamp';
 import { formatDate } from '../../utils/formatters';
+import MatchingCandidatesTable from '../../components/jobs/MatchingCandidatesTable';
+import { 
+  fetchJobById, 
+  fetchMatchingCandidates, 
+  shortlistCandidate, 
+  fetchShortlistedCandidates,
+  rejectCandidate 
+} from '../../api/jobsApi';
 
 const JobDetailsPage = () => {
   const { id } = useParams();
@@ -30,6 +37,7 @@ const JobDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('matching'); // 'matching' or 'shortlisted'
   const [processingId, setProcessingId] = useState(null);
+  const [strict, setStrict] = useState(true);
 
   const mapCandidate = (c) => ({
     ...c,
@@ -40,41 +48,98 @@ const JobDetailsPage = () => {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [jobRes, matchingRes, shortlistedRes] = await Promise.all([
-          fetchJobById(id),
-          fetchMatchingCandidates(id),
+        const jobRes = await fetchJobById(id);
+        setJob(jobRes.data);
+      } catch (err) {
+        console.error('Failed to load job details:', err);
+      }
+
+      // Load matching and shortlisted candidates independently
+      try {
+        const [matchingRes, shortlistedRes] = await Promise.all([
+          fetchMatchingCandidates(id, strict),
           fetchShortlistedCandidates(id)
         ]);
 
-        setJob(jobRes.data);
-        setMatchingCandidates((matchingRes.data || []).map(mapCandidate));
-        setShortlistedCandidates((shortlistedRes.data || []).map(mapCandidate));
+        // The API returns the list directly in .data
+        const matchedList = Array.isArray(matchingRes.data) ? matchingRes.data : (matchingRes.data?.matched_candidates || []);
+        
+        setMatchingCandidates(matchedList.map(c => ({
+          ...c,
+          // Skills from matching API are already a list, from others they might be comma-separated
+          skills: Array.isArray(c.skills) ? c.skills : (c.skills ? c.skills.split(',').map(s => s.trim()) : [])
+        })));
+        
+        setShortlistedCandidates((shortlistedRes.data || []).map(c => ({
+          ...c,
+          skills: Array.isArray(c.skills) ? c.skills : (c.skills ? c.skills.split(',').map(s => s.trim()) : [])
+        })));
       } catch (err) {
-        console.error('Failed to load job details:', err);
+        console.error('Failed to load candidates:', err);
       } finally {
         setLoading(false);
       }
     };
     loadData();
-  }, [id]);
+  }, [id, strict]);
 
   const handleShortlist = async (candidateId) => {
     setProcessingId(candidateId);
     try {
       await shortlistCandidate(id, candidateId);
 
-      // Move candidate from matching to shortlisted in the UI state
-      const candidate = matchingCandidates.find(c => c.id === candidateId);
-      if (candidate) {
-        setShortlistedCandidates(prev => [...prev, candidate]);
-        setMatchingCandidates(prev => prev.filter(c => c.id !== candidateId));
-      }
+      // Update matching list locally to show "Shortlisted"
+      setMatchingCandidates(prev => prev.map(c => {
+        if ((c.candidate_id || c.id) === candidateId) {
+          return { ...c, status: 'shortlisted' };
+        }
+        return c;
+      }));
+
+      // Refresh shortlisted list
+      const res = await fetchShortlistedCandidates(id);
+      setShortlistedCandidates(res.data || []);
     } catch (err) {
       console.error('Shortlist failed:', err);
-      const msg = err.response?.data?.message || 'Failed to shortlist candidate';
-      alert(msg);
     } finally {
       setProcessingId(null);
+    }
+  };
+
+  const handleReject = async (candidateId) => {
+    setProcessingId(candidateId);
+    try {
+      await rejectCandidate(id, candidateId);
+
+      // Update matching list locally to show "Rejected"
+      setMatchingCandidates(prev => prev.map(c => {
+        if ((c.candidate_id || c.id) === candidateId) {
+          return { ...c, status: 'rejected' };
+        }
+        return c;
+      }));
+    } catch (err) {
+      console.error('Reject failed:', err);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleBulkShortlist = async (candidateIds) => {
+    setLoading(true);
+    try {
+      await Promise.all(candidateIds.map(cid => shortlistCandidate(id, cid)));
+      
+      const [matchingRes, shortlistedRes] = await Promise.all([
+        fetchMatchingCandidates(id),
+        fetchShortlistedCandidates(id)
+      ]);
+      setMatchingCandidates(matchingRes.data || []);
+      setShortlistedCandidates(shortlistedRes.data || []);
+    } catch (err) {
+      console.error('Bulk shortlist failed:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -150,172 +215,69 @@ const JobDetailsPage = () => {
           </div>
         </Card>
 
-        {/* Tab Selection */}
-        <div className="flex items-center gap-1 bg-gray-100/50 p-1 rounded-xl w-fit border border-gray-100 mb-2">
-          <button
-            onClick={() => setActiveTab('matching')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'matching'
-                ? 'bg-white text-blue-600 shadow-sm border border-gray-100'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-              }`}
-          >
-            <Search size={16} />
-            Matching Candidates
-            <span className={`ml-1 px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'matching' ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
-              }`}>
-              {matchingCandidates.length}
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab('shortlisted')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'shortlisted'
-                ? 'bg-white text-emerald-600 shadow-sm border border-gray-100'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-              }`}
-          >
-            <UserCheck size={16} />
-            Shortlisted
-            <span className={`ml-1 px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'shortlisted' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
-              }`}>
-              {shortlistedCandidates.length}
-            </span>
-          </button>
+        {/* Tab Selection & Extras */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-1 bg-gray-100/50 p-1 rounded-xl w-fit border border-gray-100">
+            <button
+              onClick={() => setActiveTab('matching')}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'matching'
+                  ? 'bg-white text-blue-600 shadow-sm border border-gray-100'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                }`}
+            >
+              <Search size={16} />
+              Matching Candidates
+              <span className={`ml-1 px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'matching' ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
+                }`}>
+                {matchingCandidates.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('shortlisted')}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'shortlisted'
+                  ? 'bg-white text-emerald-600 shadow-sm border border-gray-100'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                }`}
+            >
+              <UserCheck size={16} />
+              Shortlisted
+              <span className={`ml-1 px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'shortlisted' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
+                }`}>
+                {shortlistedCandidates.length}
+              </span>
+            </button>
+          </div>
+
+          {activeTab === 'matching' && (
+            <div className="flex items-center gap-3 px-4 py-2 bg-white rounded-xl border border-gray-100 shadow-sm">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Smart Filtering</span>
+              <button 
+                onClick={() => setStrict(!strict)}
+                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${strict ? 'bg-emerald-500' : 'bg-gray-300'}`}
+              >
+                <div className={`w-4 h-4 bg-white rounded-full transition-all duration-300 ${strict ? 'translate-x-6' : 'translate-x-0'}`} />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Content Area */}
-        <div className="grid grid-cols-1 gap-6">
+        <div className="animate-slide-up">
           {activeTab === 'matching' ? (
-            <div className="space-y-4">
-              {matchingCandidates.length === 0 ? (
-                <EmptyState
-                  icon={Search}
-                  title="No matching candidates"
-                  description="We couldn't find any candidates matching the mandatory skills for this job."
-                />
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {matchingCandidates.map(c => (
-                    <Card key={c.id} className="group hover:border-blue-200 transition-all duration-300 hover:shadow-md">
-                      <div className="flex flex-col h-full">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
-                              <Users size={20} />
-                            </div>
-                            <div>
-                              <h3 className="font-bold text-gray-900 leading-tight">
-                                {c.firstName} {c.lastName}
-                              </h3>
-                              <p className="text-[10px] text-gray-400 font-mono mt-0.5 uppercase tracking-wider">
-                                {c.candidateCode || 'No Code'}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-3 mb-6 flex-grow">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-400 font-medium uppercase tracking-widest text-[9px]">Experience</span>
-                            <span className="text-gray-700 font-semibold">{c.totalExperience || 'N/A'}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-400 font-medium uppercase tracking-widest text-[9px]">Location</span>
-                            <span className="text-gray-700 font-semibold">{c.currentLocation || 'N/A'}</span>
-                          </div>
-                          <div className="flex flex-wrap gap-1.5 mt-2">
-                            {(c.skills || []).slice(0, 4).map(skill => (
-                              <span key={skill} className="px-2 py-0.5 rounded-md bg-gray-50 border border-gray-100 text-gray-600 text-[10px] font-medium">
-                                {skill}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={() => handleShortlist(c.id)}
-                          disabled={processingId === c.id}
-                          className={`w-full py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${processingId === c.id
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                              : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-100 active:scale-[0.98]'
-                            }`}
-                        >
-                          {processingId === c.id ? (
-                            <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
-                          ) : (
-                            <>
-                              <Check size={18} />
-                              Shortlist Candidate
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
+            <MatchingCandidatesTable 
+              candidates={matchingCandidates}
+              onShortlist={handleShortlist}
+              onReject={handleReject}
+              onBulkShortlist={handleBulkShortlist}
+              processingId={processingId}
+              tab="matching"
+            />
           ) : (
-            <div className="space-y-4">
-              {shortlistedCandidates.length === 0 ? (
-                <EmptyState
-                  icon={UserCheck}
-                  title="No shortlisted candidates"
-                  description="Start shortlisting candidates from the matching list to see them here."
-                />
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {shortlistedCandidates.map(c => (
-                    <Card key={c.id} className="border-emerald-100 bg-emerald-50/10">
-                      <div className="flex flex-col h-full">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-500">
-                              <UserCheck size={20} />
-                            </div>
-                            <div>
-                              <h3 className="font-bold text-gray-900 leading-tight">
-                                {c.firstName} {c.lastName}
-                              </h3>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-[10px] text-gray-400 font-mono uppercase tracking-wider">
-                                  {c.candidateCode}
-                                </span>
-                                <span className="w-1 h-1 rounded-full bg-gray-300" />
-                                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">
-                                  Shortlisted
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-3 mb-6 flex-grow">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-400 font-medium uppercase tracking-widest text-[9px]">Experience</span>
-                            <span className="text-gray-700 font-semibold">{c.totalExperience}</span>
-                          </div>
-                          <div className="flex flex-wrap gap-1.5 mt-2">
-                            {(c.skills || []).slice(0, 4).map(skill => (
-                              <span key={skill} className="px-2 py-0.5 rounded-md bg-white border border-emerald-100 text-emerald-700 text-[10px] font-medium">
-                                {skill}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-
-                        <button
-                          disabled
-                          className="w-full py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-emerald-100 text-emerald-700 cursor-default"
-                        >
-                          <CheckCircle2 size={18} />
-                          Shortlisted
-                        </button>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
+            <MatchingCandidatesTable 
+              candidates={shortlistedCandidates}
+              processingId={processingId}
+              tab="shortlisted"
+            />
           )}
         </div>
       </div>

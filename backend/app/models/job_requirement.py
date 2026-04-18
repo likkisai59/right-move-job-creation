@@ -14,6 +14,7 @@ from sqlalchemy import (
     Enum as SAEnum,
     func,
     ForeignKey,
+    Text,
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -87,6 +88,10 @@ class JobRequirement(Base):
     
     # ORIGINAL FIELDS
     experience = Column(String(100), nullable=False)
+    min_experience = Column(Integer, nullable=True, default=0)
+    max_experience = Column(Integer, nullable=True, default=0)
+    location = Column(String(255), nullable=True)
+    required_skills = Column(Text, nullable=True) # Stored as JSON string
     num_candidates = Column(Integer, nullable=False)
 
     # ── Timestamps ────────────────────────────────────────────

@@ -39,8 +39,10 @@ from app.services.job_service import (
     get_filtered_jobs_for_export,
     get_matching_candidates,
     shortlist_candidate,
+    reject_candidate,
     get_shortlisted_candidates,
 )
+from app.schemas.job_candidate import CandidateActionRequest
 from app.utils.response import success_response, error_response
 
 # Router will be mounted at /api/jobs in main.py
@@ -356,18 +358,18 @@ def update_job_endpoint(
         )
 
 # ─────────────────────────────────────────────────────────────
-# MATCHING & SHORTLISTING ROUTES
+# MATCHING & SHORTLISTING ROUTES (Aligned with Spec)
 # ─────────────────────────────────────────────────────────────
 
-@router.get("/{job_id}/matching-candidates")
-def matching_candidates(job_id: int, db: Session = Depends(get_db)):
+@router.get("/{job_id}/matches")
+def get_matches(job_id: int, strict: bool = Query(True), db: Session = Depends(get_db)):
     """
-    GET /api/jobs/{job_id}/matching-candidates
+    GET /api/jobs/{job_id}/matches
     
-    Returns all matching candidates with match scores and shortlist status.
+    Returns all matching candidates with match scores and status.
     """
     try:
-        result = get_matching_candidates(db, job_id)
+        result = get_matching_candidates(db, job_id, strict=strict)
         return JSONResponse(
             status_code=200,
             content=success_response("Matching candidates fetched", result)
@@ -377,44 +379,48 @@ def matching_candidates(job_id: int, db: Session = Depends(get_db)):
         traceback.print_exc()
         return JSONResponse(status_code=500, content=error_response(str(exc)))
 
-@router.post("/{job_id}/shortlist/{candidate_id}")
-def shortlist(job_id: int, candidate_id: int, db: Session = Depends(get_db)):
+@router.post("/{job_id}/shortlist")
+def shortlist(job_id: int, payload: CandidateActionRequest, db: Session = Depends(get_db)):
     """
-    POST /api/jobs/{job_id}/shortlist/{candidate_id}
+    POST /api/jobs/{job_id}/shortlist
     
-    Shortlists a candidate for a specific job.
+    Body: { "candidate_id": 123 }
     """
     try:
-        shortlist_candidate(db, job_id, candidate_id)
+        shortlist_candidate(db, job_id, payload.candidate_id)
         return JSONResponse(
             status_code=200,
             content=success_response("Candidate shortlisted successfully")
         )
-    except ValueError as val_err:
-        return JSONResponse(
-            status_code=400,
-            content=error_response(str(val_err))
-        )
     except Exception as exc:
-        import traceback
-        traceback.print_exc()
         return JSONResponse(status_code=500, content=error_response(str(exc)))
 
-@router.get("/{job_id}/shortlisted-candidates")
-def shortlisted_candidates(job_id: int, db: Session = Depends(get_db)):
+@router.post("/{job_id}/reject")
+def reject(job_id: int, payload: CandidateActionRequest, db: Session = Depends(get_db)):
     """
-    GET /api/jobs/{job_id}/shortlisted-candidates
+    POST /api/jobs/{job_id}/reject
     
-    Returns all shortlisted candidates for a specific job.
+    Body: { "candidate_id": 123 }
     """
     try:
-        candidates = get_shortlisted_candidates(db, job_id)
-        data = [CandidateResponse.model_validate(c).model_dump(mode="json") for c in candidates]
+        reject_candidate(db, job_id, payload.candidate_id)
         return JSONResponse(
             status_code=200,
-            content=success_response("Shortlisted candidates fetched", data)
+            content=success_response("Candidate rejected successfully")
         )
     except Exception as exc:
-        import traceback
-        traceback.print_exc()
+        return JSONResponse(status_code=500, content=error_response(str(exc)))
+
+@router.get("/{job_id}/shortlisted")
+def shortlisted(job_id: int, db: Session = Depends(get_db)):
+    """
+    GET /api/jobs/{job_id}/shortlisted
+    """
+    try:
+        result = get_shortlisted_candidates(db, job_id)
+        return JSONResponse(
+            status_code=200,
+            content=success_response("Shortlisted candidates fetched", result)
+        )
+    except Exception as exc:
         return JSONResponse(status_code=500, content=error_response(str(exc)))

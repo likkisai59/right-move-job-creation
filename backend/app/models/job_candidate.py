@@ -11,7 +11,8 @@ class JobCandidateMapping(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     job_id = Column(Integer, ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False)
     candidate_id = Column(Integer, ForeignKey("candidates.id", ondelete="CASCADE"), nullable=False)
-    status = Column(String(50), nullable=False, default="shortlisted")
+    match_score = Column(Integer, nullable=True, default=0)
+    status = Column(String(50), nullable=False, default="matched")
     
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())

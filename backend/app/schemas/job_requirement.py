@@ -25,6 +25,10 @@ class RequirementCreate(BaseModel):
     job_title: str = Field(..., min_length=1, description="Title of the job position")
     budget: str = Field(..., min_length=1, description="Budget for the role, e.g. '18-22 LPA'")
     experience: str = Field(..., min_length=1, description="Required experience, e.g. '3-5 years'")
+    min_experience: Optional[int] = Field(default=0)
+    max_experience: Optional[int] = Field(default=0)
+    location: Optional[str] = Field(default=None)
+    required_skills: Optional[str] = Field(default=None, description="JSON array of skills")
     num_candidates: int = Field(..., gt=0, description="Number of candidates needed (must be > 0)")
 
     @field_validator("job_title", "budget", "experience", mode="before")
@@ -39,6 +43,10 @@ class RequirementResponse(BaseModel):
     job_title: str
     budget: str
     experience: str
+    min_experience: Optional[int] = 0
+    max_experience: Optional[int] = 0
+    location: Optional[str] = None
+    required_skills: Optional[str] = None
     num_candidates: int
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

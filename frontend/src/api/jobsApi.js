@@ -36,6 +36,10 @@ const mapToFrontend = (dbRecord) => {
       job_title: req.job_title,
       budget: req.budget,
       experience: req.experience,
+      min_experience: req.min_experience,
+      max_experience: req.max_experience,
+      location: req.location,
+      required_skills: req.required_skills,
       num_candidates: req.num_candidates
     })),
     numberOfCandidates: requirements.reduce((sum, r) => sum + r.num_candidates, 0),
@@ -59,6 +63,10 @@ const mapToBackend = (formData) => {
       job_title: req.job_title,
       budget: req.budget,
       experience: req.experience,
+      min_experience: req.min_experience ? Number(req.min_experience) : 0,
+      max_experience: req.max_experience ? Number(req.max_experience) : 0,
+      location: req.location || '',
+      required_skills: req.required_skills || '',
       num_candidates: Number(req.num_candidates)
     })),
     assigned_to: formData.assignedTo,
@@ -122,21 +130,25 @@ export const deleteJob = async (id) => {
   return { data: response.data };
 };
 
-// ── GET /api/jobs/{id}/matching-candidates ────────────────────
-export const fetchMatchingCandidates = async (id) => {
-  const response = await api.get(`/jobs/${id}/matching-candidates`);
+// ── GET /api/jobs/{id}/matches ────────────────────
+export const fetchMatchingCandidates = async (id, strict = true) => {
+  const response = await api.get(`/jobs/${id}/matches`, { params: { strict } });
   return { data: response.data.data };
 };
 
-// ── POST /api/jobs/{id}/shortlist ─────────────────────────────
+// ── POST /api/jobs/{id}/shortlist ──────────────
 export const shortlistCandidate = async (jobId, candidateId) => {
-  const response = await api.post(`/jobs/${jobId}/shortlist`, {
-    candidate_id: candidateId
-  });
-  return { data: response.data };
+  const response = await api.post(`/jobs/${jobId}/shortlist`, { candidate_id: candidateId });
+  return response.data;
 };
 
-// ── GET /api/jobs/{id}/shortlisted ────────────────────────────
+// ── POST /api/jobs/{id}/reject ──────────────
+export const rejectCandidate = async (jobId, candidateId) => {
+  const response = await api.post(`/jobs/${jobId}/reject`, { candidate_id: candidateId });
+  return response.data;
+};
+
+// ── GET /api/jobs/{id}/shortlisted ─────────────────
 export const fetchShortlistedCandidates = async (id) => {
   const response = await api.get(`/jobs/${id}/shortlisted`);
   return { data: response.data.data };

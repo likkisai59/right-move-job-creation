@@ -51,6 +51,10 @@ def create_job_requirement(db: Session, payload: JobCreateRequest) -> Job:
             job_title=req.job_title,
             budget=req.budget,
             experience=req.experience,
+            min_experience=req.min_experience,
+            max_experience=req.max_experience,
+            location=req.location,
+            required_skills=req.required_skills,
             num_candidates=req.num_candidates
         )
         new_job.requirements.append(new_requirement)
@@ -186,6 +190,10 @@ def update_job(
             job_title=req.job_title,
             budget=req.budget,
             experience=req.experience,
+            min_experience=req.min_experience,
+            max_experience=req.max_experience,
+            location=req.location,
+            required_skills=req.required_skills,
             num_candidates=req.num_candidates
         )
         job.requirements.append(new_requirement)
@@ -200,13 +208,25 @@ def update_job(
 # MATCHING & SHORTLISTING HELPERS
 # ─────────────────────────────────────────────────────────────
 
-def parse_skills(skills_str: Optional[str]) -> List[str]:
+def parse_skills(skills_input: Optional[str]) -> List[str]:
     """
-    Parse comma-separated skills string into a list of trimmed skill names.
+    Parse skills input into a list of trimmed, lowercase skill names.
+    Supports JSON arrays and comma-separated strings.
     """
-    if not skills_str:
+    if not skills_input:
         return []
-    return [s.strip().lower() for s in skills_str.split(',') if s.strip()]
+    
+    import json
+    # Try parsing as JSON first
+    try:
+        skills = json.loads(skills_input)
+        if isinstance(skills, list):
+            return [str(s).strip().lower() for s in skills if str(s).strip()]
+    except (json.JSONDecodeError, TypeError):
+        pass
+        
+    # Fallback to comma-separated parsing
+    return [s.strip().lower() for s in skills_input.split(',') if s.strip()]
 
 def extract_experience_years(experience_str: Optional[str]) -> int:
     """
@@ -257,115 +277,190 @@ def is_candidate_shortlisted(db: Session, job_id: int, candidate_id: int) -> boo
 # MATCHING & SHORTLISTING
 # ─────────────────────────────────────────────────────────────
 
-def get_matching_candidates(db: Session, job_id: int) -> dict:
+def get_matching_candidates(db: Session, job_id: int, strict: bool = True) -> List[dict]:
     """
-    Fetches candidates whose skills match the job's mandatory skills.
-    Returns a dict with total_candidates and matched_candidates with match scores.
-    
-    Matching Algorithm:
-    - Calculate skill match: intersection(job.required_skills, candidate.skills)
-    - skill_percentage = matched_skills / total_required_skills
-    - Only include candidate if skill_percentage >= 50%
-    - Calculate match_score:
-      - skill_score = skill_percentage * 70
-      - experience_score = 20 if candidate.experience >= job.required_experience else 0
-      - location_score = 10 if job.location == candidate.location else 0
-      - total_score = skill_score + experience_score + location_score
-    - Sort candidates by total_score (descending)
+    Fetches candidates for a job and computes match scores.
     """
+    # We match against the job's requirements. 
+    # Usually a job has one main requirement title, but here it's structured as list.
+    # We'll take the first requirement as the primary one for matching if multiple exist.
     job = db.query(Job).filter(Job.id == job_id).first()
-    if not job:
-        return {"job_id": job_id, "total_candidates": 0, "matched_candidates": []}
+    if not job or not job.requirements:
+        return []
 
-    # Get required skills from job
-    required_skills = parse_skills(job.mandatory_skill)
+    requirement = job.requirements[0] # Primary requirement
     
+    required_skills = parse_skills(requirement.required_skills)
     if not required_skills:
-        # If no skills specified, return empty list
-        return {"job_id": job_id, "total_candidates": 0, "matched_candidates": []}
+        # Fallback to Job's mandatory_skill if requirement.required_skills is empty
+        required_skills = parse_skills(job.mandatory_skill)
 
-    # Get required experience from job requirements
-    required_exp = 0
-    if job.requirements:
-        for req in job.requirements:
-            exp = extract_experience_years(req.experience)
-            if exp > required_exp:
-                required_exp = exp
+    min_exp = requirement.min_experience or 0
+    max_exp = requirement.max_experience or 100
+    job_location = requirement.location or job.company_name # Fallback
 
-    # Get job location
-    job_location = get_job_location(db, job_id)
-
-    # Fetch all candidates
     all_candidates = db.query(Candidate).all()
-
-    matched_candidates_data = []
+    results = []
 
     for candidate in all_candidates:
         candidate_skills = parse_skills(candidate.skills)
-        candidate_exp = extract_experience_years(candidate.total_experience)
+        # Handle experience which might be string "5" or "5 years"
+        try:
+            candidate_exp = float(extract_experience_years(candidate.relevant_experience_years or candidate.total_experience))
+        except:
+            candidate_exp = 0.0
+            
         candidate_location = candidate.current_location
 
-        # Calculate skill match
-        matched_skills = list(set(required_skills) & set(candidate_skills))
-        skill_percentage = len(matched_skills) / len(required_skills) if required_skills else 0
-
-        # Only include if skill_percentage >= 50%
-        if skill_percentage < 0.5:
+        # --- MANDATORY FILTERS ---
+        # 1. Strict Skill Filtering (At least one skill must match)
+        matched_skills = set(required_skills) & set(candidate_skills)
+        if strict and not matched_skills:
             continue
 
-        # Calculate scores
-        skill_score = skill_percentage * 70
-        experience_score = 20 if candidate_exp >= required_exp else 0
-        location_score = 10 if job_location and candidate_location and job_location.lower() == candidate_location.lower() else 0
-        total_score = skill_score + experience_score + location_score
+        # --- SCORE CALCULATION ---
+        # 1. Skill Match (50%)
+        skill_score = 0
+        if required_skills:
+            skill_percentage = len(matched_skills) / len(required_skills)
+            skill_score = skill_percentage * 50
 
-        matched_candidates_data.append({
+        # 2. Experience Match (20%)
+        exp_score = 0
+        if min_exp <= candidate_exp <= max_exp:
+            exp_score = 20
+        elif (min_exp - 1) <= candidate_exp <= (max_exp + 1):
+            exp_score = 10 # Partial
+
+        # 3. Location Match (10%)
+        loc_score = 0
+        if job_location and candidate_location and job_location.lower() == candidate_location.lower():
+            loc_score = 10
+
+        # 4. Keyword relevance (20%)
+        keyword_score = 0
+        job_keywords = set(requirement.job_title.lower().split())
+        candidate_text = (candidate.skills or "") + " " + (candidate.relevant_experience_by_skill or "")
+        candidate_text = candidate_text.lower()
+        
+        matches = [kw for kw in job_keywords if kw in candidate_text and len(kw) > 2]
+        if job_keywords:
+            keyword_score = (len(matches) / len(job_keywords)) * 20
+            if keyword_score > 20: keyword_score = 20
+
+        total_score = skill_score + exp_score + loc_score + keyword_score
+
+        # 2. Minimum Match Threshold (Exclude if match_score < 30)
+        if strict and total_score < 30:
+            continue
+
+        # Get existing mapping status
+        mapping = db.query(JobCandidateMapping).filter(
+            JobCandidateMapping.job_id == job_id,
+            JobCandidateMapping.candidate_id == candidate.id
+        ).first()
+        
+        # Update or Create Mapping in Store
+        if mapping:
+            mapping.match_score = total_score
+        else:
+            new_mapping = JobCandidateMapping(
+                job_id=job_id,
+                candidate_id=candidate.id,
+                match_score=total_score,
+                status="matched"
+            )
+            db.add(new_mapping)
+        
+        db.commit()
+
+        status = mapping.status if mapping else "matched"
+
+        results.append({
             "candidate_id": candidate.id,
             "name": f"{candidate.first_name} {candidate.last_name}",
             "skills": candidate_skills,
             "experience": candidate_exp,
-            "match_score": int(total_score),
-            "is_shortlisted": is_candidate_shortlisted(db, job_id, candidate.id)
+            "match_score": round(total_score, 1),
+            "status": status
         })
 
-    # Sort by match_score descending
-    matched_candidates_data.sort(key=lambda x: x["match_score"], reverse=True)
-
-    return {
-        "job_id": job_id,
-        "total_candidates": len(matched_candidates_data),
-        "matched_candidates": matched_candidates_data
-    }
+    # Sort by Match % (Highest first)
+    results.sort(key=lambda x: x["match_score"], reverse=True)
+    return results
 
 def shortlist_candidate(db: Session, job_id: int, candidate_id: int) -> JobCandidateMapping:
     """
-    Shortlists a candidate for a job.
+    Updates or creates status = "shortlisted"
     """
-    # Check if already exists
-    existing = db.query(JobCandidateMapping).filter(
+    mapping = db.query(JobCandidateMapping).filter(
         JobCandidateMapping.job_id == job_id,
         JobCandidateMapping.candidate_id == candidate_id
     ).first()
     
-    if existing:
-        raise ValueError("Candidate is already shortlisted for this job")
-        
-    new_mapping = JobCandidateMapping(
-        job_id=job_id,
-        candidate_id=candidate_id,
-        status="shortlisted"
-    )
-    db.add(new_mapping)
+    if mapping:
+        mapping.status = "shortlisted"
+    else:
+        mapping = JobCandidateMapping(
+            job_id=job_id,
+            candidate_id=candidate_id,
+            status="shortlisted"
+        )
+        db.add(mapping)
+    
     db.commit()
-    db.refresh(new_mapping)
-    return new_mapping
+    db.refresh(mapping)
+    return mapping
 
-def get_shortlisted_candidates(db: Session, job_id: int) -> List[Candidate]:
+def reject_candidate(db: Session, job_id: int, candidate_id: int) -> JobCandidateMapping:
     """
-    Returns all candidates shortlisted for a specific job.
+    Updates or creates status = "rejected"
     """
-    return db.query(Candidate).join(
-        JobCandidateMapping, Candidate.id == JobCandidateMapping.candidate_id
-    ).filter(
-        JobCandidateMapping.job_id == job_id
+    mapping = db.query(JobCandidateMapping).filter(
+        JobCandidateMapping.job_id == job_id,
+        JobCandidateMapping.candidate_id == candidate_id
+    ).first()
+    
+    if mapping:
+        mapping.status = "rejected"
+    else:
+        mapping = JobCandidateMapping(
+            job_id=job_id,
+            candidate_id=candidate_id,
+            status="rejected"
+        )
+        db.add(mapping)
+    
+    db.commit()
+    db.refresh(mapping)
+    return mapping
+
+def get_shortlisted_candidates(db: Session, job_id: int) -> List[dict]:
+    """
+    Returns shortlisted candidates with their match scores.
+    """
+    mappings = db.query(JobCandidateMapping).filter(
+        JobCandidateMapping.job_id == job_id,
+        JobCandidateMapping.status == "shortlisted"
     ).all()
+    
+    candidate_ids = [m.candidate_id for m in mappings]
+    candidates = db.query(Candidate).filter(Candidate.id.in_(candidate_ids)).all()
+    
+    # We need to compute scores again or fetch them if they were stored.
+    # For now, let's just return candidate info.
+    results = []
+    # Create a map for quick lookup
+    mapping_dict = {m.candidate_id: m for m in mappings}
+    
+    for candidate in candidates:
+        results.append({
+            "candidate_id": candidate.id,
+            "name": f"{candidate.first_name} {candidate.last_name}",
+            "skills": parse_skills(candidate.skills),
+            "experience": extract_experience_years(candidate.relevant_experience_years or candidate.total_experience),
+            "match_score": mapping_dict[candidate.id].match_score or 0,
+            "status": "shortlisted"
+        })
+    
+    return results

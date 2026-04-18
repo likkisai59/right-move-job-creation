@@ -35,7 +35,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
       companyName: '',
       businessCategory: 'IT',
       mandatorySkill: '',
-      requirements: [{ job_title: '', budget: '', experience: '', num_candidates: '' }],
+      requirements: [{ job_title: '', budget: '', experience: '', num_candidates: '', min_experience: 0, max_experience: 10, location: '', required_skills: '' }],
       assignedTo: '',
       status: 'ACTIVE',
     },
@@ -231,6 +231,35 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
                     min: { value: 1, message: 'Min 1' }
                   })}
                 />
+
+                {/* Matching Criteria Section */}
+                <div className="md:col-span-2 mt-2 pt-2 border-t border-gray-100">
+                  <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Matching Criteria</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                     <Input
+                      label="Min Exp (Years)"
+                      type="number"
+                      placeholder="0"
+                      {...register(`requirements.${index}.min_experience`)}
+                    />
+                    <Input
+                      label="Max Exp (Years)"
+                      type="number"
+                      placeholder="10"
+                      {...register(`requirements.${index}.max_experience`)}
+                    />
+                    <Input
+                      label="Job Location"
+                      placeholder="e.g. Bangalore"
+                      {...register(`requirements.${index}.location`)}
+                    />
+                    <Input
+                      label="Required Skills (JSON/CSV)"
+                      placeholder="e.g. React, Node.js"
+                      {...register(`requirements.${index}.required_skills`)}
+                    />
+                  </div>
+                </div>
               </div>
 
               {fields.length > 1 && (
