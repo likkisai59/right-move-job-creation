@@ -4,7 +4,7 @@ from typing import Optional
 
 class OrganizationCreate(BaseModel):
     organization_name: str = Field(..., min_length=1)
-    status: str = Field(default="in_progress")
+    status: str = Field(default="active")
     contract_signed_date: Optional[date] = None
     contract_end_date: Optional[date] = None
     commission_percentage: float = Field(..., ge=0, le=100)
@@ -19,7 +19,7 @@ class OrganizationCreate(BaseModel):
     @field_validator("status")
     @classmethod
     def validate_status(cls, v: str) -> str:
-        allowed = {'in_progress', 'completed', 'rejected', 'cancel'}
+        allowed = {'active', 'complete', 'cancel'}
         if v not in allowed:
             raise ValueError(f"Invalid status. Allowed: {', '.join(allowed)}")
         return v

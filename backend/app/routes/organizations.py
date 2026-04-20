@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, status, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import Optional, List
 from pydantic import ValidationError
+from datetime import datetime
 
 from app.core.database import get_db
 from app.schemas.organization import OrganizationCreate, OrganizationUpdate, OrganizationResponse
@@ -13,7 +14,8 @@ from app.services.organization_service import (
     get_organization_by_id,
     update_organization,
     delete_organization,
-    check_organization_exists
+    check_organization_exists,
+    export_organizations_to_excel
 )
 from app.utils.response import success_response, error_response
 
@@ -39,14 +41,38 @@ def add_organization(payload: OrganizationCreate, db: Session = Depends(get_db))
 def list_organizations(
     status: Optional[str] = Query(None), 
     search: Optional[str] = Query(None),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
     try:
-        orgs = get_all_organizations(db, status, search)
+        orgs = get_all_organizations(db, status, search, start_date, end_date)
         data = [OrganizationResponse.model_validate(o).model_dump(mode="json") for o in orgs]
         return JSONResponse(
             status_code=200,
             content=success_response("Organizations fetched successfully", data)
+        )
+    except Exception as exc:
+        return JSONResponse(status_code=500, content=error_response(str(exc)))
+
+@router.get("/export", status_code=status.HTTP_200_OK)
+def export_organizations(
+    status: Optional[str] = Query(None), 
+    search: Optional[str] = Query(None),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    try:
+        orgs = get_all_organizations(db, status, search, start_date, end_date)
+        output = export_organizations_to_excel(orgs)
+        
+        filename = f"organizations_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
     except Exception as exc:
         return JSONResponse(status_code=500, content=error_response(str(exc)))

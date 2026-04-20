@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+import openpyxl
+from io import BytesIO
 from app.models.organization import Organization
 from app.schemas.organization import OrganizationCreate, OrganizationUpdate
 from typing import List, Optional
@@ -36,15 +38,66 @@ def create_organization(db: Session, payload: OrganizationCreate) -> Organizatio
     return new_org
 
 
-def get_all_organizations(db: Session, status: Optional[str] = None, search: Optional[str] = None) -> List[Organization]:
+def get_all_organizations(
+    db: Session, 
+    status: Optional[str] = None, 
+    search: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+) -> List[Organization]:
     # Part 5: Filter by is_active = 1
     query = db.query(Organization).filter(Organization.is_active == 1)
+    
     if status:
         query = query.filter(Organization.status == status.lower())
+    
     if search:
         search_term = f"%{search.strip().lower()}%"
         query = query.filter(func.lower(Organization.organization_name).like(search_term))
+        
+    if start_date:
+        query = query.filter(Organization.contract_end_date >= start_date)
+        
+    if end_date:
+        query = query.filter(Organization.contract_end_date <= end_date)
+        
     return query.order_by(Organization.organization_name.asc()).all()
+
+
+def export_organizations_to_excel(organizations: List[Organization]) -> BytesIO:
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Organizations"
+
+    # Header
+    headers = ["ID", "Organization Name", "Commission %", "Status", "Contract Signed Date", "Contract End Date"]
+    ws.append(headers)
+
+    # Style Header
+    for cell in ws[1]:
+        cell.font = openpyxl.styles.Font(bold=True)
+        cell.fill = openpyxl.styles.PatternFill(start_color="CCE5FF", end_color="CCE5FF", fill_type="solid")
+
+    # Data
+    for org in organizations:
+        ws.append([
+            org.organization_id,
+            org.organization_name,
+            float(org.commission_percentage) if org.commission_percentage else 0.0,
+            org.status,
+            org.contract_signed_date.strftime("%Y-%m-%d") if org.contract_signed_date else "",
+            org.contract_end_date.strftime("%Y-%m-%d") if org.contract_end_date else ""
+        ])
+
+    # Adjust column widths
+    for column_cells in ws.columns:
+        length = max(len(str(cell.value)) for cell in column_cells)
+        ws.column_dimensions[column_cells[0].column_letter].width = length + 2
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return output
 
 
 def get_organization_by_id(db: Session, org_id: int) -> Optional[Organization]:

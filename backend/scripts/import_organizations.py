@@ -60,7 +60,7 @@ def import_from_excel(file_path: str):
                 new_org = Organization(
                     organization_id=org_id,
                     organization_name=org_name,
-                    status='in_progress',
+                    status='active',
                     commission_percentage=0.0
                 )
                 db.add(new_org)

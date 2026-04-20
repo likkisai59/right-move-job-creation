@@ -39,7 +39,7 @@ def setup():
             new_org = Organization(
                 organization_id=org_id,
                 organization_name=org_name.strip(),
-                status='in_progress',
+                status='active',
                 commission_percentage=0.0,
                 is_active=1
             )

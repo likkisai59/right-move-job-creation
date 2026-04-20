@@ -7,10 +7,9 @@ import Select from '../common/Select';
 import { checkDuplicateOrganization } from '../../api/organizationsApi';
 
 const STATUS_OPTIONS = [
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'rejected', label: 'Rejected' },
-  { value: 'cancel', label: 'Cancelled' },
+  { value: 'active', label: 'Active' },
+  { value: 'complete', label: 'Complete' },
+  { value: 'cancel', label: 'Cancel' },
 ];
 
 const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
@@ -27,7 +26,7 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
   } = useForm({
     defaultValues: {
       organization_name: initialData.organization_name || '',
-      status: initialData.status || 'in_progress',
+      status: initialData.status || 'active',
       contract_signed_date: initialData.contract_signed_date || '',
       contract_end_date: initialData.contract_end_date || '',
       commission_percentage: initialData.commission_percentage || '',

@@ -1,16 +1,15 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Pencil, Percent } from 'lucide-react';
+import { Building2, Pencil, Percent, Calendar, AlertTriangle } from 'lucide-react';
 import Table from '../common/Table';
 import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
 import TimeStamp from '../common/TimeStamp';
 
 const STATUS_CONFIG = {
-  in_progress: { label: 'In Progress', classes: 'bg-blue-50 text-blue-700 border-blue-200' },
-  completed: { label: 'Completed', classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  rejected: { label: 'Rejected', classes: 'bg-red-50 text-red-700 border-red-200' },
-  cancel: { label: 'Cancelled', classes: 'bg-gray-50 text-gray-700 border-gray-200' },
+  active: { label: 'Active', classes: 'bg-blue-50 text-blue-700 border-blue-200' },
+  complete: { label: 'Complete', classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  cancel: { label: 'Cancel', classes: 'bg-gray-50 text-gray-700 border-gray-200' },
 };
 
 const OrganizationTable = ({ organizations = [], loading = false }) => {
@@ -57,6 +56,39 @@ const OrganizationTable = ({ organizations = [], loading = false }) => {
           </span>
         );
       },
+    },
+    {
+      key: 'contract_end_date',
+      header: 'Contract End',
+      render: (val) => {
+        if (!val) return <span className="text-gray-400">-</span>;
+        
+        const endDate = new Date(val);
+        const today = new Date();
+        const diffTime = endDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        const isExpiringSoon = diffDays >= 0 && diffDays <= 7;
+        const isExpired = diffDays < 0;
+
+        return (
+          <div className="flex items-center gap-2">
+            <span className={`text-sm font-semibold ${
+              isExpiringSoon ? 'text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded' : 
+              isExpired ? 'text-rose-600 bg-rose-50 px-2 py-0.5 rounded' : 
+              'text-slate-600'
+            }`}>
+              {new Date(val).toLocaleDateString('en-GB')}
+            </span>
+            {isExpiringSoon && (
+              <span className="flex w-2 h-2 rounded-full bg-indigo-500" title="Renewal due soon"></span>
+            )}
+            {isExpired && (
+              <span className="flex w-2 h-2 rounded-full bg-rose-500" title="Contract expired"></span>
+            )}
+          </div>
+        );
+      }
     },
     {
       key: 'actions',
