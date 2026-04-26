@@ -1,10 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Pencil, Percent, Calendar, AlertTriangle } from 'lucide-react';
+import { Building2, Pencil, Percent, Calendar, AlertTriangle, Phone, MapPin, RotateCcw } from 'lucide-react';
 import Table from '../common/Table';
 import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
-import TimeStamp from '../common/TimeStamp';
+import { formatRelativeTime } from '../../utils/formatters';
 
 const STATUS_CONFIG = {
   active: { label: 'Active', classes: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -32,7 +32,12 @@ const OrganizationTable = ({ organizations = [], loading = false }) => {
       render: (val, row) => (
         <div className="flex flex-col">
           <span className="font-semibold text-gray-900">{val}</span>
-          <TimeStamp created={row.created_at} updated={row.updated_at} />
+          {row.updated_at && (
+            <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-0.5">
+              <RotateCcw size={10} />
+              <span>Updated {formatRelativeTime(row.updated_at)}</span>
+            </div>
+          )}
         </div>
       ),
     },
@@ -42,6 +47,39 @@ const OrganizationTable = ({ organizations = [], loading = false }) => {
       render: (val) => (
         <div className="flex items-center gap-1 text-gray-600 font-medium">
           {val ? `${val}%` : '-'}
+        </div>
+      ),
+    },
+    {
+      key: 'contact_number',
+      header: 'Contact Number',
+      render: (_, row) => (
+        <div className="flex flex-col gap-1 py-1">
+          {row.contact_number ? (
+            <div className="flex items-center gap-1.5 text-sm text-slate-700">
+              <span className="text-blue-500" title="Contact Number"><Phone size={13} /></span>
+              <span className="font-medium whitespace-nowrap">{row.country_code} {row.contact_number}</span>
+            </div>
+          ) : (
+            <span className="text-gray-400 text-xs italic">No phone info</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'address',
+      header: 'Office Address',
+      minWidth: '280px',
+      render: (val) => (
+        <div className="flex flex-col gap-1 py-1">
+          {val ? (
+            <div className="flex items-start gap-1.5 text-xs text-slate-600 max-w-[280px]" title={val}>
+              <span className="text-blue-400 mt-0.5 shrink-0"><MapPin size={12} /></span>
+              <span className="leading-relaxed">{val}</span>
+            </div>
+          ) : (
+            <span className="text-gray-400 text-[10px] italic font-medium">No address provided</span>
+          )}
         </div>
       ),
     },

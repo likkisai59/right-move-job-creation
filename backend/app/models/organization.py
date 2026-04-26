@@ -18,6 +18,9 @@ class Organization(Base):
     contract_signed_date = Column(Date, nullable=True)
     contract_end_date = Column(Date, nullable=True)
     commission_percentage = Column(Numeric(5, 2), nullable=True)
+    contact_number = Column(String(20), nullable=True)
+    country_code = Column(String(10), nullable=True)
+    address = Column(String(1000), nullable=True)
     is_active = Column(Integer, nullable=False, default=1) # Using Integer (0/1) for boolean for better compatibility or just Boolean
 
     created_at = Column(DateTime, nullable=False, server_default=func.now())

@@ -30,6 +30,7 @@ from app.models import job_candidate  # noqa: F401
 from app.routes import jobs
 from app.routes import candidates
 from app.routes import organizations
+from app.routes import auth
 
 
 # ── Lifespan: runs once on startup ────────────────────────────
@@ -69,6 +70,7 @@ app.add_middleware(
 app.include_router(jobs.router)
 app.include_router(candidates.router)
 app.include_router(organizations.router)
+app.include_router(auth.router)
 
 # ── Static Files ──────────────────────────────────────────────
 # Ensure uploads directory exists

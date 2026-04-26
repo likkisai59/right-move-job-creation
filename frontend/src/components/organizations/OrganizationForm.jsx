@@ -1,15 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Save, AlertTriangle, Building2, Calendar, Percent } from 'lucide-react';
+import { Save, AlertTriangle, Building2, Calendar, Percent, Phone, MapPin } from 'lucide-react';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import Select from '../common/Select';
+import Textarea from '../common/Textarea';
 import { checkDuplicateOrganization } from '../../api/organizationsApi';
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
   { value: 'complete', label: 'Complete' },
   { value: 'cancel', label: 'Cancel' },
+];
+
+const COUNTRY_CODES = [
+  { value: '+91', label: '🇮🇳 India (+91)' },
+  { value: '+1', label: '🇺🇸 USA (+1)' },
+  { value: '+44', label: '🇬🇧 UK (+44)' },
+  { value: '+61', label: '🇦🇺 Australia (+61)' },
+  { value: '+1', label: '🇨🇦 Canada (+1)' },
+  { value: '+49', label: '🇩🇪 Germany (+49)' },
+  { value: '+33', label: '🇫🇷 France (+33)' },
+  { value: '+81', label: '🇯🇵 Japan (+81)' },
+  { value: '+86', label: '🇨🇳 China (+86)' },
+  { value: '+971', label: '🇦🇪 UAE (+971)' },
 ];
 
 const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
@@ -30,6 +44,9 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
       contract_signed_date: initialData.contract_signed_date || '',
       contract_end_date: initialData.contract_end_date || '',
       commission_percentage: initialData.commission_percentage || '',
+      contact_number: initialData.contact_number || '',
+      country_code: initialData.country_code || '+91',
+      address: initialData.address || '',
     },
     mode: 'onChange'
   });
@@ -110,6 +127,40 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
                   <span className="text-sm font-medium">Organization already exists</span>
                 </div>
               )}
+            </div>
+
+            {/* New Fields: Contact and Address */}
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="md:col-span-1">
+                <Select
+                  label="Code"
+                  options={COUNTRY_CODES}
+                  error={errors.country_code?.message}
+                  {...register('country_code')}
+                />
+              </div>
+              <div className="md:col-span-3">
+                <Input
+                  label="Contact Number"
+                  placeholder="Enter phone number"
+                  icon={Phone}
+                  error={errors.contact_number?.message}
+                  {...register('contact_number', {
+                    pattern: { value: /^\d+$/, message: 'Only numeric input allowed' },
+                    minLength: { value: 10, message: 'Minimum 10 digits required' }
+                  })}
+                />
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <Textarea
+                label="Office Address"
+                placeholder="Street, City, State, Pincode"
+                icon={MapPin}
+                error={errors.address?.message}
+                {...register('address')}
+              />
             </div>
 
             <Select

@@ -33,6 +33,8 @@ def add_organization(payload: OrganizationCreate, db: Session = Depends(get_db))
     except ValidationError as exc:
         error_msg = exc.errors()[0]['msg'].replace('Value error, ', '')
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=error_response(error_msg))
+    except ValueError as exc:
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=error_response(str(exc)))
     except Exception as exc:
         db.rollback()
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=error_response(str(exc)))
@@ -107,6 +109,8 @@ def edit_organization(org_id: int, payload: OrganizationUpdate, db: Session = De
     except ValidationError as exc:
         error_msg = exc.errors()[0]['msg'].replace('Value error, ', '')
         return JSONResponse(status_code=400, content=error_response(error_msg))
+    except ValueError as exc:
+        return JSONResponse(status_code=400, content=error_response(str(exc)))
     except Exception as exc:
         db.rollback()
         return JSONResponse(status_code=500, content=error_response(str(exc)))

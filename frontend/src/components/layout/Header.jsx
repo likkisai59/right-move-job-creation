@@ -1,15 +1,22 @@
 import React, { useState } from 'react';
-import { Search, Bell, Menu } from 'lucide-react';
+import { Search, Bell, Menu, LogOut, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { logout, getCurrentUser } from '../../api/authApi';
 
 const Header = ({ onSidebarToggle }) => {
   const [searchValue, setSearchValue] = useState('');
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const navigate = useNavigate();
+  const user = getCurrentUser() || { username: 'Admin', role: 'Administrator' };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && searchValue.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchValue.trim())}`);
     }
+  };
+
+  const handleLogout = () => {
+    logout();
   };
 
   return (
@@ -54,15 +61,41 @@ const Header = ({ onSidebarToggle }) => {
         {/* Divider */}
         <div className="w-px h-6 bg-gray-200 mx-1" />
 
-        {/* User avatar */}
-        <div className="flex items-center gap-2.5 cursor-pointer group">
-          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-semibold text-white">
-            AD
-          </div>
-          <div className="hidden sm:block">
-            <p className="text-sm font-medium text-gray-800 leading-none">Admin</p>
-            <p className="text-xs text-gray-500 mt-0.5 leading-none">Administrator</p>
-          </div>
+        {/* User Profile & Menu */}
+        <div className="relative">
+          <button 
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="flex items-center gap-2.5 cursor-pointer group hover:bg-gray-50 p-1.5 rounded-xl transition-colors border border-transparent hover:border-gray-100"
+          >
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-semibold text-white shadow-sm ring-2 ring-blue-50">
+              {user.username.substring(0, 2).toUpperCase()}
+            </div>
+            <div className="hidden sm:block text-left">
+              <p className="text-sm font-bold text-gray-800 leading-none">{user.username}</p>
+              <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wider leading-none">
+                {user.role}
+              </p>
+            </div>
+            <ChevronDown size={14} className={`text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showUserMenu && (
+            <>
+              <div 
+                className="fixed inset-0 z-10" 
+                onClick={() => setShowUserMenu(false)}
+              ></div>
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 py-2 z-20 animate-fade-in origin-top-right">
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <LogOut size={16} />
+                  Sign Out
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </header>
