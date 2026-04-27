@@ -178,27 +178,40 @@ def export_candidates(
     )
 
     HEADERS = [
-        "Candidate ID", "First Name", "Last Name", "Email", "Phone Number", 
-        "Category", "Skills", "Experience", "Current CTC", "Expected CTC", 
-        "Notice Period", "Location", "Reason for Change"
+        "DB ID", "Candidate Code", "First Name", "Last Name", "Email Address", "Country Code", "Phone Number", 
+        "Business Category", "Current Location", "Current/Last Company", "Total Experience", "Relevant Exp (Years)",
+        "Highest Education", "Skills", "Mapped Job ID", "Relevant Exp by Skill", "Current CTC", "Expected CTC", 
+        "Notice Period", "Reason for Job Change", "Resume File Name", "Resume File Path", "Resume URL", "Created At", "Updated At"
     ]
 
     rows = []
     for c in candidates_orm:
         rows.append([
+            c.id,
             c.candidate_code,
             c.first_name,
             c.last_name,
             c.email_address,
+            c.country_code or "—",
             c.phone_number,
             c.business_category,
-            c.skills or "—",
+            c.current_location or "—",
+            c.current_last_company or "—",
             c.total_experience or "—",
+            c.relevant_experience_years or "—",
+            c.highest_education or "—",
+            c.skills or "—",
+            c.mapped_job_id or "—",
+            c.relevant_experience_by_skill or "—",
             c.current_ctc or "—",
             c.expected_ctc or "—",
             c.notice_period or "—",
-            c.current_location or "—",
             c.reason_for_job_change or "—",
+            c.resume_file_name or "—",
+            c.resume_file_path or "—",
+            c.resume_url or "—",
+            c.created_at.strftime("%Y-%m-%d %H:%M:%S") if c.created_at else "—",
+            c.updated_at.strftime("%Y-%m-%d %H:%M:%S") if c.updated_at else "—"
         ])
 
     if format.lower() == "csv":

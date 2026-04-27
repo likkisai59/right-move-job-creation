@@ -254,7 +254,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
                       {...register(`requirements.${index}.location`)}
                     />
                     <Input
-                      label="Required Skills (JSON/CSV)"
+                      label="Required Skills"
                       placeholder="e.g. React, Node.js"
                       {...register(`requirements.${index}.required_skills`)}
                     />

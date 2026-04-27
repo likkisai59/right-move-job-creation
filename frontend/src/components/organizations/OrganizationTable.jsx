@@ -18,7 +18,7 @@ const OrganizationTable = ({ organizations = [], loading = false }) => {
   const columns = [
     {
       key: 'organization_id',
-      header: 'ID',
+      header: 'Org ID',
       render: (val) => (
         <span className="font-mono text-xs text-blue-700 font-semibold bg-blue-50 px-2 py-1 rounded border border-blue-100">
           {val}
@@ -43,7 +43,7 @@ const OrganizationTable = ({ organizations = [], loading = false }) => {
     },
     {
       key: 'commission_percentage',
-      header: 'Comm. %',
+      header: 'Commission%',
       render: (val) => (
         <div className="flex items-center gap-1 text-gray-600 font-medium">
           {val ? `${val}%` : '-'}
@@ -84,38 +84,33 @@ const OrganizationTable = ({ organizations = [], loading = false }) => {
       ),
     },
     {
-      key: 'status',
-      header: 'Status',
+      key: 'contract_signed_date',
+      header: 'Contract Signed',
       render: (val) => {
-        const config = STATUS_CONFIG[val] || { label: val, classes: 'bg-gray-50 text-gray-500 border-gray-200' };
-        return (
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border uppercase tracking-wider ${config.classes}`}>
-            {config.label}
-          </span>
-        );
-      },
+        if (!val) return <span className="text-gray-400">-</span>;
+        return <span className="text-slate-600 font-medium text-sm">{new Date(val).toLocaleDateString('en-GB')}</span>;
+      }
     },
     {
       key: 'contract_end_date',
       header: 'Contract End',
       render: (val) => {
         if (!val) return <span className="text-gray-400">-</span>;
-        
+
         const endDate = new Date(val);
         const today = new Date();
         const diffTime = endDate - today;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
+
         const isExpiringSoon = diffDays >= 0 && diffDays <= 7;
         const isExpired = diffDays < 0;
 
         return (
           <div className="flex items-center gap-2">
-            <span className={`text-sm font-semibold ${
-              isExpiringSoon ? 'text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded' : 
-              isExpired ? 'text-rose-600 bg-rose-50 px-2 py-0.5 rounded' : 
-              'text-slate-600'
-            }`}>
+            <span className={`text-sm font-semibold ${isExpiringSoon ? 'text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded' :
+                isExpired ? 'text-rose-600 bg-rose-50 px-2 py-0.5 rounded' :
+                  'text-slate-600'
+              }`}>
               {new Date(val).toLocaleDateString('en-GB')}
             </span>
             {isExpiringSoon && (
@@ -127,6 +122,18 @@ const OrganizationTable = ({ organizations = [], loading = false }) => {
           </div>
         );
       }
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (val) => {
+        const config = STATUS_CONFIG[val] || { label: val, classes: 'bg-gray-50 text-gray-500 border-gray-200' };
+        return (
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border uppercase tracking-wider ${config.classes}`}>
+            {config.label}
+          </span>
+        );
+      },
     },
     {
       key: 'actions',

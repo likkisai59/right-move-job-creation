@@ -53,18 +53,18 @@ class OrganizationUpdate(BaseModel):
 
 class OrganizationResponse(BaseModel):
     id: int
-    organization_id: str
-    organization_name: str
-    status: str
+    organization_id: Optional[str] = None
+    organization_name: Optional[str] = None
+    status: Optional[str] = None
     contract_signed_date: Optional[date] = None
     contract_end_date: Optional[date] = None
     commission_percentage: Optional[float] = None
     contact_number: Optional[str] = None
     country_code: Optional[str] = None
     address: Optional[str] = None
-    is_active: int
-    created_at: datetime
-    updated_at: datetime
+    is_active: Optional[int] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     
     model_config = {
         "from_attributes": True

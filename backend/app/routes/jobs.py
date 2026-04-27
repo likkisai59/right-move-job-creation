@@ -157,6 +157,8 @@ def list_jobs(
             ),
         )
     except Exception as exc:
+        import traceback
+        traceback.print_exc()
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=error_response(

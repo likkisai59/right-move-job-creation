@@ -11,25 +11,7 @@ def generate_organization_id(db: Session) -> str:
     max_id = db.query(func.max(Organization.id)).scalar() or 0
     return f"ORG{max_id + 1:03d}"
 
-
-ALLOWED_ORGANIZATIONS = {
-    "FNZ", "Tvarit", "Amplicomm", "DesignTech Systems", "Kushals", "Wipro IT", "Gallaghar", "Eclerx", "Clean Harbour", "Ziff Davis",
-    "Mphasis", "Concentrix", "Harbinger", "Mphasis IT", "Mphasis BPS", "Mphasis Lateral", "Mphasis Finance", "KnovaOne", "Tech Mahindra", "All State",
-    "Truconnect", "TCS IT", "TCS BPS", "TCS Finance", "TCS Lateral", "EXL", "Cognizant Lateral", "Cognizant Finance", "Cognizant BPS", "Cognizant IT",
-    "One Card", "Sutherland", "Early Salary(Fibe)", "Jade Business Services", "InchCape Shipping Services", "Gallagher", "Softdel", "Druva", "UPL", "Wipro Technologies",
-    "AffinityX", "Metamothposys", "Opus", "Facile", "Coforge", "24*7.AI", "Tata Motors", "11:11 Systems", "EY", "Persistent",
-    "CC Tech", "Wipro Finance", "Medline", "Hexaware", "TML", "Stuba", "Aditya Birla", "Rio tinto", "Nextdigm", "Wipro Lateral",
-    "Wipro BPS", "WNS", "Infosys", "TCS", "Creospan", "Sincro Digital", "Full Potential", "Gentrack", "MediaOcean", "Lenze",
-    "Capita", "SecurityHQ", "Radicle Minds", "NexDigm", "Cognizant", "DNEG", "OrangePet", "MSYS Technologies", "Ocwen", "Altisource",
-    "NumeratorOne", "AFour Technologies", "Infovision Labs", "RealThingks", "Vodafone", "Allstate", "BNY", "Springer Nature", "11:11 Systems(Sungard)", "Global logic",
-    "IVL", "T Systems", "Airtel", "Geeks", "Synechron", "Rapid Circle", "Sears Holding", "ID Medical", "TurboHire"
-}
-
 def create_organization(db: Session, payload: OrganizationCreate) -> Organization:
-    # Strict validation: Only allow names in the restricted list
-    if payload.organization_name not in ALLOWED_ORGANIZATIONS:
-         raise ValueError(f"Organization '{payload.organization_name}' is not in the allowed list.")
-         
     org_id = generate_organization_id(db)
     new_org = Organization(**payload.model_dump(), organization_id=org_id)
     db.add(new_org)
@@ -70,7 +52,7 @@ def export_organizations_to_excel(organizations: List[Organization]) -> BytesIO:
     ws.title = "Organizations"
 
     # Header
-    headers = ["ID", "Organization Name", "Contact Number", "Country Code", "Address", "Commission %", "Status", "Contract Signed Date", "Contract End Date"]
+    headers = ["DB ID", "Organization ID", "Organization Name", "Contact Number", "Country Code", "Address", "Commission %", "Status", "Contract Signed Date", "Contract End Date", "Created At", "Updated At"]
     ws.append(headers)
 
     # Style Header
@@ -81,6 +63,7 @@ def export_organizations_to_excel(organizations: List[Organization]) -> BytesIO:
     # Data
     for org in organizations:
         ws.append([
+            org.id,
             org.organization_id,
             org.organization_name,
             org.contact_number or "",
@@ -89,7 +72,9 @@ def export_organizations_to_excel(organizations: List[Organization]) -> BytesIO:
             float(org.commission_percentage) if org.commission_percentage else 0.0,
             org.status,
             org.contract_signed_date.strftime("%Y-%m-%d") if org.contract_signed_date else "",
-            org.contract_end_date.strftime("%Y-%m-%d") if org.contract_end_date else ""
+            org.contract_end_date.strftime("%Y-%m-%d") if org.contract_end_date else "",
+            org.created_at.strftime("%Y-%m-%d %H:%M:%S") if org.created_at else "",
+            org.updated_at.strftime("%Y-%m-%d %H:%M:%S") if org.updated_at else ""
         ])
 
     # Adjust column widths

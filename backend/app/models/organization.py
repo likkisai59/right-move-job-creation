@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Enum as SAEnum, func, Date, Numeric
+from sqlalchemy import Column, Integer, String, DateTime, Enum as SAEnum, func, Date, Float
 from app.core.database import Base
 
 
@@ -6,7 +6,7 @@ class Organization(Base):
     __tablename__ = "organizations"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    organization_id = Column(String(20), unique=True, nullable=False, index=True)
+    organization_id = Column(String(20), unique=True, nullable=True, index=True)
     organization_name = Column(String(255), unique=True, nullable=False, index=True)
 
     status = Column(
@@ -17,7 +17,7 @@ class Organization(Base):
 
     contract_signed_date = Column(Date, nullable=True)
     contract_end_date = Column(Date, nullable=True)
-    commission_percentage = Column(Numeric(5, 2), nullable=True)
+    commission_percentage = Column(Float, nullable=True)
     contact_number = Column(String(20), nullable=True)
     country_code = Column(String(10), nullable=True)
     address = Column(String(1000), nullable=True)

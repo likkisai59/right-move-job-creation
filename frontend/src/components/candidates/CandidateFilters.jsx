@@ -31,7 +31,7 @@ const CandidateFilters = ({ filters, onChange, onClear }) => {
       {/* Search Bar */}
       <Input
         icon={Search}
-        placeholder="Search by name or code..."
+        placeholder="Search by name..."
         value={filters.search || ''}
         onChange={(e) => handleChange('search', e.target.value)}
         containerClassName="flex-1 min-w-[200px]"
