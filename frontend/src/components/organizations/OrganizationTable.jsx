@@ -69,13 +69,13 @@ const OrganizationTable = ({ organizations = [], loading = false }) => {
     {
       key: 'address',
       header: 'Office Address',
-      minWidth: '280px',
+      minWidth: '180px',
       render: (val) => (
         <div className="flex flex-col gap-1 py-1">
           {val ? (
-            <div className="flex items-start gap-1.5 text-xs text-slate-600 max-w-[280px]" title={val}>
+            <div className="flex items-start gap-1.5 text-xs text-slate-600 max-w-[220px]" title={val}>
               <span className="text-blue-400 mt-0.5 shrink-0"><MapPin size={12} /></span>
-              <span className="leading-relaxed">{val}</span>
+              <span className="leading-relaxed line-clamp-2">{val}</span>
             </div>
           ) : (
             <span className="text-gray-400 text-[10px] italic font-medium">No address provided</span>
@@ -172,9 +172,15 @@ const OrganizationTable = ({ organizations = [], loading = false }) => {
     );
   }
 
+  const sortedOrganizations = [...organizations].sort((a, b) => {
+    if (!a.organization_id) return 1;
+    if (!b.organization_id) return -1;
+    return a.organization_id.toString().localeCompare(b.organization_id.toString(), undefined, { numeric: true });
+  });
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-fade-in">
-      <Table columns={columns} data={organizations} loading={loading} />
+      <Table columns={columns} data={sortedOrganizations} loading={loading} />
     </div>
   );
 };
