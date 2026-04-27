@@ -104,11 +104,11 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
     { value: '', label: 'Select mapped job (Optional)' },
     ...jobs.map(j => ({ value: j.id, label: `${j.jobCode} | ${j.companyName} | ${j.jobTitle}` }))
   ];
-  
+
   const handleCheckDuplicates = async (field) => {
     const values = getValues();
     const params = {};
-    
+
     if (field === 'name') {
       const fullName = `${values.firstName || ''} ${values.lastName || ''}`.trim();
       if (!fullName) {
@@ -178,7 +178,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
     // Pass the finalized data upward
     const submissionData = { ...data, skills: finalSkills };
     delete submissionData.skills_draft; // Clean up the helper field
-    
+
     onSubmit({ ...submissionData, resumeFile });
   };
 
@@ -203,7 +203,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           placeholder="Enter first name"
           required
           error={errors.firstName?.message}
-          {...register('firstName', { 
+          {...register('firstName', {
             required: 'First name is required',
             pattern: {
               value: /^[A-Za-z ]+$/,
@@ -219,7 +219,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
             placeholder="Enter last name"
             required
             error={errors.lastName?.message}
-            {...register('lastName', { 
+            {...register('lastName', {
               required: 'Last name is required',
               pattern: {
                 value: /^[A-Za-z ]+$/,
@@ -236,7 +236,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
             </div>
           )}
         </div>
-        
+
         <Input
           label="Candidate ID"
           placeholder="Generating..."
@@ -403,7 +403,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
                   placeholder="e.g. 3"
                   required
                   error={errors.relevantExperienceBySkill?.[index]?.experience?.message}
-                  {...register(`relevantExperienceBySkill.${index}.experience`, { 
+                  {...register(`relevantExperienceBySkill.${index}.experience`, {
                     required: 'Experience is required',
                     min: { value: 0, message: 'Must be 0 or greater' }
                   })}

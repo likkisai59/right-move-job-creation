@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ========================
 # ENVIRONMENT VARIABLES
 # ========================
@@ -5,6 +6,18 @@
 **/.env
 **/.env.*
 !**/.env.example
+=======
+# Python
+**/venv/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.env
+**/.pytest_cache/
+**/coverage/
+**/.coverage
+>>>>>>> d7107cb (chore: update .gitignore and remove tracked pycache/.env files)
 
 # ========================
 # PYTHON (Backend)
