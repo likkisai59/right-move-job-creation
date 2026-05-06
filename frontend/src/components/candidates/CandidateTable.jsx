@@ -74,18 +74,7 @@ const CandidateTable = ({ candidates = [], loading = false, onDelete }) => {
       key: 'totalExperience',
       header: 'Experience',
     },
-    {
-      key: 'mappedJobId',
-      header: 'Mapped Job',
-      render: (val) =>
-        val ? (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
-            Mapped
-          </span>
-        ) : (
-          <span className="text-gray-400 text-xs">—</span>
-        ),
-    },
+
     {
       key: 'currentCTC',
       header: 'Current CTC',
@@ -121,11 +110,8 @@ const CandidateTable = ({ candidates = [], loading = false, onDelete }) => {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              console.log('Navigating to candidate:', row.id);
               if (row.id) {
                 navigate(`/candidates/${row.id}`);
-              } else {
-                console.error('Candidate ID is undefined');
               }
             }}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"

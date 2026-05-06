@@ -20,12 +20,12 @@ import EmptyState from '../../components/common/EmptyState';
 import TimeStamp from '../../components/common/TimeStamp';
 import { formatDate } from '../../utils/formatters';
 import MatchingCandidatesTable from '../../components/jobs/MatchingCandidatesTable';
-import { 
-  fetchJobById, 
-  fetchMatchingCandidates, 
-  shortlistCandidate, 
+import {
+  fetchJobById,
+  fetchMatchingCandidates,
+  shortlistCandidate,
   fetchShortlistedCandidates,
-  rejectCandidate 
+  rejectCandidate
 } from '../../api/jobsApi';
 
 const JobDetailsPage = () => {
@@ -63,13 +63,13 @@ const JobDetailsPage = () => {
 
         // The API returns the list directly in .data
         const matchedList = Array.isArray(matchingRes.data) ? matchingRes.data : (matchingRes.data?.matched_candidates || []);
-        
+
         setMatchingCandidates(matchedList.map(c => ({
           ...c,
           // Skills from matching API are already a list, from others they might be comma-separated
           skills: Array.isArray(c.skills) ? c.skills : (c.skills ? c.skills.split(',').map(s => s.trim()) : [])
         })));
-        
+
         setShortlistedCandidates((shortlistedRes.data || []).map(c => ({
           ...c,
           skills: Array.isArray(c.skills) ? c.skills : (c.skills ? c.skills.split(',').map(s => s.trim()) : [])
@@ -129,7 +129,7 @@ const JobDetailsPage = () => {
     setLoading(true);
     try {
       await Promise.all(candidateIds.map(cid => shortlistCandidate(id, cid)));
-      
+
       const [matchingRes, shortlistedRes] = await Promise.all([
         fetchMatchingCandidates(id),
         fetchShortlistedCandidates(id)
@@ -221,8 +221,8 @@ const JobDetailsPage = () => {
             <button
               onClick={() => setActiveTab('matching')}
               className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'matching'
-                  ? 'bg-white text-blue-600 shadow-sm border border-gray-100'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                ? 'bg-white text-blue-600 shadow-sm border border-gray-100'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                 }`}
             >
               <Search size={16} />
@@ -235,8 +235,8 @@ const JobDetailsPage = () => {
             <button
               onClick={() => setActiveTab('shortlisted')}
               className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'shortlisted'
-                  ? 'bg-white text-emerald-600 shadow-sm border border-gray-100'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                ? 'bg-white text-emerald-600 shadow-sm border border-gray-100'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                 }`}
             >
               <UserCheck size={16} />
@@ -251,7 +251,7 @@ const JobDetailsPage = () => {
           {activeTab === 'matching' && (
             <div className="flex items-center gap-3 px-4 py-2 bg-white rounded-xl border border-gray-100 shadow-sm">
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Smart Filtering</span>
-              <button 
+              <button
                 onClick={() => setStrict(!strict)}
                 className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${strict ? 'bg-emerald-500' : 'bg-gray-300'}`}
               >
@@ -264,7 +264,7 @@ const JobDetailsPage = () => {
         {/* Content Area */}
         <div className="animate-slide-up">
           {activeTab === 'matching' ? (
-            <MatchingCandidatesTable 
+            <MatchingCandidatesTable
               candidates={matchingCandidates}
               onShortlist={handleShortlist}
               onReject={handleReject}
@@ -273,7 +273,7 @@ const JobDetailsPage = () => {
               tab="matching"
             />
           ) : (
-            <MatchingCandidatesTable 
+            <MatchingCandidatesTable
               candidates={shortlistedCandidates}
               processingId={processingId}
               tab="shortlisted"

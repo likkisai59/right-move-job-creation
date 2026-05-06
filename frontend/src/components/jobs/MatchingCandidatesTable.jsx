@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  CheckCircle2, 
-  XCircle, 
-  Eye, 
-  Search, 
+import {
+  CheckCircle2,
+  XCircle,
+  Eye,
+  Search,
   ArrowUpDown,
   Filter,
   Check
 } from 'lucide-react';
 import Badge from '../common/Badge';
 
-const MatchingCandidatesTable = ({ 
-  candidates = [], 
-  onShortlist, 
-  onReject, 
+const MatchingCandidatesTable = ({
+  candidates = [],
+  onShortlist,
+  onReject,
   processingId,
   tab = 'matching',
   onBulkShortlist
@@ -28,7 +28,7 @@ const MatchingCandidatesTable = ({
 
   // Toggle selection
   const toggleSelect = (id) => {
-    setSelectedCandidates(prev => 
+    setSelectedCandidates(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
   };
@@ -153,7 +153,7 @@ const MatchingCandidatesTable = ({
               <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Name</th>
               <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Skills</th>
               <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Experience</th>
-              <th 
+              <th
                 className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 cursor-pointer hover:text-blue-600 transition-colors"
                 onClick={() => requestSort('match_score')}
               >
@@ -170,7 +170,7 @@ const MatchingCandidatesTable = ({
             {sortedCandidates.length > 0 ? (
               sortedCandidates.map((c) => (
                 <tr key={c.candidate_id || c.id} className={`hover:bg-blue-50/30 transition-colors group ${selectedCandidates.includes(c.candidate_id || c.id) ? 'bg-blue-50/50' : ''}`}>
-                   {tab === 'matching' && (
+                  {tab === 'matching' && (
                     <td className="px-6 py-4">
                       <input
                         type="checkbox"
@@ -183,9 +183,8 @@ const MatchingCandidatesTable = ({
                   )}
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shadow-sm ${
-                        c.status === 'shortlisted' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'
-                      }`}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shadow-sm ${c.status === 'shortlisted' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'
+                        }`}>
                         {c.name.charAt(0)}
                       </div>
                       <div className="font-bold text-gray-900">{c.name}</div>
@@ -214,7 +213,7 @@ const MatchingCandidatesTable = ({
                         </span>
                       </div>
                       <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                        <div 
+                        <div
                           className={`h-full rounded-full transition-all duration-1000 ${getScoreBadge(c.match_score)}`}
                           style={{ width: `${c.match_score}%` }}
                         />
@@ -222,17 +221,16 @@ const MatchingCandidatesTable = ({
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                      c.status === 'shortlisted' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                      c.status === 'rejected' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                      'bg-blue-50 text-blue-600 border-blue-100'
-                    }`}>
+                    <div className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${c.status === 'shortlisted' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                        c.status === 'rejected' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                          'bg-blue-50 text-blue-600 border-blue-100'
+                      }`}>
                       {c.status}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                       <button
+                      <button
                         onClick={() => navigate(`/candidates/${c.candidate_id || c.id}`)}
                         title="View Profile"
                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
@@ -277,11 +275,11 @@ const MatchingCandidatesTable = ({
             ) : (
               <tr>
                 <td colSpan="7" className="px-6 py-12 text-center">
-                   <div className="flex flex-col items-center gap-2">
-                     <Search className="text-gray-300" size={40} />
-                     <p className="text-gray-500 font-medium">No relevant candidates found for this job</p>
-                     <p className="text-gray-400 text-xs">Try adjusting the job requirements or adding more candidates to the pool.</p>
-                   </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <Search className="text-gray-300" size={40} />
+                    <p className="text-gray-500 font-medium">No relevant candidates found for this job</p>
+                    <p className="text-gray-400 text-xs">Try adjusting the job requirements or adding more candidates to the pool.</p>
+                  </div>
                 </td>
               </tr>
             )}

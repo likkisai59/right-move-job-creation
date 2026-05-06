@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import Optional
 
-from pydantic import ValidationError, BaseModel, Field
+from pydantic import ValidationError
 from app.core.database import get_db
 from app.schemas.candidate import CandidateCreateRequest, CandidateResponse
 from app.services.candidate_service import (
@@ -186,14 +186,16 @@ def export_candidates(
 
     rows = []
     for c in candidates_orm:
+        # Merge Country Code and Phone Number
+        phone = f"{c.country_code} {c.phone_number}".strip() if c.country_code or c.phone_number else "—"
+        
         rows.append([
             c.id,
             c.candidate_code,
             c.first_name,
             c.last_name,
             c.email_address,
-            c.country_code or "—",
-            c.phone_number,
+            phone,
             c.business_category,
             c.current_location or "—",
             c.current_last_company or "—",

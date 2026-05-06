@@ -235,8 +235,8 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
                 {/* Matching Criteria Section */}
                 <div className="md:col-span-2 mt-2 pt-2 border-t border-gray-100">
                   <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Matching Criteria</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                     <Input
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                    <Input
                       label="Min Exp (Years)"
                       type="number"
                       placeholder="0"

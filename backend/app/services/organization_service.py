@@ -12,6 +12,10 @@ def generate_organization_id(db: Session) -> str:
     return f"ORG{max_id + 1:03d}"
 
 def create_organization(db: Session, payload: OrganizationCreate) -> Organization:
+    # Check if organization already exists
+    if check_organization_exists(db, payload.organization_name):
+         raise ValueError(f"Organization '{payload.organization_name}' already exists.")
+         
     org_id = generate_organization_id(db)
     new_org = Organization(**payload.model_dump(), organization_id=org_id)
     db.add(new_org)
@@ -52,7 +56,7 @@ def export_organizations_to_excel(organizations: List[Organization]) -> BytesIO:
     ws.title = "Organizations"
 
     # Header
-    headers = ["DB ID", "Organization ID", "Organization Name", "Contact Number", "Country Code", "Address", "Commission %", "Status", "Contract Signed Date", "Contract End Date", "Created At", "Updated At"]
+    headers = ["ID", "Organization Name", "Contact Number", "Address", "Commission %", "Status", "Contract Signed Date", "Contract End Date"]
     ws.append(headers)
 
     # Style Header
@@ -62,12 +66,14 @@ def export_organizations_to_excel(organizations: List[Organization]) -> BytesIO:
 
     # Data
     for org in organizations:
+        # Merge Country Code and Contact Number
+        contact = f"{org.country_code} {org.contact_number}".strip() if org.country_code or org.contact_number else ""
+        
         ws.append([
             org.id,
             org.organization_id,
             org.organization_name,
-            org.contact_number or "",
-            org.country_code or "",
+            contact,
             org.address or "",
             float(org.commission_percentage) if org.commission_percentage else 0.0,
             org.status,
@@ -118,11 +124,8 @@ def delete_organization(db: Session, org_id: int) -> bool:
 def check_organization_exists(db: Session, name: str) -> bool:
     """Checks if organization exists with case-insensitive name."""
     clean_name = name.strip().lower()
-    print(f"DEBUG: Checking organization duplicate: '{clean_name}'")
-    
     exists = db.query(Organization).filter(
         func.lower(func.trim(Organization.organization_name)) == clean_name
     ).first()
     
-    print(f"DEBUG: Duplicate check result: {'EXISTS' if exists else 'NOT FOUND'}")
     return exists is not None

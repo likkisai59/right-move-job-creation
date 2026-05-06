@@ -6,7 +6,6 @@ import Select from '../common/Select';
 import Button from '../common/Button';
 import FileUpload from '../common/FileUpload';
 import SkillsInput from './SkillsInput';
-import { fetchJobs } from '../../api/jobsApi';
 import { NOTICE_PERIODS, EXPERIENCE_OPTIONS, EDUCATION_OPTIONS, COUNTRY_CODES } from '../../utils/constants';
 import { checkDuplicateCandidate } from '../../api/candidatesApi';
 import { AlertTriangle } from 'lucide-react';
@@ -40,7 +39,6 @@ const DEFAULT_FORM_VALUES = {
   reasonForChange: '',
   resumeFile: null,
   skills_draft: '',
-  mappedJobId: '',
   relevantExperienceBySkill: [],
 };
 
@@ -66,9 +64,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
   });
 
   const [resumeFile, setResumeFile] = useState(null);
-  const [jobs, setJobs] = useState([]);
   const [warnings, setWarnings] = useState({ name: false, phone: false, email: false });
-  const selectedCategory = watch('businessCategory');
   const totalExperience = watch('totalExperience');
 
   // Fresher logic: Clear relevant experience if total experience is changed to 'fresher'
@@ -86,24 +82,6 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
       setWarnings({ name: false, phone: false, email: false }); // Reset warnings on form reset
     }
   }, [defaultValues, reset]);
-
-
-  useEffect(() => {
-    const loadJobs = async () => {
-      try {
-        const { data } = await fetchJobs({ businessCategory: selectedCategory });
-        setJobs(data);
-      } catch (err) {
-        console.error('Failed to load jobs', err);
-      }
-    };
-    loadJobs();
-  }, [selectedCategory]);
-
-  const jobOptions = [
-    { value: '', label: 'Select mapped job (Optional)' },
-    ...jobs.map(j => ({ value: j.id, label: `${j.jobCode} | ${j.companyName} | ${j.jobTitle}` }))
-  ];
 
   const handleCheckDuplicates = async (field) => {
     const values = getValues();
@@ -129,7 +107,6 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
       }
       params.email_address = values.email;
     }
-
 
     try {
       const results = await checkDuplicateCandidate(params);
@@ -184,16 +161,6 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} noValidate>
-      {/* SECTION 1: Job Mapping (New) */}
-      <SectionTitle>Sourcing & Job Mapping</SectionTitle>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
-        <Select
-          label="Mapped Job Requirement"
-          options={jobOptions}
-          error={errors.mappedJobId?.message}
-          {...register('mappedJobId')}
-        />
-      </div>
 
       {/* SECTION 2: Personal Details */}
       <SectionTitle>Personal Details</SectionTitle>

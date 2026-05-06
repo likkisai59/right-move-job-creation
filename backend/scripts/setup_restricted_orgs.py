@@ -8,7 +8,20 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app.core.database import SessionLocal, engine, Base
 from app.models.organization import Organization
-from app.services.organization_service import ALLOWED_ORGANIZATIONS, generate_organization_id
+from app.services.organization_service import generate_organization_id
+
+ALLOWED_ORGANIZATIONS = {
+    "FNZ", "Tvarit", "Amplicomm", "DesignTech Systems", "Kushals", "Wipro IT", "Gallaghar", "Eclerx", "Clean Harbour", "Ziff Davis",
+    "Mphasis", "Concentrix", "Harbinger", "Mphasis IT", "Mphasis BPS", "Mphasis Lateral", "Mphasis Finance", "KnovaOne", "Tech Mahindra", "All State",
+    "Truconnect", "TCS IT", "TCS BPS", "TCS Finance", "TCS Lateral", "EXL", "Cognizant Lateral", "Cognizant Finance", "Cognizant BPS", "Cognizant IT",
+    "One Card", "Sutherland", "Early Salary(Fibe)", "Jade Business Services", "InchCape Shipping Services", "Gallagher", "Softdel", "Druva", "UPL", "Wipro Technologies",
+    "AffinityX", "Metamothposys", "Opus", "Facile", "Coforge", "24*7.AI", "Tata Motors", "11:11 Systems", "EY", "Persistent",
+    "CC Tech", "Wipro Finance", "Medline", "Hexaware", "TML", "Stuba", "Aditya Birla", "Rio tinto", "Nextdigm", "Wipro Lateral",
+    "Wipro BPS", "WNS", "Infosys", "TCS", "Creospan", "Sincro Digital", "Full Potential", "Gentrack", "MediaOcean", "Lenze",
+    "Capita", "SecurityHQ", "Radicle Minds", "NexDigm", "Cognizant", "DNEG", "OrangePet", "MSYS Technologies", "Ocwen", "Altisource",
+    "NumeratorOne", "AFour Technologies", "Infovision Labs", "RealThingks", "Vodafone", "Allstate", "BNY", "Springer Nature", "11:11 Systems(Sungard)", "Global logic",
+    "IVL", "T Systems", "Airtel", "Geeks", "Synechron", "Rapid Circle", "Sears Holding", "ID Medical", "TurboHire"
+}
 
 def setup():
     db: Session = SessionLocal()
