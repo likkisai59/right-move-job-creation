@@ -1,73 +1,84 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, UserPlus } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import PageContainer from '../../components/layout/PageContainer';
+import Card from '../../components/common/Card';
 import EmployeeForm from '../../components/employees/EmployeeForm';
 import { createEmployee } from '../../api/employeesApi';
 
 const AddEmployeePage = () => {
   const navigate = useNavigate();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
 
   const handleSubmit = async (data) => {
-    setIsSubmitting(true);
+    setLoading(true);
     setError(null);
     try {
-      // Call the API function we wrote earlier
       await createEmployee(data);
-      // On success, go back to the employee list
-      navigate('/employees');
+      setSuccess(true);
+      setTimeout(() => navigate('/employees'), 1500);
     } catch (err) {
-      console.error('Failed to create employee:', err);
-      // If the backend sends a specific error message, show it
-      setError(err.response?.data?.message || 'Failed to create employee. Please try again.');
+      console.error('Failed to add employee:', err);
+      const message = err.response?.data?.message || err.message || 'An unexpected error occurred';
+      setError(message);
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
-  const handleCancel = () => {
-    navigate('/employees');
-  };
+  const handleCancel = () => navigate('/employees');
 
   return (
     <PageContainer>
-      <div className="flex flex-col gap-6 animate-fade-in max-w-4xl mx-auto">
-        
-        {/* ── Page Header ── */}
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col">
-            <button
-              onClick={handleCancel}
-              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors group mb-2 w-fit"
-            >
-              <ArrowLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
-              Back to Employees
-            </button>
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-blue-600 text-white rounded-xl shadow-md shadow-blue-200">
-                <UserPlus size={22} />
-              </div>
-              <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Add New Employee</h1>
+      <div className="max-w-4xl mx-auto animate-fade-in">
+        {/* Back button */}
+        <button
+          onClick={() => navigate('/employees')}
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-5 transition-colors group"
+        >
+          <ArrowLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+          Back
+        </button>
+
+        <Card>
+          <div className="mb-6">
+            <h1 className="text-lg font-semibold text-gray-900">
+              Employee Registration
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Register a new employee in the database
+            </p>
+          </div>
+
+          {success && (
+            <div className="mb-5 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-medium flex items-center gap-2 animate-slide-up">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              Employee registered successfully. Redirecting...
             </div>
-          </div>
-        </div>
+          )}
 
-        {/* ── Error Banner ── */}
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
-            <p className="text-sm font-bold text-red-700">{error}</p>
-          </div>
-        )}
+          {error && (
+            <div className="mb-5 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm font-medium flex items-center gap-2 animate-slide-up">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="15" y1="9" x2="9" y2="15" />
+                <line x1="9" y1="9" x2="15" y2="15" />
+              </svg>
+              {error}
+            </div>
+          )}
 
-        {/* ── The Form Component ── */}
-        <EmployeeForm 
-          onSubmit={handleSubmit} 
-          onCancel={handleCancel} 
-          isSubmitting={isSubmitting} 
-        />
-        
+          <EmployeeForm 
+            onSubmit={handleSubmit} 
+            onCancel={handleCancel} 
+            isSubmitting={loading} 
+          />
+
+        </Card>
       </div>
     </PageContainer>
   );

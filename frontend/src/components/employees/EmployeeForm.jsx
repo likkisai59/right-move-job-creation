@@ -1,7 +1,17 @@
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Save, X, User, Briefcase, Calendar, DollarSign, Tag } from 'lucide-react';
+import Input from '../common/Input';
+import Select from '../common/Select';
+import Button from '../common/Button';
 import { EMPLOYEE_STATUS_OPTIONS, EMPLOYEE_DESIGNATION_OPTIONS } from '../../utils/constants';
+
+const SectionTitle = ({ children }) => (
+  <div className="mb-5">
+    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100 pb-2.5">
+      {children}
+    </h3>
+  </div>
+);
 
 const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   const isEditing = !!initialData;
@@ -26,196 +36,115 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     }
   });
 
-  // Reset form when initialData loads (e.g., during Edit)
+  // Format dates correctly for input type="date" if initialData is passed
   useEffect(() => {
     if (initialData) {
-      reset(initialData);
+      const formattedData = { ...initialData };
+      if (formattedData.dateOfJoining && formattedData.dateOfJoining.includes('T')) {
+        formattedData.dateOfJoining = formattedData.dateOfJoining.split('T')[0];
+      }
+      if (formattedData.lastWorkingDate && formattedData.lastWorkingDate.includes('T')) {
+        formattedData.lastWorkingDate = formattedData.lastWorkingDate.split('T')[0];
+      }
+      reset(formattedData);
     }
   }, [initialData, reset]);
 
   const currentStatus = watch('status');
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 animate-fade-in">
+    <form onSubmit={handleSubmit(onSubmit)} className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
       
-      {/* ── Personal Details Section ── */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <div className="flex items-center gap-2 mb-6 border-b pb-4">
-          <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-            <User size={20} />
-          </div>
-          <h2 className="text-lg font-bold text-gray-800">Personal Details</h2>
-        </div>
+      <SectionTitle>Personal Details</SectionTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 mb-8">
+        <Input
+          label="First Name"
+          placeholder="Enter first name"
+          required
+          error={errors.firstName?.message}
+          {...register('firstName', { required: 'First name is required' })}
+        />
+        
+        <Input
+          label="Last Name"
+          placeholder="Enter last name"
+          required
+          error={errors.lastName?.message}
+          {...register('lastName', { required: 'Last name is required' })}
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* First Name */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-              First Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              {...register('firstName', { required: 'First name is required' })}
-              className={`w-full px-4 py-2.5 rounded-xl border focus:ring-2 focus:ring-blue-100 transition-all ${
-                errors.firstName ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-blue-500'
-              }`}
-              placeholder="Enter first name"
-            />
-            {errors.firstName && <p className="mt-1 text-xs text-red-500">{errors.firstName.message}</p>}
-          </div>
-
-          {/* Last Name */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-              Last Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              {...register('lastName', { required: 'Last name is required' })}
-              className={`w-full px-4 py-2.5 rounded-xl border focus:ring-2 focus:ring-blue-100 transition-all ${
-                errors.lastName ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-blue-500'
-              }`}
-              placeholder="Enter last name"
-            />
-            {errors.lastName && <p className="mt-1 text-xs text-red-500">{errors.lastName.message}</p>}
-          </div>
-
-          {/* Preferred Name */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Preferred Name</label>
-            <input
-              type="text"
-              {...register('preferredName')}
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-              placeholder="e.g. John"
-            />
-          </div>
-        </div>
+        <Input
+          label="Preferred Name"
+          placeholder="e.g. John"
+          {...register('preferredName')}
+        />
       </div>
 
-      {/* ── Job & Employment Details Section ── */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <div className="flex items-center gap-2 mb-6 border-b pb-4">
-          <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-            <Briefcase size={20} />
-          </div>
-          <h2 className="text-lg font-bold text-gray-800">Employment Details</h2>
-        </div>
+      <SectionTitle>Employment Details</SectionTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 mb-8">
+        <Select
+          label="Designation"
+          options={EMPLOYEE_DESIGNATION_OPTIONS}
+          required
+          error={errors.designation?.message}
+          {...register('designation', { required: 'Designation is required' })}
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Designation */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-              Designation <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <Tag size={16} className="absolute left-3.5 top-3 text-gray-400" />
-              <select
-                {...register('designation', { required: 'Designation is required' })}
-                className={`w-full pl-10 pr-4 py-2.5 appearance-none rounded-xl border focus:ring-2 focus:ring-emerald-100 transition-all ${
-                  errors.designation ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-emerald-500'
-                }`}
-              >
-                <option value="">Select Designation</option>
-                {EMPLOYEE_DESIGNATION_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-            {errors.designation && <p className="mt-1 text-xs text-red-500">{errors.designation.message}</p>}
-          </div>
+        <Input
+          label="Annual Package (LPA)"
+          type="number"
+          step="0.01"
+          placeholder="e.g. 1200000"
+          {...register('package')}
+        />
 
-          {/* Package */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Annual Package</label>
-            <div className="relative">
-              <DollarSign size={16} className="absolute left-3.5 top-3 text-gray-400" />
-              <input
-                type="number"
-                step="0.01"
-                {...register('package')}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
-                placeholder="e.g. 1200000"
-              />
-            </div>
-          </div>
+        <Input
+          label="Date of Joining"
+          type="date"
+          required
+          error={errors.dateOfJoining?.message}
+          {...register('dateOfJoining', { required: 'Date of joining is required' })}
+        />
 
-          {/* Date of Joining */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-              Date of Joining <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <Calendar size={16} className="absolute left-3.5 top-3 text-gray-400 pointer-events-none" />
-              <input
-                type="date"
-                {...register('dateOfJoining', { required: 'Date of joining is required' })}
-                className={`w-full pl-10 pr-4 py-2.5 rounded-xl border focus:ring-2 focus:ring-emerald-100 transition-all ${
-                  errors.dateOfJoining ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-emerald-500'
-                }`}
-              />
-            </div>
-            {errors.dateOfJoining && <p className="mt-1 text-xs text-red-500">{errors.dateOfJoining.message}</p>}
-          </div>
+        <Select
+          label="Status"
+          options={EMPLOYEE_STATUS_OPTIONS}
+          {...register('status')}
+        />
 
-          {/* Status */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Status</label>
-            <select
-              {...register('status')}
-              className="w-full px-4 py-2.5 appearance-none rounded-xl border border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
-            >
-              {EMPLOYEE_STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+        {currentStatus === 'Inactive' && (
+          <div className="md:col-span-2">
+            <Input
+              label="Last Working Date"
+              type="date"
+              required={currentStatus === 'Inactive'}
+              error={errors.lastWorkingDate?.message}
+              {...register('lastWorkingDate', { 
+                required: currentStatus === 'Inactive' ? 'Last working date is required for inactive employees' : false 
+              })}
+            />
           </div>
-
-          {/* Last Working Date (Only show if Inactive) */}
-          {currentStatus === 'Inactive' && (
-            <div className="animate-fade-in md:col-span-2">
-              <label className="block text-sm font-semibold text-red-600 mb-1.5">
-                Last Working Date <span className="text-red-500">*</span>
-              </label>
-              <div className="relative md:w-1/2 pr-3">
-                <Calendar size={16} className="absolute left-3.5 top-3 text-red-400 pointer-events-none" />
-                <input
-                  type="date"
-                  {...register('lastWorkingDate', { 
-                    required: currentStatus === 'Inactive' ? 'Last working date is required for inactive employees' : false 
-                  })}
-                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl border border-red-200 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100 transition-all`}
-                />
-              </div>
-              {errors.lastWorkingDate && <p className="mt-1 text-xs text-red-500">{errors.lastWorkingDate.message}</p>}
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* ── Action Buttons ── */}
-      <div className="flex items-center justify-end gap-3 pt-4">
-        <button
-          type="button"
+      <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-8">
+        <Button 
+          type="button" 
+          variant="secondary" 
           onClick={onCancel}
           disabled={isSubmitting}
-          className="px-6 py-2.5 text-sm font-bold text-gray-600 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 focus:ring-4 focus:ring-gray-100 transition-all flex items-center gap-2"
         >
-          <X size={16} />
           Cancel
-        </button>
-        <button
-          type="submit"
+        </Button>
+        <Button 
+          type="submit" 
+          variant="primary"
+          loading={isSubmitting}
           disabled={isSubmitting}
-          className={`px-6 py-2.5 text-sm font-bold text-white rounded-xl shadow-md transition-all flex items-center gap-2 ${
-            isSubmitting ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg focus:ring-4 focus:ring-blue-200'
-          }`}
         >
-          <Save size={16} />
-          {isSubmitting ? 'Saving...' : isEditing ? 'Update Employee' : 'Save Employee'}
-        </button>
+          {isEditing ? 'Update Employee' : 'Save Employee'}
+        </Button>
       </div>
-
     </form>
   );
 };
