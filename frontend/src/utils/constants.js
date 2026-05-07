@@ -79,3 +79,21 @@ export const COUNTRY_CODES = [
   { value: '+1-CA', label: '+1 (Canada)' },
   { value: '+49', label: '+49 (Germany)' },
 ];
+
+// ─────────────────────────────────────────────────────────────
+// EMPLOYEE CONSTANTS
+// ─────────────────────────────────────────────────────────────
+
+export const EMPLOYEE_STATUS_OPTIONS = [
+  { value: 'Active', label: 'Active' },
+  { value: 'Inactive', label: 'Inactive' }
+];
+
+export const EMPLOYEE_DESIGNATION_OPTIONS = [
+  { value: 'Software Engineer', label: 'Software Engineer' },
+  { value: 'Senior Software Engineer', label: 'Senior Software Engineer' },
+  { value: 'HR Manager', label: 'HR Manager' },
+  { value: 'Project Manager', label: 'Project Manager' },
+  { value: 'Sales Executive', label: 'Sales Executive' },
+  { value: 'Director', label: 'Director' }
+];

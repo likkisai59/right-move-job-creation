@@ -25,12 +25,14 @@ from app.models import job_requirement  # noqa: F401
 from app.models import candidate  # noqa: F401
 from app.models import organization  # noqa: F401
 from app.models import job_candidate  # noqa: F401
+from app.models import employee  # noqa: F401
 
 # Import routers
 from app.routes import jobs
 from app.routes import candidates
 from app.routes import organizations
 from app.routes import auth
+from app.routes import employees
 
 
 # ── Lifespan: runs once on startup ────────────────────────────
@@ -71,6 +73,7 @@ app.include_router(jobs.router)
 app.include_router(candidates.router)
 app.include_router(organizations.router)
 app.include_router(auth.router)
+app.include_router(employees.router)
 
 # ── Static Files ──────────────────────────────────────────────
 # Ensure uploads directory exists
