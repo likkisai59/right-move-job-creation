@@ -277,7 +277,7 @@ def is_candidate_shortlisted(db: Session, job_id: int, candidate_id: int) -> boo
 # MATCHING & SHORTLISTING
 # ─────────────────────────────────────────────────────────────
 
-def get_matching_candidates(db: Session, job_id: int, strict: bool = True) -> List[dict]:
+def get_matching_candidates(db: Session, job_id: int, strict: bool = True, requirement_id: Optional[int] = None) -> List[dict]:
     """
     Fetches candidates for a job and computes match scores.
     """
@@ -288,7 +288,11 @@ def get_matching_candidates(db: Session, job_id: int, strict: bool = True) -> Li
     if not job or not job.requirements:
         return []
 
-    requirement = job.requirements[0] # Primary requirement
+    # Pick specific requirement if requirement_id provided, else use first
+    if requirement_id:
+        requirement = next((r for r in job.requirements if r.id == requirement_id), job.requirements[0])
+    else:
+        requirement = job.requirements[0]  # default: first requirement
     
     required_skills = parse_skills(requirement.required_skills)
     if not required_skills:

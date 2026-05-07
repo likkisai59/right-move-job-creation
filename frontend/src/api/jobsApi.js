@@ -131,8 +131,10 @@ export const deleteJob = async (id) => {
 };
 
 // ── GET /api/jobs/{id}/matches ────────────────────
-export const fetchMatchingCandidates = async (id, strict = true) => {
-  const response = await api.get(`/jobs/${id}/matches`, { params: { strict } });
+export const fetchMatchingCandidates = async (id, strict = true, requirementId = null) => {
+  const params = { strict };
+  if (requirementId) params.requirement_id = requirementId;
+  const response = await api.get(`/jobs/${id}/matches`, { params });
   return { data: response.data.data };
 };
 

@@ -3,14 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   Briefcase,
-  Users,
   UserCheck,
-  Clock,
   Calendar,
-  CheckCircle2,
-  ChevronRight,
   Search,
-  Check
 } from 'lucide-react';
 import PageContainer from '../../components/layout/PageContainer';
 import Card from '../../components/common/Card';
@@ -28,77 +23,100 @@ import {
   rejectCandidate
 } from '../../api/jobsApi';
 
+const normalizeSkills = (skills) =>
+  Array.isArray(skills) ? skills : (skills ? skills.split(',').map(s => s.trim()) : []);
+
 const JobDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [job, setJob] = useState(null);
-  const [matchingCandidates, setMatchingCandidates] = useState([]);
-  const [shortlistedCandidates, setShortlistedCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('matching'); // 'matching' or 'shortlisted'
-  const [processingId, setProcessingId] = useState(null);
   const [strict, setStrict] = useState(true);
 
-  const mapCandidate = (c) => ({
-    ...c,
-    skills: c.skills ? c.skills.split(',').map(s => s.trim()) : []
-  });
+  // Per-role matching: { [reqId]: Candidate[] } — prefetched all at once
+  const [roleMatching, setRoleMatching] = useState({});
 
+  // Shared shortlisted list (job-level, not per role)
+  const [shortlistedCandidates, setShortlistedCandidates] = useState([]);
+
+  // Which role tab is selected
+  const [selectedReqId, setSelectedReqId] = useState(null);
+
+  // 'matching' or 'shortlisted'
+  const [activeTab, setActiveTab] = useState('matching');
+
+  const [processingId, setProcessingId] = useState(null);
+
+  // ── Load everything on mount (or when strict changes) ──────────────
   useEffect(() => {
-    const loadData = async () => {
+    const loadAll = async () => {
       setLoading(true);
       try {
+        // 1. Fetch job data first
         const jobRes = await fetchJobById(id);
-        setJob(jobRes.data);
-      } catch (err) {
-        console.error('Failed to load job details:', err);
-      }
+        const jobData = jobRes.data;
+        setJob(jobData);
 
-      // Load matching and shortlisted candidates independently
-      try {
-        const [matchingRes, shortlistedRes] = await Promise.all([
-          fetchMatchingCandidates(id, strict),
-          fetchShortlistedCandidates(id)
+        const requirements = jobData?.requirements || [];
+        const firstReqId = requirements[0]?.id || null;
+        setSelectedReqId(firstReqId);
+
+        // 2. Prefetch ALL roles' matching candidates simultaneously + shortlisted
+        const matchingPromises = requirements.map(req =>
+          fetchMatchingCandidates(id, strict, req.id)
+            .then(res => {
+              const list = Array.isArray(res.data) ? res.data : (res.data?.matched_candidates || []);
+              return { reqId: req.id, candidates: list.map(c => ({ ...c, skills: normalizeSkills(c.skills) })) };
+            })
+            .catch(() => ({ reqId: req.id, candidates: [] }))
+        );
+
+        const [shortlistedRes, ...matchingResults] = await Promise.all([
+          fetchShortlistedCandidates(id),
+          ...matchingPromises
         ]);
 
-        // The API returns the list directly in .data
-        const matchedList = Array.isArray(matchingRes.data) ? matchingRes.data : (matchingRes.data?.matched_candidates || []);
+        // 3. Build role matching map
+        const matchingMap = {};
+        matchingResults.forEach(({ reqId, candidates }) => {
+          matchingMap[reqId] = candidates;
+        });
+        setRoleMatching(matchingMap);
 
-        setMatchingCandidates(matchedList.map(c => ({
-          ...c,
-          // Skills from matching API are already a list, from others they might be comma-separated
-          skills: Array.isArray(c.skills) ? c.skills : (c.skills ? c.skills.split(',').map(s => s.trim()) : [])
-        })));
-
-        setShortlistedCandidates((shortlistedRes.data || []).map(c => ({
-          ...c,
-          skills: Array.isArray(c.skills) ? c.skills : (c.skills ? c.skills.split(',').map(s => s.trim()) : [])
-        })));
+        // 4. Set shared shortlisted
+        setShortlistedCandidates(
+          (shortlistedRes.data || []).map(c => ({ ...c, skills: normalizeSkills(c.skills) }))
+        );
       } catch (err) {
-        console.error('Failed to load candidates:', err);
+        console.error('Failed to load job details:', err);
       } finally {
         setLoading(false);
       }
     };
-    loadData();
+
+    loadAll();
   }, [id, strict]);
 
+  // ── Shortlist ───────────────────────────────────────────────────────
   const handleShortlist = async (candidateId) => {
     setProcessingId(candidateId);
     try {
       await shortlistCandidate(id, candidateId);
 
-      // Update matching list locally to show "Shortlisted"
-      setMatchingCandidates(prev => prev.map(c => {
-        if ((c.candidate_id || c.id) === candidateId) {
-          return { ...c, status: 'shortlisted' };
-        }
-        return c;
+      // Mark as shortlisted in the current role's matching list (local update)
+      setRoleMatching(prev => ({
+        ...prev,
+        [selectedReqId]: prev[selectedReqId]?.map(c =>
+          (c.candidate_id || c.id) === candidateId ? { ...c, status: 'shortlisted' } : c
+        ) || []
       }));
 
-      // Refresh shortlisted list
+      // Refresh shared shortlisted
       const res = await fetchShortlistedCandidates(id);
-      setShortlistedCandidates(res.data || []);
+      setShortlistedCandidates(
+        (res.data || []).map(c => ({ ...c, skills: normalizeSkills(c.skills) }))
+      );
     } catch (err) {
       console.error('Shortlist failed:', err);
     } finally {
@@ -106,17 +124,17 @@ const JobDetailsPage = () => {
     }
   };
 
+  // ── Reject ─────────────────────────────────────────────────────────
   const handleReject = async (candidateId) => {
     setProcessingId(candidateId);
     try {
       await rejectCandidate(id, candidateId);
 
-      // Update matching list locally to show "Rejected"
-      setMatchingCandidates(prev => prev.map(c => {
-        if ((c.candidate_id || c.id) === candidateId) {
-          return { ...c, status: 'rejected' };
-        }
-        return c;
+      setRoleMatching(prev => ({
+        ...prev,
+        [selectedReqId]: prev[selectedReqId]?.map(c =>
+          (c.candidate_id || c.id) === candidateId ? { ...c, status: 'rejected' } : c
+        ) || []
       }));
     } catch (err) {
       console.error('Reject failed:', err);
@@ -125,21 +143,19 @@ const JobDetailsPage = () => {
     }
   };
 
+  // ── Bulk Shortlist ─────────────────────────────────────────────────
   const handleBulkShortlist = async (candidateIds) => {
-    setLoading(true);
+    setProcessingId('bulk');
     try {
       await Promise.all(candidateIds.map(cid => shortlistCandidate(id, cid)));
-
-      const [matchingRes, shortlistedRes] = await Promise.all([
-        fetchMatchingCandidates(id),
-        fetchShortlistedCandidates(id)
-      ]);
-      setMatchingCandidates(matchingRes.data || []);
-      setShortlistedCandidates(shortlistedRes.data || []);
+      const res = await fetchShortlistedCandidates(id);
+      setShortlistedCandidates(
+        (res.data || []).map(c => ({ ...c, skills: normalizeSkills(c.skills) }))
+      );
     } catch (err) {
       console.error('Bulk shortlist failed:', err);
     } finally {
-      setLoading(false);
+      setProcessingId(null);
     }
   };
 
@@ -150,10 +166,14 @@ const JobDetailsPage = () => {
     </PageContainer>
   );
 
+  const hasMultipleRoles = job.requirements && job.requirements.length > 1;
+  const matchingCandidates = selectedReqId ? (roleMatching[selectedReqId] || []) : [];
+
   return (
     <PageContainer>
       <div className="flex flex-col gap-6 animate-fade-in max-w-7xl mx-auto">
-        {/* Header Navigation */}
+
+        {/* ── Header Nav ── */}
         <div className="flex items-center justify-between">
           <button
             onClick={() => navigate('/jobs')}
@@ -162,7 +182,6 @@ const JobDetailsPage = () => {
             <ArrowLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
             Back to Requirements
           </button>
-
           <div className="flex items-center gap-2">
             <Badge status={job.status} />
             <button
@@ -174,7 +193,7 @@ const JobDetailsPage = () => {
           </div>
         </div>
 
-        {/* Job Summary Card */}
+        {/* ── Job Summary Card ── */}
         <Card className="overflow-hidden border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-2">
             <div className="flex items-start gap-4">
@@ -187,9 +206,19 @@ const JobDetailsPage = () => {
                   <span className="text-gray-300">•</span>
                   <span>{job.companyName}</span>
                 </div>
-                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
-                  {job.jobTitle}
-                </h1>
+
+                {hasMultipleRoles ? (
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {job.requirements.map(req => (
+                      <span key={req.id} className="text-sm font-semibold text-gray-700 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg">
+                        {req.job_title}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">{job.jobTitle}</h1>
+                )}
+
                 <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                   <div className="flex items-center gap-1.5">
                     <Calendar size={14} className="text-gray-400" />
@@ -215,34 +244,74 @@ const JobDetailsPage = () => {
           </div>
         </Card>
 
-        {/* Tab Selection & Extras */}
+        {/* ── Role Selector (only for multi-role jobs) ── */}
+        {hasMultipleRoles && (
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Select Job Role</p>
+            <div className="flex flex-wrap gap-2">
+              {job.requirements.map(req => {
+                const count = (roleMatching[req.id] || []).length;
+                const isActive = selectedReqId === req.id;
+                return (
+                  <button
+                    key={req.id}
+                    onClick={() => { setSelectedReqId(req.id); setActiveTab('matching'); }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
+                      isActive
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-100'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600'
+                    }`}
+                  >
+                    <Briefcase size={14} />
+                    {req.job_title}
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      {count} matched
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Tab Bar: Matching | Shortlisted ── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-1 bg-gray-100/50 p-1 rounded-xl w-fit border border-gray-100">
             <button
               onClick={() => setActiveTab('matching')}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'matching'
-                ? 'bg-white text-blue-600 shadow-sm border border-gray-100'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                }`}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                activeTab === 'matching'
+                  ? 'bg-white text-blue-600 shadow-sm border border-gray-100'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              }`}
             >
               <Search size={16} />
               Matching Candidates
-              <span className={`ml-1 px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'matching' ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
-                }`}>
+              <span className={`ml-1 px-2 py-0.5 rounded-full text-[10px] ${
+                activeTab === 'matching' ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
+              }`}>
                 {matchingCandidates.length}
               </span>
             </button>
+
             <button
               onClick={() => setActiveTab('shortlisted')}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'shortlisted'
-                ? 'bg-white text-emerald-600 shadow-sm border border-gray-100'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                }`}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                activeTab === 'shortlisted'
+                  ? 'bg-white text-emerald-600 shadow-sm border border-gray-100'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              }`}
             >
               <UserCheck size={16} />
               Shortlisted
-              <span className={`ml-1 px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'shortlisted' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
-                }`}>
+              {hasMultipleRoles && (
+                <span className="text-[9px] text-gray-400 font-normal">(all roles)</span>
+              )}
+              <span className={`ml-1 px-2 py-0.5 rounded-full text-[10px] ${
+                activeTab === 'shortlisted' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
+              }`}>
                 {shortlistedCandidates.length}
               </span>
             </button>
@@ -252,7 +321,7 @@ const JobDetailsPage = () => {
             <div className="flex items-center gap-3 px-4 py-2 bg-white rounded-xl border border-gray-100 shadow-sm">
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Smart Filtering</span>
               <button
-                onClick={() => setStrict(!strict)}
+                onClick={() => setStrict(s => !s)}
                 className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${strict ? 'bg-emerald-500' : 'bg-gray-300'}`}
               >
                 <div className={`w-4 h-4 bg-white rounded-full transition-all duration-300 ${strict ? 'translate-x-6' : 'translate-x-0'}`} />
@@ -261,7 +330,7 @@ const JobDetailsPage = () => {
           )}
         </div>
 
-        {/* Content Area */}
+        {/* ── Content Area ── */}
         <div className="animate-slide-up">
           {activeTab === 'matching' ? (
             <MatchingCandidatesTable
@@ -280,6 +349,7 @@ const JobDetailsPage = () => {
             />
           )}
         </div>
+
       </div>
     </PageContainer>
   );

@@ -364,14 +364,16 @@ def update_job_endpoint(
 # ─────────────────────────────────────────────────────────────
 
 @router.get("/{job_id}/matches")
-def get_matches(job_id: int, strict: bool = Query(True), db: Session = Depends(get_db)):
+def get_matches(job_id: int, strict: bool = Query(True), requirement_id: Optional[int] = Query(None), db: Session = Depends(get_db)):
     """
     GET /api/jobs/{job_id}/matches
+    GET /api/jobs/{job_id}/matches?requirement_id=5
     
     Returns all matching candidates with match scores and status.
+    If requirement_id is provided, matches against that specific role.
     """
     try:
-        result = get_matching_candidates(db, job_id, strict=strict)
+        result = get_matching_candidates(db, job_id, strict=strict, requirement_id=requirement_id)
         return JSONResponse(
             status_code=200,
             content=success_response("Matching candidates fetched", result)
