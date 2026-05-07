@@ -11,7 +11,7 @@ from pydantic_settings import BaseSettings
 from pydantic import model_validator
 
 # Resolve the .env file path relative to this file's directory (app/.env)
-ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
+ENV_FILE = Path(__file__).resolve().parent.parent.parent / ".env"
 
 
 class Settings(BaseSettings):
