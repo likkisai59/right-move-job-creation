@@ -121,69 +121,71 @@ const EmployeeListPage = () => {
     >
       <div className="flex flex-col gap-6">
         {/* Filters */}
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-4">
-          <div className="relative w-full">
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
             <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
             <input
               type="text"
               placeholder="Search by name, ID, or designation..."
               value={filters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-shadow"
+              className="w-full pl-9 pr-4 h-10 text-sm bg-white border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-shadow"
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <select
-              value={filters.status}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg appearance-none focus:border-blue-500 outline-none"
-            >
-              <option value="ALL">All Statuses</option>
-              {EMPLOYEE_STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+          <select
+            value={filters.status}
+            onChange={(e) => handleFilterChange('status', e.target.value)}
+            className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all"
+          >
+            <option value="ALL">All Statuses</option>
+            {EMPLOYEE_STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
 
-            <select
-              value={filters.designation}
-              onChange={(e) => handleFilterChange('designation', e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg appearance-none focus:border-blue-500 outline-none"
-            >
-              <option value="ALL">All Designations</option>
-              {EMPLOYEE_DESIGNATION_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+          <select
+            value={filters.designation}
+            onChange={(e) => handleFilterChange('designation', e.target.value)}
+            className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all max-w-[160px]"
+          >
+            <option value="ALL">All Designations</option>
+            {EMPLOYEE_DESIGNATION_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
 
-            <select
-              value={filters.bloodGroup}
-              onChange={(e) => handleFilterChange('bloodGroup', e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg appearance-none focus:border-blue-500 outline-none"
-            >
-              <option value="ALL">All Blood Groups</option>
-              {EMPLOYEE_BLOOD_GROUP_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+          <select
+            value={filters.bloodGroup}
+            onChange={(e) => handleFilterChange('bloodGroup', e.target.value)}
+            className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all max-w-[140px]"
+          >
+            <option value="ALL">All Blood</option>
+            {EMPLOYEE_BLOOD_GROUP_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
 
-            <div className="flex gap-2">
-              <input
-                type="number"
-                placeholder="Min LPA"
-                value={filters.minPackage}
-                onChange={(e) => handleFilterChange('minPackage', e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:border-blue-500 outline-none"
-              />
-              <input
-                type="number"
-                placeholder="Max LPA"
-                value={filters.maxPackage}
-                onChange={(e) => handleFilterChange('maxPackage', e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:border-blue-500 outline-none"
-              />
-            </div>
-          </div>
+          <input
+            type="number"
+            placeholder="Min LPA"
+            value={filters.minPackage}
+            onChange={(e) => handleFilterChange('minPackage', e.target.value)}
+            className="h-10 w-24 px-3 text-sm bg-white border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-shadow"
+          />
+          <input
+            type="number"
+            placeholder="Max LPA"
+            value={filters.maxPackage}
+            onChange={(e) => handleFilterChange('maxPackage', e.target.value)}
+            className="h-10 w-24 px-3 text-sm bg-white border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-shadow"
+          />
+          
+          {(filters.search || filters.status !== 'ALL' || filters.designation !== 'ALL' || filters.bloodGroup !== 'ALL' || filters.minPackage || filters.maxPackage) && (
+            <Button variant="ghost" size="sm" onClick={() => setFilters({search: '', status: 'ALL', designation: 'ALL', bloodGroup: 'ALL', minPackage: '', maxPackage: ''})}>
+              Clear
+            </Button>
+          )}
         </div>
 
         <EmployeeTable 

@@ -64,6 +64,17 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
       ),
     },
     {
+      key: 'bloodGroup',
+      header: 'Blood Group',
+      render: (val) => (
+        val ? (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-50 text-red-700 border border-red-100">
+            {val}
+          </span>
+        ) : <span className="text-gray-400">—</span>
+      ),
+    },
+    {
       key: 'dateOfJoining',
       header: 'Joined',
       render: (val) => <span className="text-gray-600 text-sm">{formatDate(val)}</span>,
