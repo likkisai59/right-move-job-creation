@@ -3,7 +3,13 @@ import { useForm } from 'react-hook-form';
 import Input from '../common/Input';
 import Select from '../common/Select';
 import Button from '../common/Button';
-import { EMPLOYEE_STATUS_OPTIONS, EMPLOYEE_DESIGNATION_OPTIONS } from '../../utils/constants';
+import { 
+  EMPLOYEE_STATUS_OPTIONS, 
+  EMPLOYEE_DESIGNATION_OPTIONS,
+  EMPLOYEE_GENDER_OPTIONS,
+  EMPLOYEE_BLOOD_GROUP_OPTIONS,
+  COUNTRY_CODES
+} from '../../utils/constants';
 
 const SectionTitle = ({ children }) => (
   <div className="mb-5">
@@ -27,6 +33,13 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
       firstName: '',
       lastName: '',
       preferredName: '',
+      bloodGroup: '',
+      gender: '',
+      countryCode: '+91',
+      contactNumber: '',
+      email: '',
+      permanentAddress: '',
+      currentAddress: '',
       designation: '',
       dateOfJoining: '',
       package: '',
@@ -77,6 +90,58 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
           label="Preferred Name"
           placeholder="e.g. John"
           {...register('preferredName')}
+        />
+
+        <Select
+          label="Gender"
+          options={EMPLOYEE_GENDER_OPTIONS}
+          required
+          error={errors.gender?.message}
+          {...register('gender', { required: 'Gender is required' })}
+        />
+
+        <Select
+          label="Blood Group"
+          options={EMPLOYEE_BLOOD_GROUP_OPTIONS}
+          {...register('bloodGroup')}
+        />
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-gray-700">Contact Number</label>
+          <div className="flex gap-2">
+            <div className="w-28">
+              <Select
+                options={COUNTRY_CODES}
+                {...register('countryCode')}
+              />
+            </div>
+            <div className="flex-1">
+              <Input
+                type="tel"
+                placeholder="Enter phone number"
+                {...register('contactNumber')}
+              />
+            </div>
+          </div>
+        </div>
+
+        <Input
+          label="Email Address"
+          type="email"
+          placeholder="e.g. john.doe@example.com"
+          {...register('email')}
+        />
+
+        <Input
+          label="Current Address"
+          placeholder="Enter current address"
+          {...register('currentAddress')}
+        />
+
+        <Input
+          label="Permanent Address"
+          placeholder="Enter permanent address"
+          {...register('permanentAddress')}
         />
       </div>
 

@@ -97,3 +97,20 @@ export const EMPLOYEE_DESIGNATION_OPTIONS = [
   { value: 'Sales Executive', label: 'Sales Executive' },
   { value: 'Director', label: 'Director' }
 ];
+
+export const EMPLOYEE_GENDER_OPTIONS = [
+  { value: 'Male', label: 'Male' },
+  { value: 'Female', label: 'Female' },
+  { value: 'Other', label: 'Other' }
+];
+
+export const EMPLOYEE_BLOOD_GROUP_OPTIONS = [
+  { value: 'A+', label: 'A+' },
+  { value: 'A-', label: 'A-' },
+  { value: 'B+', label: 'B+' },
+  { value: 'B-', label: 'B-' },
+  { value: 'AB+', label: 'AB+' },
+  { value: 'AB-', label: 'AB-' },
+  { value: 'O+', label: 'O+' },
+  { value: 'O-', label: 'O-' },
+];

@@ -16,6 +16,13 @@ class EmployeeBase(BaseModel):
     first_name: str
     last_name: str
     preferred_name: Optional[str] = None
+    blood_group: Optional[str] = None
+    gender: str
+    country_code: Optional[str] = None
+    contact_number: Optional[str] = None
+    email: Optional[str] = None
+    permanent_address: Optional[str] = None
+    current_address: Optional[str] = None
     designation: str
     date_of_joining: date
     package: Optional[float] = None
@@ -40,6 +47,13 @@ class EmployeeUpdateRequest(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     preferred_name: Optional[str] = None
+    blood_group: Optional[str] = None
+    gender: Optional[str] = None
+    country_code: Optional[str] = None
+    contact_number: Optional[str] = None
+    email: Optional[str] = None
+    permanent_address: Optional[str] = None
+    current_address: Optional[str] = None
     designation: Optional[str] = None
     date_of_joining: Optional[date] = None
     package: Optional[float] = None

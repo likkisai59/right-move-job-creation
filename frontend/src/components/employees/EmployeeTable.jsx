@@ -39,6 +39,22 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
       ),
     },
     {
+      key: 'contact',
+      header: 'Contact',
+      render: (_, row) => (
+        <div className="flex flex-col text-sm text-gray-600">
+          {row.contactNumber ? (
+            <span>{row.countryCode} {row.contactNumber}</span>
+          ) : (
+            <span>—</span>
+          )}
+          {row.email ? (
+            <span className="text-xs text-gray-400">{row.email}</span>
+          ) : null}
+        </div>
+      ),
+    },
+    {
       key: 'designation',
       header: 'Designation',
       render: (val) => (

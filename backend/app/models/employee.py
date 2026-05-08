@@ -16,17 +16,24 @@ class Employee(Base):
     employee_id = Column(String(50), unique=True, nullable=False, index=True)
 
     # Personal details
-    first_name     = Column(String(255), nullable=False)
-    last_name      = Column(String(255), nullable=False)
-    preferred_name = Column(String(255), nullable=True)   # What employee likes to be called
-
+    first_name= Column(String(255), nullable=False)
+    last_name= Column(String(255), nullable=False)
+    preferred_name= Column(String(255), nullable=True)   # What employee likes to be called 
+    blood_group= Column(String(10), nullable=True)
+    gender= Column(Enum('Male','Female','Other',name='gender'), nullable=False)
+    country_code= Column(String(10), nullable=True)
+    contact_number= Column(String(255), nullable=True)
+    email= Column(String(255), nullable=True) 
+    permanent_address= Column(String(255), nullable=True) 
+    current_address= Column(String(255), nullable=True) 
+    
     # Job details
-    designation      = Column(String(255), nullable=False)
-    date_of_joining  = Column(Date, nullable=False)
-    package          = Column(Float, nullable=True)        # Annual package (numeric)
+    designation= Column(String(255), nullable=False)
+    date_of_joining= Column(Date, nullable=False)
+    package= Column(Float, nullable=True)        # Annual package (numeric)
 
     # Status: Active or Inactive
-    status = Column(Enum('Active', 'Inactive', name='employee_status'), nullable=False, default="Active")
+    status= Column(Enum('Active', 'Inactive', name='employee_status'), nullable=False, default="Active")
 
     # Only filled when employee leaves — nullable by default
-    last_working_date = Column(Date, nullable=True)
+    last_working_date= Column(Date, nullable=True)
