@@ -59,10 +59,14 @@ def create_employee(db: Session, payload: EmployeeCreateRequest) -> Employee:
 def get_all_employees(
     db: Session, 
     search: Optional[str] = None, 
-    status: Optional[str] = None
+    status: Optional[str] = None,
+    designation: Optional[str] = None,
+    min_package: Optional[float] = None,
+    max_package: Optional[float] = None,
+    blood_group: Optional[str] = None
 ) -> List[Employee]:
     """
-    Fetches all employees with optional search and status filters.
+    Fetches all employees with optional search and filters.
     """
     query = db.query(Employee)
 
@@ -79,9 +83,75 @@ def get_all_employees(
 
     if status and status.upper() != "ALL":
         query = query.filter(Employee.status == status)
+        
+    if designation:
+        query = query.filter(Employee.designation == designation)
+        
+    if min_package is not None:
+        query = query.filter(Employee.package >= min_package)
+        
+    if max_package is not None:
+        query = query.filter(Employee.package <= max_package)
+        
+    if blood_group:
+        query = query.filter(Employee.blood_group == blood_group)
 
     # Sort newest first by primary key
     return query.order_by(Employee.id.desc()).all()
+
+import openpyxl
+from io import BytesIO
+
+def export_employees_to_excel(employees: List[Employee]) -> BytesIO:
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Employees"
+
+    # Header containing all db fields
+    headers = [
+        "ID", "Employee ID", "First Name", "Last Name", "Preferred Name",
+        "Blood Group", "Gender", "Country Code", "Contact Number", "Email",
+        "Permanent Address", "Current Address", "Designation", "Date of Joining",
+        "Package (LPA)", "Status", "Last Working Date"
+    ]
+    ws.append(headers)
+
+    # Style Header
+    for cell in ws[1]:
+        cell.font = openpyxl.styles.Font(bold=True)
+        cell.fill = openpyxl.styles.PatternFill(start_color="CCE5FF", end_color="CCE5FF", fill_type="solid")
+
+    # Data
+    for emp in employees:
+        ws.append([
+            emp.id,
+            emp.employee_id,
+            emp.first_name,
+            emp.last_name,
+            emp.preferred_name or "",
+            emp.blood_group or "",
+            emp.gender or "",
+            emp.country_code or "",
+            emp.contact_number or "",
+            emp.email or "",
+            emp.permanent_address or "",
+            emp.current_address or "",
+            emp.designation,
+            emp.date_of_joining.strftime("%Y-%m-%d") if emp.date_of_joining else "",
+            float(emp.package) if emp.package else 0.0,
+            emp.status,
+            emp.last_working_date.strftime("%Y-%m-%d") if emp.last_working_date else ""
+        ])
+
+    # Adjust column widths
+    for column_cells in ws.columns:
+        length = max((len(str(cell.value)) for cell in column_cells if cell.value is not None), default=10)
+        ws.column_dimensions[column_cells[0].column_letter].width = length + 2
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return output
 
 # ─────────────────────────────────────────────────────────────
 # READ (GET ONE)

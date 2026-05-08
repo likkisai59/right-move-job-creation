@@ -93,3 +93,32 @@ export const deleteEmployee = async (id) => {
   const response = await api.delete(`/employees/${id}`);
   return response.data;
 };
+
+// 6. EXPORT
+export const exportEmployees = async (params = {}) => {
+  const response = await api.get('/employees/export', { 
+    params,
+    responseType: 'blob' // Important for downloading files
+  });
+  
+  // Create a download link and trigger it
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+  
+  // Extract filename from headers if possible, otherwise use a default
+  const contentDisposition = response.headers['content-disposition'];
+  let filename = 'employees_export.xlsx';
+  if (contentDisposition) {
+    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+    if (filenameMatch && filenameMatch.length === 2) {
+      filename = filenameMatch[1];
+    }
+  }
+  
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+};

@@ -33,6 +33,45 @@ def create_employee(payload: EmployeeCreateRequest, db: Session = Depends(get_db
         return JSONResponse(status_code=500, content=error_response(str(exc)))
 
 # ─────────────────────────────────────────────────────────────
+# EXPORT EMPLOYEES
+# ─────────────────────────────────────────────────────────────
+
+from fastapi.responses import StreamingResponse
+from datetime import datetime
+
+@router.get("/export")
+def export_employees(
+    search: Optional[str] = Query(None, description="Search by name, ID, or designation"),
+    status: Optional[str] = Query(None, description="Filter by Active or Inactive"),
+    designation: Optional[str] = Query(None, description="Filter by designation"),
+    min_package: Optional[float] = Query(None, description="Minimum package"),
+    max_package: Optional[float] = Query(None, description="Maximum package"),
+    blood_group: Optional[str] = Query(None, description="Filter by blood group"),
+    db: Session = Depends(get_db)
+):
+    """
+    GET /api/employees/export
+    Exports employees matching filters to an Excel file.
+    """
+    try:
+        employees = employee_service.get_all_employees(
+            db, search=search, status=status, designation=designation, 
+            min_package=min_package, max_package=max_package, blood_group=blood_group
+        )
+        output = employee_service.export_employees_to_excel(employees)
+        
+        filename = f"employees_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except Exception as exc:
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content=error_response(str(exc)))
+
+# ─────────────────────────────────────────────────────────────
 # LIST EMPLOYEES
 # ─────────────────────────────────────────────────────────────
 
@@ -40,6 +79,10 @@ def create_employee(payload: EmployeeCreateRequest, db: Session = Depends(get_db
 def list_employees(
     search: Optional[str] = Query(None, description="Search by name, ID, or designation"),
     status: Optional[str] = Query(None, description="Filter by Active or Inactive"),
+    designation: Optional[str] = Query(None, description="Filter by designation"),
+    min_package: Optional[float] = Query(None, description="Minimum package"),
+    max_package: Optional[float] = Query(None, description="Maximum package"),
+    blood_group: Optional[str] = Query(None, description="Filter by blood group"),
     db: Session = Depends(get_db)
 ):
     """
@@ -47,7 +90,10 @@ def list_employees(
     Returns a list of all employees based on optional filters.
     """
     try:
-        employees = employee_service.get_all_employees(db, search=search, status=status)
+        employees = employee_service.get_all_employees(
+            db, search=search, status=status, designation=designation, 
+            min_package=min_package, max_package=max_package, blood_group=blood_group
+        )
         
         # Format the data before sending it back
         data = [
@@ -57,6 +103,13 @@ def list_employees(
                 "first_name": emp.first_name,
                 "last_name": emp.last_name,
                 "preferred_name": emp.preferred_name,
+                "blood_group": emp.blood_group,
+                "gender": emp.gender,
+                "country_code": emp.country_code,
+                "contact_number": emp.contact_number,
+                "email": emp.email,
+                "permanent_address": emp.permanent_address,
+                "current_address": emp.current_address,
                 "designation": emp.designation,
                 "date_of_joining": str(emp.date_of_joining) if emp.date_of_joining else None,
                 "package": emp.package,
@@ -95,6 +148,13 @@ def get_employee(employee_id: int, db: Session = Depends(get_db)):
             "first_name": employee.first_name,
             "last_name": employee.last_name,
             "preferred_name": employee.preferred_name,
+            "blood_group": employee.blood_group,
+            "gender": employee.gender,
+            "country_code": employee.country_code,
+            "contact_number": employee.contact_number,
+            "email": employee.email,
+            "permanent_address": employee.permanent_address,
+            "current_address": employee.current_address,
             "designation": employee.designation,
             "date_of_joining": str(employee.date_of_joining) if employee.date_of_joining else None,
             "package": employee.package,
