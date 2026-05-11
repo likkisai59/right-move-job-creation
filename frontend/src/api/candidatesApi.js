@@ -71,6 +71,9 @@ export const fetchCandidates = async (params = {}) => {
   if (params.businessCategory && params.businessCategory !== 'All') {
     queryParams.business_category = params.businessCategory;
   }
+  if (params.noticePeriod) {
+    queryParams.notice_period = params.noticePeriod;
+  }
 
   const response = await api.get('/candidates', { params: queryParams });
   return { data: response.data.data.map(mapToFrontend) };
