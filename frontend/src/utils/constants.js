@@ -90,12 +90,16 @@ export const EMPLOYEE_STATUS_OPTIONS = [
 ];
 
 export const EMPLOYEE_DESIGNATION_OPTIONS = [
-  { value: 'Software Engineer', label: 'Software Engineer' },
-  { value: 'Senior Software Engineer', label: 'Senior Software Engineer' },
-  { value: 'HR Manager', label: 'HR Manager' },
-  { value: 'Project Manager', label: 'Project Manager' },
-  { value: 'Sales Executive', label: 'Sales Executive' },
-  { value: 'Director', label: 'Director' }
+  { value: 'Director', label: 'Director' },
+  { value: 'Sr.Manager', label: 'Sr.Manager' },
+  { value: 'Manager', label: 'Manager' },
+  { value: 'Asst Manager', label: 'Asst Manager' },
+  { value: 'Team Lead', label: 'Team Lead' },
+  { value: 'ATL', label: 'ATL' },
+  { value: 'Senior Executive', label: 'Senior Executive' },
+  { value: 'Executive', label: 'Executive' },
+  { value: 'Trainee', label: 'Trainee' },
+  { value: 'Intern', label: 'Intern' }
 ];
 
 export const EMPLOYEE_GENDER_OPTIONS = [

@@ -3,8 +3,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Search, X } from 'lucide-react';
 
-
-
 const SearchableSelect = ({
     label,
     options = [],       // [{ value, label }]
@@ -14,6 +12,8 @@ const SearchableSelect = ({
     required = false,
     placeholder = 'Select...',
     disabled = false,
+    showSearch = true,  // New prop: toggle search bar
+    maxHeight = 220,    // New prop: control dropdown height
 }) => {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
@@ -39,15 +39,13 @@ const SearchableSelect = ({
         }
     }, [open]);
 
-    // Filter based on search — show ALL options, no limit
+    // Filter based on search
     const filtered = options.filter((opt) =>
         opt.label.toLowerCase().includes(search.toLowerCase())
     );
-    const displayed = filtered;
-    const hasMore = false;
 
-    const selectedLabel =
-        options.find((o) => String(o.value) === String(value))?.label || '';
+    const selectedOption = options.find((o) => String(o.value) === String(value));
+    const selectedLabel = selectedOption?.label || '';
 
     const handleSelect = (opt) => {
         onChange(opt.value);
@@ -61,143 +59,94 @@ const SearchableSelect = ({
     };
 
     return (
-        <div style={{ position: 'relative' }} ref={containerRef}>
+        <div className="relative flex flex-col gap-1.5" ref={containerRef}>
             {/* Label */}
             {label && (
-                <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500, color: '#374151' }}>
+                <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                     {label}
-                    {required && <span style={{ color: '#ef4444', marginLeft: 3 }}>*</span>}
+                    {required && <span className="text-red-500">*</span>}
                 </label>
             )}
 
             {/* Trigger Button */}
             <div
                 onClick={() => !disabled && setOpen((prev) => !prev)}
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    border: `1px solid ${error ? '#ef4444' : '#d1d5db'}`,
-                    borderRadius: 8,
-                    padding: '9px 12px',
-                    cursor: disabled ? 'not-allowed' : 'pointer',
-                    backgroundColor: disabled ? '#f9fafb' : '#fff',
-                    fontSize: 14,
-                    color: selectedLabel ? '#111827' : '#9ca3af',
-                    outline: open ? '2px solid #6366f1' : 'none',
-                    outlineOffset: 2,
-                    userSelect: 'none',
-                }}
+                className={`
+                    flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm transition-all duration-150
+                    ${disabled ? 'cursor-not-allowed bg-gray-50' : 'cursor-pointer bg-white'}
+                    ${error ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 hover:border-gray-300'}
+                    ${open ? 'ring-2 ring-blue-500 border-blue-500' : ''}
+                    ${selectedLabel ? 'text-gray-900' : 'text-gray-400'}
+                `}
             >
-                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                     {selectedLabel || placeholder}
                 </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {selectedLabel && (
+                <div className="flex items-center gap-1">
+                    {!disabled && selectedLabel && (
                         <X
                             size={14}
                             onClick={handleClear}
-                            style={{ color: '#9ca3af', cursor: 'pointer' }}
+                            className="text-gray-400 hover:text-gray-600 cursor-pointer"
                         />
                     )}
                     <ChevronDown
                         size={16}
-                        style={{
-                            color: '#6b7280',
-                            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-                            transition: 'transform 0.2s',
-                        }}
+                        className={`text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
                     />
                 </div>
             </div>
 
             {/* Dropdown */}
             {open && (
-                <div style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 4px)',
-                    left: 0,
-                    right: 0,
-                    backgroundColor: '#fff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: 10,
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                    zIndex: 1000,
-                    overflow: 'hidden',
-                }}>
-                    {/* Search Input */}
-                    <div style={{ padding: '8px 10px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Search size={14} style={{ color: '#9ca3af', flexShrink: 0 }} />
-                        <input
-                            ref={searchRef}
-                            type="text"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search organization..."
-                            style={{
-                                border: 'none',
-                                outline: 'none',
-                                fontSize: 13,
-                                width: '100%',
-                                color: '#111827',
-                                backgroundColor: 'transparent',
-                            }}
-                        />
-                    </div>
+                <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-lg z-[1000] overflow-hidden animate-in fade-in zoom-in duration-150 origin-top">
+                    {/* Search Input (Optional) */}
+                    {showSearch && (
+                        <div className="p-2 border-b border-gray-100 flex items-center gap-2">
+                            <Search size={14} className="text-gray-400 shrink-0" />
+                            <input
+                                ref={searchRef}
+                                type="text"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Search..."
+                                className="border-none outline-none text-xs w-full text-gray-900 bg-transparent placeholder:text-gray-400"
+                            />
+                        </div>
+                    )}
 
                     {/* Options List */}
-                    <ul style={{ maxHeight: 220, overflowY: 'auto', margin: 0, padding: '4px 0', listStyle: 'none' }}>
-                        {displayed.length === 0 ? (
-                            <li style={{ padding: '10px 14px', fontSize: 13, color: '#9ca3af', textAlign: 'center' }}>
-                                No organizations found
+                    <ul 
+                        className="overflow-y-auto py-1 m-0 list-none" 
+                        style={{ maxHeight: `${maxHeight}px` }}
+                    >
+                        {filtered.length === 0 ? (
+                            <li className="px-4 py-3 text-xs text-gray-500 text-center italic">
+                                No options found
                             </li>
                         ) : (
-                            displayed.map((opt) => (
+                            filtered.map((opt) => (
                                 <li
                                     key={opt.value}
                                     onClick={() => handleSelect(opt)}
-                                    style={{
-                                        padding: '9px 14px',
-                                        fontSize: 14,
-                                        cursor: 'pointer',
-                                        backgroundColor: String(opt.value) === String(value) ? '#eef2ff' : 'transparent',
-                                        color: String(opt.value) === String(value) ? '#4f46e5' : '#111827',
-                                        fontWeight: String(opt.value) === String(value) ? 600 : 400,
-                                        transition: 'background 0.15s',
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if (String(opt.value) !== String(value))
-                                            e.currentTarget.style.backgroundColor = '#f9fafb';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (String(opt.value) !== String(value))
-                                            e.currentTarget.style.backgroundColor = 'transparent';
-                                    }}
+                                    className={`
+                                        px-4 py-2.5 text-sm cursor-pointer transition-colors
+                                        ${String(opt.value) === String(value) 
+                                            ? 'bg-blue-50 text-blue-600 font-semibold' 
+                                            : 'text-gray-700 hover:bg-gray-50'}
+                                    `}
                                 >
                                     {opt.label}
                                 </li>
                             ))
                         )}
                     </ul>
-
-                    {/* "Type to search more" hint */}
-                    {hasMore && (
-                        <div style={{
-                            padding: '7px 14px',
-                            fontSize: 12,
-                            color: '#9ca3af',
-                            borderTop: '1px solid #f3f4f6',
-                            textAlign: 'center',
-                        }}>
-                            Showing {VISIBLE_LIMIT} of {filtered.length}. Type to search more.
-                        </div>
-                    )}
                 </div>
             )}
 
-            {/* Error */}
+            {/* Error Message */}
             {error && (
-                <p style={{ marginTop: 4, fontSize: 12, color: '#ef4444' }}>{error}</p>
+                <p className="text-xs text-red-500 mt-0.5">{error}</p>
             )}
         </div>
     );
