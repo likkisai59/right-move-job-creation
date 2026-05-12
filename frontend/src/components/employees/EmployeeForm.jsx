@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import Input from '../common/Input';
 import Select from '../common/Select';
+import SearchableSelect from '../common/SearchableSelect';
 import Button from '../common/Button';
 import { 
   EMPLOYEE_STATUS_OPTIONS, 
@@ -27,6 +28,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     handleSubmit,
     reset,
     watch,
+    control,
     formState: { errors }
   } = useForm({
     defaultValues: {
@@ -147,12 +149,23 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
 
       <SectionTitle>Employment Details</SectionTitle>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 mb-8">
-        <Select
-          label="Designation"
-          options={EMPLOYEE_DESIGNATION_OPTIONS}
-          required
-          error={errors.designation?.message}
-          {...register('designation', { required: 'Designation is required' })}
+        <Controller
+          name="designation"
+          control={control}
+          rules={{ required: 'Designation is required' }}
+          render={({ field }) => (
+            <SearchableSelect
+              label="Designation"
+              options={EMPLOYEE_DESIGNATION_OPTIONS}
+              required
+              error={errors.designation?.message}
+              value={field.value}
+              onChange={field.onChange}
+              placeholder="Select designation"
+              showSearch={false}
+              maxHeight={200}
+            />
+          )}
         />
 
         <Input
