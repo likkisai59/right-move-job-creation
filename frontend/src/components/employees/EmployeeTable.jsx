@@ -100,6 +100,15 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
       },
     },
     {
+      key: 'lastWorkingDate',
+      header: 'Last Working Date',
+      render: (val) => val ? (
+        <span className="text-gray-600 text-sm">{formatDate(val)}</span>
+      ) : (
+        <span className="text-gray-400 text-xs">—</span>
+      ),
+    },
+    {
       key: 'actions',
       header: 'Actions',
       render: (_, row) => (
