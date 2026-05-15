@@ -20,10 +20,27 @@ import EditEmployeePage from '../pages/employees/EditEmployeePage';
 import LoginPage from '../pages/LoginPage';
 import { isAuthenticated } from '../api/authApi';
 
+// ── Attendance Portal Imports ────────────────────────────────
+import AttendanceLoginPage from '../pages/attendance/AttendanceLoginPage';
+import AttendancePortalLayout from '../components/attendance/AttendancePortalLayout';
+import AttendanceMarking from '../pages/attendance/AttendanceMarking';
+import ShiftManagement from '../pages/attendance/ShiftManagement';
+import LeaveManagement from '../pages/attendance/LeaveManagement';
+import AttendanceStatus from '../pages/attendance/AttendanceStatus';
+
 // ── Protected Route Component ────────────────────────────────
 const ProtectedRoute = ({ children }) => {
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
+  }
+  return children;
+};
+
+// ── Employee Protected Route ─────────────────────────────────
+const EmployeeProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('employee_token');
+  if (!token) {
+    return <Navigate to="/attendance-login" replace />;
   }
   return children;
 };
@@ -34,10 +51,26 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      {/* Public Route */}
+      {/* Admin Login */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* Protected Routes (Authenticated) */}
+      {/* Employee Portal (Protected) */}
+      <Route
+        path="/attendance/portal"
+        element={
+          <EmployeeProtectedRoute>
+            <AttendancePortalLayout />
+          </EmployeeProtectedRoute>
+        }
+      >
+        <Route index element={<Navigate to="mark" replace />} />
+        <Route path="mark" element={<AttendanceMarking />} />
+        <Route path="shifts" element={<ShiftManagement />} />
+        <Route path="leaves" element={<LeaveManagement />} />
+        <Route path="status" element={<AttendanceStatus />} />
+      </Route>
+
+      {/* Admin Dashboard & CRM Routes */}
       <Route
         path="/*"
         element={
@@ -56,13 +89,19 @@ const AppRoutes = () => {
                   <Routes>
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/dashboard" element={<Dashboard />} />
+                    
+                    {/* Jobs */}
                     <Route path="/jobs" element={<JobListPage />} />
                     <Route path="/jobs/create" element={<CreateJobPage />} />
                     <Route path="/jobs/:id" element={<JobDetailsPage />} />
                     <Route path="/jobs/edit/:id" element={<EditJobPage />} />
+                    
+                    {/* Candidates */}
                     <Route path="/candidates" element={<CandidateListPage />} />
                     <Route path="/candidates/create" element={<AddCandidatePage />} />
                     <Route path="/candidates/:id" element={<CandidateDetails />} />
+                    
+                    {/* Global Search */}
                     <Route path="/search" element={<GlobalSearchPage />} />
 
                     {/* Organizations */}

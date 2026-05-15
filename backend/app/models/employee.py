@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, Date, Float, Enum, func
+from sqlalchemy.orm import relationship
 from app.core.database import Base
-
 
 class Employee(Base):
     """
@@ -37,3 +37,8 @@ class Employee(Base):
 
     # Only filled when employee leaves — nullable by default
     last_working_date= Column(Date, nullable=True)
+
+    # Relationships to the new Attendance module tables
+    attendance_records = relationship("Attendance", back_populates="employee", cascade="all, delete-orphan")
+    shift_records = relationship("Shift", back_populates="employee", cascade="all, delete-orphan")
+    leave_records = relationship("Leave", back_populates="employee", cascade="all, delete-orphan")

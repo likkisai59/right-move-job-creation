@@ -12,14 +12,27 @@ export const login = async (username, password) => {
 export const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('employee_token');
+    localStorage.removeItem('employee_data');
     window.location.href = '/login';
 };
 
 export const isAuthenticated = () => {
-    return !!localStorage.getItem('token');
+    return !!localStorage.getItem('token') || !!localStorage.getItem('employee_token');
 };
 
 export const getCurrentUser = () => {
     const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
+    const employee = localStorage.getItem('employee_data');
+    
+    if (user) return JSON.parse(user);
+    if (employee) {
+        const empData = JSON.parse(employee);
+        return {
+            username: empData.name,
+            role: 'employee',
+            email: empData.email
+        };
+    }
+    return null;
 };

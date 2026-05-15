@@ -33,12 +33,22 @@ const LoginPage = () => {
       
       if (response.success) {
         setSuccess(true);
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        const { role, token } = response.data;
         
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 800);
+        if (role === 'admin') {
+          localStorage.setItem('token', token);
+          localStorage.setItem('user', JSON.stringify(response.data.user));
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 800);
+        } else {
+          // Employee Login
+          localStorage.setItem('employee_token', token);
+          localStorage.setItem('employee_data', JSON.stringify(response.data.employee));
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 800);
+        }
       } else {
         setError(response.message || 'Invalid credentials');
       }

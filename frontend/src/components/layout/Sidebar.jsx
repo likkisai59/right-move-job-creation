@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   UserCheck,
+  CalendarCheck,
 } from 'lucide-react';
 import { APP_NAME, APP_SHORT } from '../../utils/constants';
 
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
   { label: 'Candidates', path: '/candidates', icon: Users },
   { label: 'Organizations', path: '/organizations', icon: Building2 },
   { label: 'Employees', path: '/employees', icon: UserCheck },
+  { label: 'Attendance', path: '/attendance/portal', icon: CalendarCheck },
 ];
 
 const Sidebar = ({ collapsed, onToggle }) => {
