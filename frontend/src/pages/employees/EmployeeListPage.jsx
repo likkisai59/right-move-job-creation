@@ -4,13 +4,15 @@ import { UserPlus, Search, Filter, Download } from 'lucide-react';
 import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
 import EmployeeTable from '../../components/employees/EmployeeTable';
-import { EMPLOYEE_STATUS_OPTIONS, EMPLOYEE_DESIGNATION_OPTIONS, EMPLOYEE_BLOOD_GROUP_OPTIONS } from '../../utils/constants';
+import { EMPLOYEE_STATUS_OPTIONS, EMPLOYEE_BLOOD_GROUP_OPTIONS } from '../../utils/constants';
 import { fetchEmployees, deleteEmployee, exportEmployees } from '../../api/employeesApi';
+import { fetchDesignations } from '../../api/designationsApi';
 
 const EmployeeListPage = () => {
   const navigate = useNavigate();
 
   const [employees, setEmployees] = useState([]);
+  const [designations, setDesignations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   
@@ -30,6 +32,21 @@ const EmployeeListPage = () => {
     }, 500);
     return () => clearTimeout(timer);
   }, [filters.search]);
+
+  // Load all designations dynamically for the filter dropdown
+  useEffect(() => {
+    const loadDesignationOptions = async () => {
+      try {
+        const res = await fetchDesignations();
+        if (res.success) {
+          setDesignations(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to load designations for filters:', err);
+      }
+    };
+    loadDesignationOptions();
+  }, []);
 
   const loadEmployees = async () => {
     setLoading(true);
@@ -150,8 +167,8 @@ const EmployeeListPage = () => {
             className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all max-w-[160px]"
           >
             <option value="ALL">All Designations</option>
-            {EMPLOYEE_DESIGNATION_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            {designations.map((des) => (
+              <option key={des.id} value={des.name}>{des.name}</option>
             ))}
           </select>
 

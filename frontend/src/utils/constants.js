@@ -89,19 +89,6 @@ export const EMPLOYEE_STATUS_OPTIONS = [
   { value: 'Inactive', label: 'Inactive' }
 ];
 
-export const EMPLOYEE_DESIGNATION_OPTIONS = [
-  { value: 'Director', label: 'Director' },
-  { value: 'Sr.Manager', label: 'Sr.Manager' },
-  { value: 'Manager', label: 'Manager' },
-  { value: 'Asst Manager', label: 'Asst Manager' },
-  { value: 'Team Lead', label: 'Team Lead' },
-  { value: 'ATL', label: 'ATL' },
-  { value: 'Senior Executive', label: 'Senior Executive' },
-  { value: 'Executive', label: 'Executive' },
-  { value: 'Trainee', label: 'Trainee' },
-  { value: 'Intern', label: 'Intern' }
-];
-
 export const EMPLOYEE_GENDER_OPTIONS = [
   { value: 'Male', label: 'Male' },
   { value: 'Female', label: 'Female' },

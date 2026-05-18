@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import Input from '../common/Input';
 import Select from '../common/Select';
@@ -6,11 +6,11 @@ import SearchableSelect from '../common/SearchableSelect';
 import Button from '../common/Button';
 import { 
   EMPLOYEE_STATUS_OPTIONS, 
-  EMPLOYEE_DESIGNATION_OPTIONS,
   EMPLOYEE_GENDER_OPTIONS,
   EMPLOYEE_BLOOD_GROUP_OPTIONS,
   COUNTRY_CODES
 } from '../../utils/constants';
+import { fetchDesignations } from '../../api/designationsApi';
 
 const SectionTitle = ({ children }) => (
   <div className="mb-5">
@@ -22,6 +22,8 @@ const SectionTitle = ({ children }) => (
 
 const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   const isEditing = !!initialData;
+
+  const [designations, setDesignations] = useState([]);
 
   const {
     register,
@@ -50,6 +52,40 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
       ...initialData
     }
   });
+
+  // Fetch active designations and format for select options
+  useEffect(() => {
+    const loadDesignations = async () => {
+      try {
+        // Fetch only active designations
+        const res = await fetchDesignations({ active_only: true });
+        if (res.success) {
+          let options = res.data.map(des => ({
+            value: des.name,
+            label: des.name
+          }));
+
+          // If editing and the employee's current designation is inactive,
+          // dynamically append it so the field displays correctly
+          if (initialData?.designation) {
+            const hasCurrent = options.some(opt => opt.value === initialData.designation);
+            if (!hasCurrent) {
+              options.push({
+                value: initialData.designation,
+                label: `${initialData.designation} (Inactive)`
+              });
+            }
+          }
+
+          setDesignations(options);
+        }
+      } catch (err) {
+        console.error('Failed to load designations for form:', err);
+      }
+    };
+
+    loadDesignations();
+  }, [initialData]);
 
   // Format dates correctly for input type="date" if initialData is passed
   useEffect(() => {
@@ -156,7 +192,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
           render={({ field }) => (
             <SearchableSelect
               label="Designation"
-              options={EMPLOYEE_DESIGNATION_OPTIONS}
+              options={designations}
               required
               error={errors.designation?.message}
               value={field.value}
