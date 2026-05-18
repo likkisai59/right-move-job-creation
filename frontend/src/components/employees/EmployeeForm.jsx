@@ -4,8 +4,8 @@ import Input from '../common/Input';
 import Select from '../common/Select';
 import SearchableSelect from '../common/SearchableSelect';
 import Button from '../common/Button';
-import { 
-  EMPLOYEE_STATUS_OPTIONS, 
+import {
+  EMPLOYEE_STATUS_OPTIONS,
   EMPLOYEE_DESIGNATION_OPTIONS,
   EMPLOYEE_GENDER_OPTIONS,
   EMPLOYEE_BLOOD_GROUP_OPTIONS,
@@ -69,7 +69,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
-      
+
       <SectionTitle>Personal Details</SectionTitle>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 mb-8">
         <Input
@@ -79,7 +79,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
           error={errors.firstName?.message}
           {...register('firstName', { required: 'First name is required' })}
         />
-        
+
         <Input
           label="Last Name"
           placeholder="Enter last name"
@@ -197,8 +197,8 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
               type="date"
               required={currentStatus === 'Inactive'}
               error={errors.lastWorkingDate?.message}
-              {...register('lastWorkingDate', { 
-                required: currentStatus === 'Inactive' ? 'Last working date is required for inactive employees' : false 
+              {...register('lastWorkingDate', {
+                required: currentStatus === 'Inactive' ? 'Last working date is required for inactive employees' : false
               })}
             />
           </div>
@@ -206,16 +206,16 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
       </div>
 
       <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-8">
-        <Button 
-          type="button" 
-          variant="secondary" 
+        <Button
+          type="button"
+          variant="secondary"
           onClick={onCancel}
           disabled={isSubmitting}
         >
           Cancel
         </Button>
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           variant="primary"
           loading={isSubmitting}
           disabled={isSubmitting}

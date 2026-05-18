@@ -131,7 +131,7 @@ const AttendanceMarking = () => {
                 <th className="px-8 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Date & Day</th>
                 {STATUSES.map(s => (
                   <th key={s.id} className="px-4 py-4 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    {s.label}
+                    {s.full}
                   </th>
                 ))}
               </tr>
@@ -180,20 +180,7 @@ const AttendanceMarking = () => {
         </div>
 
         {/* Footer / Submit */}
-        <div className="p-8 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between flex-wrap gap-6">
-          
-          {/* Legend */}
-          <div className="flex flex-wrap gap-x-6 gap-y-2">
-            {STATUSES.map(s => (
-              <div key={s.id} className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[10px] font-black text-slate-400">
-                  {s.label}
-                </span>
-                <span className="text-xs font-bold text-slate-500">{s.full}</span>
-              </div>
-            ))}
-          </div>
-
+        <div className="p-8 bg-slate-50/50 border-t border-slate-50 flex justify-end gap-6">
           <button
             onClick={handleSubmit}
             disabled={loading || !isEndOfWeek}

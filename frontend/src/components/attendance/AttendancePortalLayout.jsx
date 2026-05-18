@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import { 
   LogOut, CalendarCheck, Clock, 
-  ClipboardList, PieChart, UserCircle 
+  ClipboardList, PieChart, UserCircle, ArrowLeft
 } from 'lucide-react';
 
 const AttendancePortalLayout = () => {
@@ -58,6 +58,17 @@ const AttendancePortalLayout = () => {
 
           {/* User & Signout */}
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100 hover:border-slate-300 text-slate-600 hover:text-slate-900 transition-all text-xs font-semibold shadow-sm"
+              title="Return to CRM Dashboard"
+            >
+              <ArrowLeft size={14} className="stroke-[2.5]" />
+              <span>Back to Dashboard</span>
+            </button>
+
+            <div className="h-8 w-px bg-slate-200 hidden sm:block" />
+
             <div className="hidden sm:flex flex-col text-right">
               <span className="text-sm font-bold text-slate-800">{employee.name}</span>
               <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
@@ -101,29 +112,41 @@ const AttendancePortalLayout = () => {
       {/* ── MAIN CONTENT ── */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 pb-24 lg:pb-8">
         
-        {/* Basic Info Header */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border-4 border-slate-50">
-              <UserCircle size={40} />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-slate-800">{employee.name}</h2>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
-                <span className="text-sm text-slate-500 font-medium">ID: {employee.employee_id}</span>
-                <span className="text-sm text-slate-500 font-medium">Designation: {employee.designation}</span>
+        <div className="flex flex-col md:flex-row items-center gap-4 mb-8 w-full">
+          {/* Compact Return to Dashboard Button beside/left to profile card */}
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 hover:text-slate-900 transition-all text-xs font-bold shadow-sm shrink-0"
+            title="Return to CRM Dashboard"
+          >
+            <ArrowLeft size={13} className="stroke-[2.5]" />
+            <span>Back to Dashboard</span>
+          </button>
+
+          {/* Basic Info Header (Profile Card) */}
+          <div className="flex-1 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6 w-full">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border-4 border-slate-50">
+                <UserCircle size={40} />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">{employee.name}</h2>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                  <span className="text-sm text-slate-500 font-medium">ID: {employee.employee_id}</span>
+                  <span className="text-sm text-slate-500 font-medium">Designation: {employee.designation}</span>
+                </div>
               </div>
             </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
-              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-0.5">Contact</p>
-              <p className="text-slate-700 font-medium">{employee.contact || 'N/A'}</p>
-            </div>
-            <div className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
-              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-0.5">Email</p>
-              <p className="text-slate-700 font-medium">{employee.email || 'N/A'}</p>
+            
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-0.5">Contact</p>
+                <p className="text-slate-700 font-medium">{employee.contact || 'N/A'}</p>
+              </div>
+              <div className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-0.5">Email</p>
+                <p className="text-slate-700 font-medium">{employee.email || 'N/A'}</p>
+              </div>
             </div>
           </div>
         </div>
