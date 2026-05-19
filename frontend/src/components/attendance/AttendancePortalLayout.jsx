@@ -58,17 +58,6 @@ const AttendancePortalLayout = () => {
 
           {/* User & Signout */}
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100 hover:border-slate-300 text-slate-600 hover:text-slate-900 transition-all text-xs font-semibold shadow-sm"
-              title="Return to CRM Dashboard"
-            >
-              <ArrowLeft size={14} className="stroke-[2.5]" />
-              <span>Back to Dashboard</span>
-            </button>
-
-            <div className="h-8 w-px bg-slate-200 hidden sm:block" />
-
             <div className="hidden sm:flex flex-col text-right">
               <span className="text-sm font-bold text-slate-800">{employee.name}</span>
               <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
