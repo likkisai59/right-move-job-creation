@@ -48,26 +48,26 @@ const AttendanceStatus = () => {
     <div className="max-w-4xl mx-auto space-y-6">
       
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Attendance History</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Attendance History</h1>
         
-        <div className="flex items-center bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <button onClick={goToPrev} className="p-2 hover:bg-slate-50 transition-colors border-r border-slate-100">
+        <div className="flex items-center bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          <button onClick={goToPrev} className="p-2 hover:bg-gray-50 transition-colors border-r border-gray-100">
             <ChevronLeft size={18} />
           </button>
-          <span className="px-6 py-2 text-sm font-bold text-slate-700 min-w-[150px] text-center">
+          <span className="px-6 py-2 text-sm font-bold text-gray-700 min-w-[150px] text-center">
             {MONTHS[month]} {year}
           </span>
-          <button onClick={goToNext} className="p-2 hover:bg-slate-50 transition-colors border-l border-slate-100">
+          <button onClick={goToNext} className="p-2 hover:bg-gray-50 transition-colors border-l border-gray-100">
             <ChevronRight size={18} />
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {/* Calendar Header */}
-        <div className="grid grid-cols-7 border-b border-slate-50 bg-slate-50/50">
+        <div className="grid grid-cols-7 border-b border-gray-50 bg-gray-50/50">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <div key={day} className="py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
               {day}
             </div>
           ))}
@@ -76,7 +76,7 @@ const AttendanceStatus = () => {
         {/* Calendar Grid */}
         <div className="grid grid-cols-7">
           {days.map((day, idx) => {
-            if (!day) return <div key={`empty-${idx}`} className="h-24 md:h-32 border-r border-b border-slate-50 bg-slate-50/20" />;
+            if (!day) return <div key={`empty-${idx}`} className="h-24 md:h-32 border-r border-b border-gray-50 bg-gray-50/20" />;
             
             const isToday = now.getDate() === day && now.getMonth() === month && now.getFullYear() === year;
             const date = new Date(year, month, day);
@@ -93,9 +93,9 @@ const AttendanceStatus = () => {
             return (
               <div 
                 key={day} 
-                className={`h-24 md:h-32 border-r border-b border-slate-50 p-3 flex flex-col justify-between transition-all hover:bg-slate-50/50 ${isToday ? 'bg-blue-50/30' : ''}`}
+                className={`h-24 md:h-32 border-r border-b border-gray-50 p-3 flex flex-col justify-between transition-all hover:bg-gray-50/50 ${isToday ? 'bg-blue-50/30' : ''}`}
               >
-                <span className={`text-sm font-black ${isToday ? 'text-blue-600' : isWeekend ? 'text-slate-300' : 'text-slate-500'}`}>
+                <span className={`text-sm font-black ${isToday ? 'text-blue-600' : isWeekend ? 'text-gray-300' : 'text-gray-500'}`}>
                   {day}
                 </span>
 
@@ -115,7 +115,7 @@ const AttendanceStatus = () => {
         {Object.entries(STATUS_CONFIG).filter(([k]) => k !== 'FT').map(([key, cfg]) => (
           <div key={key} className="flex items-center gap-2">
             <div className={`w-3 h-3 rounded-full ${cfg.bg} border ${cfg.border}`} />
-            <span className="text-xs font-bold text-slate-500">{cfg.label}</span>
+            <span className="text-xs font-bold text-gray-500">{cfg.label}</span>
           </div>
         ))}
       </div>

@@ -97,19 +97,19 @@ const AttendanceMarking = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         
         {/* Header */}
-        <div className="p-8 border-b border-slate-50 flex items-center justify-between flex-wrap gap-4">
+        <div className="p-8 border-b border-gray-50 flex items-center justify-between flex-wrap gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
                 <CalendarCheck size={24} />
               </div>
-              <h1 className="text-xl font-bold text-slate-800">Weekly Attendance Marking</h1>
+              <h1 className="text-xl font-bold text-gray-800">Weekly Attendance Marking</h1>
             </div>
-            <p className="text-slate-500 text-sm">
-              Current Week: <span className="font-bold text-slate-700">
+            <p className="text-gray-500 text-sm">
+              Current Week: <span className="font-bold text-gray-700">
                 {weekDays[0].toLocaleDateString()} — {weekDays[6].toLocaleDateString()}
               </span>
             </p>
@@ -127,27 +127,27 @@ const AttendanceMarking = () => {
         <div className="p-0 overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/50">
-                <th className="px-8 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Date & Day</th>
+              <tr className="bg-gray-50/50">
+                <th className="px-8 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Date & Day</th>
                 {STATUSES.map(s => (
-                  <th key={s.id} className="px-4 py-4 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">
+                  <th key={s.id} className="px-4 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-widest">
                     {s.full}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-gray-50">
               {weekDays.map((date) => {
                 const dateStr = date.toISOString().split('T')[0];
                 const isToday = new Date().toISOString().split('T')[0] === dateStr;
                 
                 return (
-                  <tr key={dateStr} className={`hover:bg-slate-50/50 transition-colors ${isToday ? 'bg-blue-50/20' : ''}`}>
+                  <tr key={dateStr} className={`hover:bg-gray-50/50 transition-colors ${isToday ? 'bg-blue-50/20' : ''}`}>
                     <td className="px-8 py-5">
-                      <p className={`font-bold ${isToday ? 'text-blue-600' : 'text-slate-700'}`}>
+                      <p className={`font-bold ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>
                         {date.toLocaleDateString('en-US', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                       </p>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase">
                         {date.toLocaleDateString('en-US', { weekday: 'long' })}
                       </p>
                     </td>
@@ -165,7 +165,7 @@ const AttendanceMarking = () => {
                             w-10 h-10 rounded-xl border-2 flex items-center justify-center font-bold text-xs transition-all
                             ${weekData[dateStr] === s.id 
                               ? 'bg-blue-600 border-blue-600 text-white shadow-md' 
-                              : 'border-slate-100 text-slate-300 hover:border-slate-200 group-hover:text-slate-400'}
+                              : 'border-gray-100 text-gray-300 hover:border-gray-200 group-hover:text-gray-400'}
                           `}>
                             {s.label}
                           </div>
@@ -180,15 +180,15 @@ const AttendanceMarking = () => {
         </div>
 
         {/* Footer / Submit */}
-        <div className="p-8 bg-slate-50/50 border-t border-slate-50 flex justify-end gap-6">
+        <div className="p-8 bg-gray-50/50 border-t border-gray-50 flex justify-end gap-6">
           <button
             onClick={handleSubmit}
             disabled={loading || !isEndOfWeek}
             className={`
-              px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all flex items-center gap-3
+              px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all flex items-center gap-3
               ${isEndOfWeek 
-                ? 'bg-slate-900 text-white shadow-xl hover:bg-black active:scale-95' 
-                : 'bg-slate-200 text-slate-400 cursor-not-allowed'}
+                ? 'bg-gray-900 text-white shadow-xl hover:bg-black active:scale-95' 
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'}
             `}
           >
             {loading ? (
@@ -210,7 +210,7 @@ const AttendanceMarking = () => {
 
       {/* Warning if not Sunday */}
       {!isEndOfWeek && (
-        <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex items-start gap-3">
+        <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex items-start gap-3">
           <AlertCircle className="text-blue-600 mt-0.5" size={18} />
           <div>
             <p className="text-sm font-bold text-blue-900">Weekly Lock Active</p>

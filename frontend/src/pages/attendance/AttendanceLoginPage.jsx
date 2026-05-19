@@ -33,22 +33,22 @@ const AttendanceLoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
       <div className="max-w-md w-full mb-4">
         <button 
           onClick={() => navigate('/dashboard')}
-          className="flex items-center gap-2 text-slate-400 hover:text-slate-600 transition-colors text-sm font-bold"
+          className="flex items-center gap-2 text-gray-400 hover:text-gray-600 transition-colors text-sm font-bold"
         >
           <ArrowLeft size={16} />
           Back to Admin Dashboard
         </button>
       </div>
 
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+      <div className="max-w-md w-full bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
         
         {/* Header */}
         <div className="bg-blue-600 px-8 py-10 text-center">
-          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm border border-white/30">
+          <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm border border-white/30">
             <LogIn className="text-white" size={32} />
           </div>
           <h1 className="text-2xl font-bold text-white">Employee Portal</h1>
@@ -66,35 +66,35 @@ const AttendanceLoginPage = () => {
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">
                 Username (Full Name)
               </label>
               <div className="relative">
-                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <User className="absolute left-3.5 top-1/2 -trangray-y-1/2 text-gray-400" size={18} />
                 <input
                   type="text"
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="e.g. John Doe"
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-700"
+                  className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-gray-700"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">
                 Password (Employee ID)
               </label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <Lock className="absolute left-3.5 top-1/2 -trangray-y-1/2 text-gray-400" size={18} />
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="e.g. EMP001"
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-700"
+                  className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-gray-700"
                 />
               </div>
             </div>
@@ -115,8 +115,8 @@ const AttendanceLoginPage = () => {
             </button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-            <p className="text-slate-400 text-xs">
+          <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+            <p className="text-gray-400 text-xs">
               Forgot credentials? Please contact HR / IT Support.
             </p>
           </div>
