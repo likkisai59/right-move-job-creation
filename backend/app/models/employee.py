@@ -18,7 +18,6 @@ class Employee(Base):
     # Personal details
     first_name= Column(String(255), nullable=False)
     last_name= Column(String(255), nullable=False)
-    preferred_name= Column(String(255), nullable=True)   # What employee likes to be called 
     blood_group= Column(String(10), nullable=True)
     gender= Column(Enum('Male','Female','Other',name='gender'), nullable=False)
     country_code= Column(String(10), nullable=True)
