@@ -56,12 +56,10 @@ def import_from_excel(file_path: str):
                 # Use generate_organization_id
                 org_id = generate_organization_id(db)
                 
-                # The schema requires commission_percentage. Setting default 0.0
                 new_org = Organization(
                     organization_id=org_id,
                     organization_name=org_name,
-                    status='active',
-                    commission_percentage=0.0
+                    status='active'
                 )
                 db.add(new_org)
                 db.commit() # Commit each time to ensure generate_organization_id gets next ID correctly

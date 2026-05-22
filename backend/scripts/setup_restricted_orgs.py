@@ -53,7 +53,6 @@ def setup():
                 organization_id=org_id,
                 organization_name=org_name.strip(),
                 status='active',
-                commission_percentage=0.0,
                 is_active=1
             )
             db.add(new_org)

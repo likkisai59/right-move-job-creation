@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Save, AlertTriangle, Building2, Calendar, Percent, Phone, MapPin } from 'lucide-react';
+import { Save, AlertTriangle, Building2, Calendar, Phone } from 'lucide-react';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import Select from '../common/Select';
-import Textarea from '../common/Textarea';
 import { checkDuplicateOrganization } from '../../api/organizationsApi';
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
-  { value: 'complete', label: 'Complete' },
-  { value: 'cancel', label: 'Cancel' },
+  { value: 'inactive', label: 'Inactive' },
 ];
 
 const COUNTRY_CODES = [
@@ -28,7 +26,7 @@ const COUNTRY_CODES = [
 
 const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
   const [warning, setWarning] = useState(false);
-  
+
   const {
     register,
     handleSubmit,
@@ -43,10 +41,8 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
       status: initialData.status || 'active',
       contract_signed_date: initialData.contract_signed_date || '',
       contract_end_date: initialData.contract_end_date || '',
-      commission_percentage: initialData.commission_percentage || '',
       contact_number: initialData.contact_number || '',
       country_code: initialData.country_code || '+91',
-      address: initialData.address || '',
     },
     mode: 'onChange'
   });
@@ -71,9 +67,9 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
       const exists = await checkDuplicateOrganization(organizationName);
       setWarning(exists);
       if (exists) {
-        setError('organization_name', { 
-          type: 'manual', 
-          message: 'Organization already exists' 
+        setError('organization_name', {
+          type: 'manual',
+          message: 'Organization already exists'
         });
       } else {
         clearErrors('organization_name');
@@ -153,39 +149,12 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
               </div>
             </div>
 
-            <div className="md:col-span-2">
-              <Textarea
-                label="Office Address"
-                placeholder="Street, City, State, Pincode"
-                icon={MapPin}
-                error={errors.address?.message}
-                {...register('address')}
-              />
-            </div>
-
             <Select
               label="Status"
               required
               options={STATUS_OPTIONS}
               error={errors.status?.message}
               {...register('status', { required: 'Status is required' })}
-            />
-
-            <Input
-              label="Commission Percentage (%)"
-              type="number"
-              step="0.01"
-              required
-              placeholder="e.g. 15.50"
-              icon={Percent}
-              error={errors.commission_percentage?.message}
-              {...register('commission_percentage', {
-                required: 'Commission is required',
-                min: { value: 0, message: 'Commission must be between 0 and 100' },
-                max: { value: 100, message: 'Commission must be between 0 and 100' },
-                valueAsNumber: true,
-                validate: (value) => !isNaN(value) || 'Commission must be a valid number'
-              })}
             />
           </div>
 
