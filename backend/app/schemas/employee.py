@@ -15,7 +15,6 @@ class EmployeeBase(BaseModel):
     """
     first_name: str
     last_name: str
-    preferred_name: Optional[str] = None
     blood_group: Optional[str] = None
     gender: str
     country_code: Optional[str] = None
@@ -28,6 +27,46 @@ class EmployeeBase(BaseModel):
     package: Optional[float] = None
     status: EmployeeStatus = EmployeeStatus.ACTIVE
     last_working_date: Optional[date] = None
+
+    # New fields
+    date_of_birth: Optional[date] = None
+    contact_number_office: Optional[str] = None
+    emergency_contact_number: Optional[str] = None
+    aadhar_number: Optional[str] = None
+    aadhar_url: Optional[str] = None
+    pan_number: Optional[str] = None
+    pan_url: Optional[str] = None
+    marksheet_10th_url: Optional[str] = None
+    marksheet_12th_url: Optional[str] = None
+    marksheet_graduation_url: Optional[str] = None
+    present_address_proof_url: Optional[str] = None
+    permanent_address_proof_url: Optional[str] = None
+    photo_url: Optional[str] = None
+    medical_condition: Optional[str] = None
+    resume_url: Optional[str] = None
+    salary_slips_url: Optional[str] = None
+    offer_letter_url: Optional[str] = None
+    last_company_name: Optional[str] = None
+
+    # Bank Details
+    bank_name: str
+    bank_account_number: str
+    bank_ifsc_code: str
+
+    # Reporting & Compliance Details
+    assigned_business_unit: str
+    reporting_to: str
+    work_mode: str
+    ctc: float
+    compliance: str
+
+    # Asset & System Configuration Details
+    system_assigned: str
+    sim_card_assigned: str
+    email_id_configured: str
+    linkedin_configured: str
+    google_sheet_configured: str
+    whatsapp_business_configured: str
 
 
 class EmployeeCreateRequest(EmployeeBase):
@@ -46,7 +85,6 @@ class EmployeeUpdateRequest(BaseModel):
     """
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    preferred_name: Optional[str] = None
     blood_group: Optional[str] = None
     gender: Optional[str] = None
     country_code: Optional[str] = None
@@ -59,6 +97,46 @@ class EmployeeUpdateRequest(BaseModel):
     package: Optional[float] = None
     status: Optional[EmployeeStatus] = None
     last_working_date: Optional[date] = None
+
+    # New fields
+    date_of_birth: Optional[date] = None
+    contact_number_office: Optional[str] = None
+    emergency_contact_number: Optional[str] = None
+    aadhar_number: Optional[str] = None
+    aadhar_url: Optional[str] = None
+    pan_number: Optional[str] = None
+    pan_url: Optional[str] = None
+    marksheet_10th_url: Optional[str] = None
+    marksheet_12th_url: Optional[str] = None
+    marksheet_graduation_url: Optional[str] = None
+    present_address_proof_url: Optional[str] = None
+    permanent_address_proof_url: Optional[str] = None
+    photo_url: Optional[str] = None
+    medical_condition: Optional[str] = None
+    resume_url: Optional[str] = None
+    salary_slips_url: Optional[str] = None
+    offer_letter_url: Optional[str] = None
+    last_company_name: Optional[str] = None
+
+    # Bank Details
+    bank_name: Optional[str] = None
+    bank_account_number: Optional[str] = None
+    bank_ifsc_code: Optional[str] = None
+
+    # Reporting & Compliance Details
+    assigned_business_unit: Optional[str] = None
+    reporting_to: Optional[str] = None
+    work_mode: Optional[str] = None
+    ctc: Optional[float] = None
+    compliance: Optional[str] = None
+
+    # Asset & System Configuration Details
+    system_assigned: Optional[str] = None
+    sim_card_assigned: Optional[str] = None
+    email_id_configured: Optional[str] = None
+    linkedin_configured: Optional[str] = None
+    google_sheet_configured: Optional[str] = None
+    whatsapp_business_configured: Optional[str] = None
 
 
 class EmployeeResponse(EmployeeBase):

@@ -5,7 +5,7 @@ import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import OrganizationTable from '../../components/organizations/OrganizationTable';
-import { fetchOrganizations } from '../../api/organizationsApi';
+import { fetchOrganizations, deleteOrganization } from '../../api/organizationsApi';
 import api from '../../api/axios';
 
 const OrganizationListPage = () => {
@@ -30,6 +30,26 @@ const OrganizationListPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDelete = async (id, name) => {
+    if (!window.confirm(`Are you sure you want to delete "${name || 'this organization'}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await deleteOrganization(id);
+      await loadOrganizations(searchTerm, startDate, endDate);
+    } catch (error) {
+      console.error('Failed to delete organization:', error);
+      alert('Error deleting organization. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const handleCreate = () => {
+    navigate('/organizations/create');
   };
 
   useEffect(() => {
@@ -74,7 +94,7 @@ const OrganizationListPage = () => {
     const today = new Date();
     const diffTime = endDate - today;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays >= 0 && diffDays <= 7;
+    return diffDays >= 0 && diffDays <= 30;
   });
 
   return (
@@ -103,7 +123,7 @@ const OrganizationListPage = () => {
             <div className="flex-1">
               <h4 className="text-base font-bold text-slate-900">Contract Renewal Notice</h4>
               <p className="text-sm text-slate-600 mt-1 leading-relaxed">
-                The following organizations have contracts reaching their termination date within the next <span className="font-bold text-indigo-600">7 days</span>. 
+                The following organizations have contracts reaching their termination date within the next <span className="font-bold text-indigo-600">30 days</span>. 
                 Please ensure necessary renewal documentation is processed to maintain service continuity.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
@@ -164,6 +184,8 @@ const OrganizationListPage = () => {
         <OrganizationTable 
           organizations={organizations} 
           loading={loading} 
+          onCreate={handleCreate}
+          onDelete={handleDelete}
         />
       </div>
     </PageContainer>

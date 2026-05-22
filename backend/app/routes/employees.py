@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, File, UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import Optional
 import traceback
+import os
+import shutil
+from datetime import datetime
 
 from app.core.database import get_db
 from app.utils.response import success_response, error_response
@@ -11,6 +14,41 @@ from app.services import employee_service
 
 # Define the router prefix for all endpoints in this file
 router = APIRouter(prefix="/api/employees", tags=["Employees"])
+
+# ─────────────────────────────────────────────────────────────
+# FILE UPLOAD
+# ─────────────────────────────────────────────────────────────
+
+@router.post("/upload")
+def upload_employee_file(file: UploadFile = File(...)):
+    """
+    POST /api/employees/upload
+    Uploads a document or photo for an employee.
+    Returns the static URL of the uploaded file.
+    """
+    try:
+        # Create uploads folder if it doesn't exist
+        if not os.path.exists("uploads"):
+            os.makedirs("uploads")
+            
+        filename = f"{int(datetime.now().timestamp())}_{file.filename.replace(' ', '_')}"
+        filepath = os.path.join("uploads", filename)
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        return JSONResponse(
+            status_code=200,
+            content=success_response(
+                "File uploaded successfully", 
+                {"url": f"/uploads/{filename}", "filename": file.filename}
+            )
+        )
+    except Exception as exc:
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500, 
+            content=error_response(f"Failed to upload file: {str(exc)}")
+        )
 
 # ─────────────────────────────────────────────────────────────
 # CREATE EMPLOYEE
@@ -102,7 +140,6 @@ def list_employees(
                 "employee_id": emp.employee_id,
                 "first_name": emp.first_name,
                 "last_name": emp.last_name,
-                "preferred_name": emp.preferred_name,
                 "blood_group": emp.blood_group,
                 "gender": emp.gender,
                 "country_code": emp.country_code,
@@ -115,6 +152,33 @@ def list_employees(
                 "package": emp.package,
                 "status": emp.status,
                 "last_working_date": str(emp.last_working_date) if emp.last_working_date else None,
+                
+                # New fields
+                "date_of_birth": str(emp.date_of_birth) if emp.date_of_birth else None,
+                "contact_number_office": emp.contact_number_office,
+                "emergency_contact_number": emp.emergency_contact_number,
+                "aadhar_number": emp.aadhar_number,
+                "aadhar_url": emp.aadhar_url,
+                "pan_number": emp.pan_number,
+                "pan_url": emp.pan_url,
+                "marksheet_10th_url": emp.marksheet_10th_url,
+                "marksheet_12th_url": emp.marksheet_12th_url,
+                "marksheet_graduation_url": emp.marksheet_graduation_url,
+                "present_address_proof_url": emp.present_address_proof_url,
+                "permanent_address_proof_url": emp.permanent_address_proof_url,
+                "photo_url": emp.photo_url,
+                "medical_condition": emp.medical_condition,
+                "assigned_business_unit": emp.assigned_business_unit,
+                "reporting_to": emp.reporting_to,
+                "work_mode": emp.work_mode,
+                "ctc": emp.ctc,
+                "compliance": emp.compliance,
+                "system_assigned": emp.system_assigned,
+                "sim_card_assigned": emp.sim_card_assigned,
+                "email_id_configured": emp.email_id_configured,
+                "linkedin_configured": emp.linkedin_configured,
+                "google_sheet_configured": emp.google_sheet_configured,
+                "whatsapp_business_configured": emp.whatsapp_business_configured,
             }
             for emp in employees
         ]
@@ -147,7 +211,6 @@ def get_employee(employee_id: int, db: Session = Depends(get_db)):
             "employee_id": employee.employee_id,
             "first_name": employee.first_name,
             "last_name": employee.last_name,
-            "preferred_name": employee.preferred_name,
             "blood_group": employee.blood_group,
             "gender": employee.gender,
             "country_code": employee.country_code,
@@ -160,6 +223,33 @@ def get_employee(employee_id: int, db: Session = Depends(get_db)):
             "package": employee.package,
             "status": employee.status,
             "last_working_date": str(employee.last_working_date) if employee.last_working_date else None,
+            
+            # New fields
+            "date_of_birth": str(employee.date_of_birth) if employee.date_of_birth else None,
+            "contact_number_office": employee.contact_number_office,
+            "emergency_contact_number": employee.emergency_contact_number,
+            "aadhar_number": employee.aadhar_number,
+            "aadhar_url": employee.aadhar_url,
+            "pan_number": employee.pan_number,
+            "pan_url": employee.pan_url,
+            "marksheet_10th_url": employee.marksheet_10th_url,
+            "marksheet_12th_url": employee.marksheet_12th_url,
+            "marksheet_graduation_url": employee.marksheet_graduation_url,
+            "present_address_proof_url": employee.present_address_proof_url,
+            "permanent_address_proof_url": employee.permanent_address_proof_url,
+            "photo_url": employee.photo_url,
+            "medical_condition": employee.medical_condition,
+            "assigned_business_unit": employee.assigned_business_unit,
+            "reporting_to": employee.reporting_to,
+            "work_mode": employee.work_mode,
+            "ctc": employee.ctc,
+            "compliance": employee.compliance,
+            "system_assigned": employee.system_assigned,
+            "sim_card_assigned": employee.sim_card_assigned,
+            "email_id_configured": employee.email_id_configured,
+            "linkedin_configured": employee.linkedin_configured,
+            "google_sheet_configured": employee.google_sheet_configured,
+            "whatsapp_business_configured": employee.whatsapp_business_configured,
         }
         
         return JSONResponse(

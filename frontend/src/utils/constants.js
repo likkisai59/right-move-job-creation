@@ -105,3 +105,29 @@ export const EMPLOYEE_BLOOD_GROUP_OPTIONS = [
   { value: 'O+', label: 'O+' },
   { value: 'O-', label: 'O-' },
 ];
+
+export const EMPLOYEE_BUSINESS_UNIT_OPTIONS = [
+  { value: 'IT', label: 'IT' },
+  { value: 'ITES', label: 'ITES' },
+  { value: 'F&A', label: 'F&A' },
+  { value: 'FLP', label: 'FLP' },
+  { value: 'Lateral', label: 'Lateral' },
+  { value: 'BPO', label: 'BPO' }
+];
+
+export const EMPLOYEE_WORK_MODE_OPTIONS = [
+  { value: 'Office', label: 'Office' },
+  { value: 'Work from Home', label: 'Work from Home' },
+  { value: 'Onsite', label: 'Onsite' }
+];
+
+export const EMPLOYEE_COMPLIANCE_OPTIONS = [
+  { value: 'None', label: 'None' },
+  { value: 'TDS', label: 'TDS' },
+  { value: 'PF', label: 'PF' }
+];
+
+export const EMPLOYEE_YES_NO_OPTIONS = [
+  { value: 'Yes', label: 'Yes' },
+  { value: 'No', label: 'No' }
+];

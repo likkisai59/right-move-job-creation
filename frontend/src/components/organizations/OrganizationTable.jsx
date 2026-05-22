@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Pencil, Percent, Calendar, AlertTriangle, Phone, MapPin, RotateCcw } from 'lucide-react';
+import { Building2, Pencil, Calendar, AlertTriangle, RotateCcw, Plus, Trash2 } from 'lucide-react';
 import Table from '../common/Table';
 import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
@@ -12,7 +12,7 @@ const STATUS_CONFIG = {
   cancel: { label: 'Cancel', classes: 'bg-gray-50 text-gray-700 border-gray-200' },
 };
 
-const OrganizationTable = ({ organizations = [], loading = false }) => {
+const OrganizationTable = ({ organizations = [], loading = false, onCreate, onDelete }) => {
   const navigate = useNavigate();
 
   const columns = [
@@ -41,48 +41,7 @@ const OrganizationTable = ({ organizations = [], loading = false }) => {
         </div>
       ),
     },
-    {
-      key: 'commission_percentage',
-      header: 'Commission%',
-      render: (val) => (
-        <div className="flex items-center gap-1 text-gray-600 font-medium">
-          {val ? `${val}%` : '-'}
-        </div>
-      ),
-    },
-    {
-      key: 'contact_number',
-      header: 'Contact Number',
-      render: (_, row) => (
-        <div className="flex flex-col gap-1 py-1">
-          {row.contact_number ? (
-            <div className="flex items-center gap-1.5 text-sm text-slate-700">
-              <span className="text-blue-500" title="Contact Number"><Phone size={13} /></span>
-              <span className="font-medium whitespace-nowrap">{row.country_code} {row.contact_number}</span>
-            </div>
-          ) : (
-            <span className="text-gray-400 text-xs italic">No phone info</span>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'address',
-      header: 'Office Address',
-      minWidth: '180px',
-      render: (val) => (
-        <div className="flex flex-col gap-1 py-1">
-          {val ? (
-            <div className="flex items-start gap-1.5 text-xs text-slate-600 max-w-[220px]" title={val}>
-              <span className="text-blue-400 mt-0.5 shrink-0"><MapPin size={12} /></span>
-              <span className="leading-relaxed line-clamp-2">{val}</span>
-            </div>
-          ) : (
-            <span className="text-gray-400 text-[10px] italic font-medium">No address provided</span>
-          )}
-        </div>
-      ),
-    },
+
     {
       key: 'contract_signed_date',
       header: 'Contract Signed',
@@ -143,12 +102,38 @@ const OrganizationTable = ({ organizations = [], loading = false }) => {
           <button
             onClick={(e) => {
               e.stopPropagation();
+              if (onCreate) {
+                onCreate(row);
+              } else {
+                navigate('/organizations/create');
+              }
+            }}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors shadow-sm bg-white border border-gray-100"
+            title="Create Organization"
+          >
+            <Plus size={15} />
+          </button>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
               navigate(`/organizations/edit/${row.id}`);
             }}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors shadow-sm bg-white border border-gray-100"
             title="Edit Organization"
           >
             <Pencil size={15} />
+          </button>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete && onDelete(row.id, row.organization_name);
+            }}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors shadow-sm bg-white border border-gray-100"
+            title="Delete Organization"
+          >
+            <Trash2 size={15} />
           </button>
         </div>
       ),
