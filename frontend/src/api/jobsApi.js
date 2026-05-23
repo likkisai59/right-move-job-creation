@@ -44,7 +44,7 @@ const mapToFrontend = (dbRecord) => {
     })),
     numberOfCandidates: requirements.reduce((sum, r) => sum + r.num_candidates, 0),
     experience: requirements.map(r => r.experience).join(', '),
-    assignedTo: dbRecord.assigned_to,
+    assignedTo: dbRecord.assigned_to || '',
     status: dbRecord.status || 'ACTIVE',
     created_at: dbRecord.created_at,
     updated_at: dbRecord.updated_at,

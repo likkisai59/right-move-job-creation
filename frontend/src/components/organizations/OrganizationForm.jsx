@@ -125,7 +125,7 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
               )}
             </div>
 
-            {/* New Fields: Contact and Address */}
+            {/* New Fields: Contact */}
             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="md:col-span-1">
                 <Select

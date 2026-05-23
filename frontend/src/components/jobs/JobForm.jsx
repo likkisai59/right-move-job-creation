@@ -76,7 +76,10 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
 
   useEffect(() => {
     if (defaultValues) {
-      reset(defaultValues);
+      reset({
+        ...defaultValues,
+        assignedTo: defaultValues.assignedTo || ''
+      });
     }
   }, [defaultValues, reset]);
 
@@ -146,13 +149,13 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
 
         {/* Recruiter */}
         <Select
-          label="Assign Recruiter"
-          placeholder="Select recruiter"
+          label="Assign Owner"
+          placeholder="Select Owner"
           required
           options={mockRecruiters}
           error={errors.assignedTo?.message}
           {...register('assignedTo', {
-            required: 'Please select a recruiter',
+            required: 'Please select an owner',
           })}
         />
 
