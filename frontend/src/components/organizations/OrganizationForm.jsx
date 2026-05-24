@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { Save, AlertTriangle, Building2, Calendar, Phone } from 'lucide-react';
+import { useForm, useFieldArray } from 'react-hook-form';
+import { Save, AlertTriangle, Building2, Calendar, Phone, Plus, Trash2 } from 'lucide-react';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import Select from '../common/Select';
@@ -30,6 +30,7 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
     watch,
     setError,
@@ -43,14 +44,33 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
       contract_end_date: initialData.contract_end_date || '',
       contact_number: initialData.contact_number || '',
       country_code: initialData.country_code || '+91',
+      rate_cards: [{ band: '', rate: '' }],
     },
     mode: 'onChange'
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'rate_cards',
   });
 
   // Only reset form if initialData actually changes (e.g. from an API load)
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
-      reset(initialData);
+      const bands = initialData.band ? initialData.band.split(',') : [];
+      const rates = initialData.rate ? initialData.rate.split(',') : [];
+      const rate_cards = [];
+      const maxLength = Math.max(bands.length, rates.length);
+      for (let i = 0; i < maxLength; i++) {
+        rate_cards.push({
+          band: bands[i] || '',
+          rate: rates[i] || '',
+        });
+      }
+      reset({
+        ...initialData,
+        rate_cards: rate_cards.length > 0 ? rate_cards : [{ band: '', rate: '' }],
+      });
     }
   }, [JSON.stringify(initialData), reset]);
 
@@ -84,7 +104,20 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
       setError('organization_name', { type: 'manual', message: 'Organization already exists' });
       return;
     }
-    onSubmit(data);
+    
+    // Convert rate_cards back to comma-separated strings
+    const validRateCards = (data.rate_cards || []).filter(rc => rc.band?.trim() || rc.rate?.trim());
+    const bands = validRateCards.map(rc => rc.band?.trim() || '').join(',');
+    const rates = validRateCards.map(rc => rc.rate?.trim() || '').join(',');
+
+    const payload = {
+      ...data,
+      band: bands || null,
+      rate: rates || null,
+    };
+    delete payload.rate_cards;
+
+    onSubmit(payload);
   };
 
   return (
@@ -156,6 +189,63 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
               error={errors.status?.message}
               {...register('status', { required: 'Status is required' })}
             />
+          </div>
+
+          {/* SECTION 1.5: Rated Card Details */}
+          <div className="mt-6 pt-6 border-t border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                  <Building2 size={16} className="text-blue-500" />
+                  Add Rated card
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">Configure band levels and billing rates for this organization.</p>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => append({ band: '', rate: '' })}
+                icon={Plus}
+              >
+                Add Card
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {fields.map((field, index) => (
+                <div key={field.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start bg-gray-50 p-4 rounded-xl border border-gray-100 relative animate-slide-up">
+                  <Input
+                    label={`Band (Row ${index + 1})`}
+                    placeholder="e.g. L1, Senior"
+                    required
+                    error={errors.rate_cards?.[index]?.band?.message}
+                    {...register(`rate_cards.${index}.band`, { required: 'Band is required' })}
+                  />
+                  
+                  <div className="relative pr-10">
+                    <Input
+                      label="Rate"
+                      placeholder="e.g. ₹1000/hr, $50"
+                      required
+                      error={errors.rate_cards?.[index]?.rate?.message}
+                      {...register(`rate_cards.${index}.rate`, { required: 'Rate is required' })}
+                    />
+                    
+                    {fields.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => remove(index)}
+                        className="absolute right-0 bottom-3 w-8 h-8 flex items-center justify-center rounded-full bg-red-50 text-red-600 hover:bg-red-100 shadow-sm transition-all hover:scale-110 active:scale-95"
+                        title="Remove rate card"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="h-px bg-gray-100 w-full" />

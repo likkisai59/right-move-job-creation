@@ -20,6 +20,8 @@ class Organization(Base):
     contact_number = Column(String(20), nullable=True)
     country_code = Column(String(10), nullable=True)
     is_active = Column(Integer, nullable=False, default=1) # Using Integer (0/1) for boolean for better compatibility or just Boolean
+    band = Column(String(255), nullable=True)
+    rate = Column(String(255), nullable=True)
 
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())

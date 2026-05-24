@@ -9,6 +9,8 @@ class OrganizationCreate(BaseModel):
     contract_end_date: Optional[date] = None
     contact_number: Optional[str] = Field(None, pattern=r'^\d*$')
     country_code: Optional[str] = Field(None)
+    band: Optional[str] = None
+    rate: Optional[str] = None
 
     @field_validator("organization_name", mode="before")
     @classmethod
@@ -39,6 +41,8 @@ class OrganizationUpdate(BaseModel):
     contract_end_date: Optional[date] = None
     contact_number: Optional[str] = Field(None, pattern=r'^\d*$')
     country_code: Optional[str] = Field(None)
+    band: Optional[str] = None
+    rate: Optional[str] = None
 
     @model_validator(mode='after')
     def validate_dates(self) -> 'OrganizationUpdate':
@@ -57,6 +61,8 @@ class OrganizationResponse(BaseModel):
     contact_number: Optional[str] = None
     country_code: Optional[str] = None
     is_active: Optional[int] = None
+    band: Optional[str] = None
+    rate: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     
