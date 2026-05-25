@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
-import { Save, AlertTriangle, Building2, Calendar, Phone, Plus, Trash2 } from 'lucide-react';
+import { Save, AlertTriangle, Building2, Calendar, Phone, Mail, Plus, Trash2 } from 'lucide-react';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import Select from '../common/Select';
@@ -45,6 +45,9 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
       contact_number: initialData.contact_number || '',
       country_code: initialData.country_code || '+91',
       rate_cards: [{ band: '', rate: '' }],
+      poc_country_code: initialData.poc_country_code || '+91',
+      poc_contact: initialData.poc_contact || '',
+      poc_email_id: initialData.poc_email_id || '',
     },
     mode: 'onChange'
   });
@@ -70,6 +73,9 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
       reset({
         ...initialData,
         rate_cards: rate_cards.length > 0 ? rate_cards : [{ band: '', rate: '' }],
+        poc_country_code: initialData.poc_country_code || '+91',
+        poc_contact: initialData.poc_contact || '',
+        poc_email_id: initialData.poc_email_id || '',
       });
     }
   }, [JSON.stringify(initialData), reset]);
@@ -245,6 +251,48 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* SECTION 2: POC Details */}
+          <div className="mt-6 pt-6 border-t border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-5 flex items-center gap-2">
+              <Phone size={16} className="text-blue-500" />
+              POC Details
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              <div className="md:col-span-1">
+                <Select
+                  label="Code"
+                  options={COUNTRY_CODES}
+                  error={errors.poc_country_code?.message}
+                  {...register('poc_country_code')}
+                />
+              </div>
+              <div className="md:col-span-3">
+                <Input
+                  label="POC Contact"
+                  placeholder="Enter POC phone number"
+                  icon={Phone}
+                  error={errors.poc_contact?.message}
+                  {...register('poc_contact', {
+                    pattern: { value: /^\d+$/, message: 'Only numeric input allowed' },
+                    minLength: { value: 10, message: 'Minimum 10 digits required' }
+                  })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <Input
+                label="POC Email ID"
+                type="email"
+                placeholder="e.g. poc@company.com"
+                icon={Mail}
+                error={errors.poc_email_id?.message}
+                {...register('poc_email_id', {
+                  pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email address' }
+                })}
+              />
             </div>
           </div>
 

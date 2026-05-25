@@ -23,5 +23,9 @@ class Organization(Base):
     band = Column(String(255), nullable=True)
     rate = Column(String(255), nullable=True)
 
+    poc_country_code = Column(String(10), nullable=True)
+    poc_contact = Column(String(20), nullable=True)
+    poc_email_id = Column(String(255), nullable=True)
+
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())

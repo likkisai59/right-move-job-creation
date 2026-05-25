@@ -11,6 +11,9 @@ class OrganizationCreate(BaseModel):
     country_code: Optional[str] = Field(None)
     band: Optional[str] = None
     rate: Optional[str] = None
+    poc_country_code: Optional[str] = Field(None)
+    poc_contact: Optional[str] = Field(None, pattern=r'^\d*$')
+    poc_email_id: Optional[str] = None
 
     @field_validator("organization_name", mode="before")
     @classmethod
@@ -43,6 +46,9 @@ class OrganizationUpdate(BaseModel):
     country_code: Optional[str] = Field(None)
     band: Optional[str] = None
     rate: Optional[str] = None
+    poc_country_code: Optional[str] = Field(None)
+    poc_contact: Optional[str] = Field(None, pattern=r'^\d*$')
+    poc_email_id: Optional[str] = None
 
     @model_validator(mode='after')
     def validate_dates(self) -> 'OrganizationUpdate':
@@ -63,6 +69,9 @@ class OrganizationResponse(BaseModel):
     is_active: Optional[int] = None
     band: Optional[str] = None
     rate: Optional[str] = None
+    poc_country_code: Optional[str] = None
+    poc_contact: Optional[str] = None
+    poc_email_id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     
