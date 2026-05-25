@@ -108,7 +108,7 @@ const CandidateDetails = () => {
                 <span>Applied on {candidate.appliedDate || '—'}</span>
               </div>
               <div className="w-1 h-1 rounded-full bg-gray-300 hidden sm:block"></div>
-              <Badge color="purple" label={candidate.businessCategory || 'IT'} className="font-bold py-1 px-3" />
+              <Badge color="purple" label={candidate.businessUnit || 'IT'} className="font-bold py-1 px-3" />
               
 
             </div>

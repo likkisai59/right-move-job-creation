@@ -24,7 +24,7 @@ const DEFAULT_FORM_VALUES = {
   firstName: '',
   lastName: '',
   countryCode: '+91',
-  businessCategory: 'IT',
+  businessUnit: 'IT',
   phone: '',
   email: '',
   currentLocation: '',
@@ -256,8 +256,8 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
             { value: 'ITSM', label: 'ITSM' },
             { value: 'BPO', label: 'BPO' },
           ]}
-          error={errors.businessCategory?.message}
-          {...register('businessCategory', { required: 'Business category is required' })}
+          error={errors.businessUnit?.message}
+          {...register('businessUnit', { required: 'Business unit is required' })}
         />
 
         <div className="flex flex-col">

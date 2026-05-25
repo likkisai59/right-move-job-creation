@@ -23,7 +23,7 @@ def get_all_candidates(
     skills: Optional[str] = None,
     total_experience: Optional[str] = None,
     current_location: Optional[str] = None,
-    business_category: Optional[str] = None,
+    business_unit: Optional[str] = None,
     notice_period: Optional[str] = None,
 ) -> List[Candidate]:
     query = db.query(Candidate)
@@ -52,8 +52,8 @@ def get_all_candidates(
     if notice_period:
         query = query.filter(Candidate.notice_period.ilike(f"%{notice_period.strip()}%"))
         
-    if business_category and business_category.upper() != "ALL":
-        query = query.filter(Candidate.business_category == business_category.upper())
+    if business_unit and business_unit.upper() != "ALL":
+        query = query.filter(Candidate.business_unit == business_unit.upper())
 
     return query.order_by(Candidate.created_at.desc()).all()
 

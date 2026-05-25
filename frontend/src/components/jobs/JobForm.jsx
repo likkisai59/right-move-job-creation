@@ -33,7 +33,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
       date: '',
       organizationId: '',
       companyName: '',
-      businessCategory: 'IT',
+      businessUnit: 'IT',
       mandatorySkill: '',
       requirements: [{ job_title: '', budget: '', experience: '', num_candidates: '', min_experience: 0, max_experience: 10, location: '', required_skills: '' }],
       assignedTo: '',
@@ -143,8 +143,8 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
             { value: 'ITSM', label: 'ITSM' },
             { value: 'BPO', label: 'BPO' },
           ]}
-          error={errors.businessCategory?.message}
-          {...register('businessCategory', { required: 'Business category is required' })}
+          error={errors.businessUnit?.message}
+          {...register('businessUnit', { required: 'Business unit is required' })}
         />
 
         {/* Recruiter */}

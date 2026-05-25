@@ -63,7 +63,7 @@ class JobCreateRequest(BaseModel):
     job_date: date = Field(..., description="Date of the job requirement (YYYY-MM-DD)")
     company_name: str = Field(..., min_length=1, description="Name of the hiring company")
     organization_id: Optional[int] = Field(default=None, description="Linked Organization Master ID")
-    business_category: str = Field(default="IT", description="Options: IT, ITSM, BPO")
+    business_unit: str = Field(default="IT", description="Options: IT, ITSM, BPO")
     requirements: List[RequirementCreate] = Field(..., min_length=1, description="List of hiring requirements")
     mandatory_skill: str = Field(..., min_length=1, description="Required core skill, e.g. 'React, Python'")
     assigned_to: str = Field(..., min_length=1, description="Name of the assigned recruiter")
@@ -113,7 +113,7 @@ class JobUpdateRequest(BaseModel):
     job_date: date = Field(..., description="Date of the job requirement (YYYY-MM-DD)")
     company_name: str = Field(..., min_length=1, description="Name of the hiring company")
     organization_id: Optional[int] = Field(default=None, description="Linked Organization Master ID")
-    business_category: str = Field(default="IT", description="Options: IT, ITSM, BPO")
+    business_unit: str = Field(default="IT", description="Options: IT, ITSM, BPO")
     requirements: List[RequirementCreate] = Field(..., min_length=1, description="List of hiring requirements")
     mandatory_skill: Optional[str] = Field(default=None, description="Required core skill")
     assigned_to: str = Field(..., min_length=1, description="Name of the assigned recruiter")
@@ -149,7 +149,7 @@ class JobResponse(BaseModel):
     job_date: date
     company_name: str
     organization_id: Optional[int] = None
-    business_category: str
+    business_unit: str
     mandatory_skill: Optional[str] = None
     requirements: List[RequirementResponse]
     assigned_to: str

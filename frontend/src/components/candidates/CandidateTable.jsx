@@ -40,7 +40,7 @@ const CandidateTable = ({ candidates = [], loading = false, onDelete }) => {
       ),
     },
     {
-      key: 'businessCategory',
+      key: 'businessUnit',
       header: 'Category',
       render: (val) => (
         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">

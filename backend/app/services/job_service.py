@@ -39,7 +39,7 @@ def create_job_requirement(db: Session, payload: JobCreateRequest) -> Job:
         job_date=payload.job_date,
         company_name=payload.company_name,
         organization_id=payload.organization_id,
-        business_category=payload.business_category,
+        business_unit=payload.business_unit,
         mandatory_skill=payload.mandatory_skill,
         assigned_to=payload.assigned_to,
         status=payload.status or "ACTIVE",
@@ -76,7 +76,7 @@ def get_all_jobs(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
     status: Optional[str] = None,
-    business_category: Optional[str] = None,
+    business_unit: Optional[str] = None,
 ) -> List[Job]:
     """
     Returns all jobs with their requirements, with optional filters.
@@ -106,8 +106,8 @@ def get_all_jobs(
     if status:
         query = query.filter(Job.status == status.upper())
 
-    if business_category and business_category.upper() != "ALL":
-        query = query.filter(Job.business_category == business_category.upper())
+    if business_unit and business_unit.upper() != "ALL":
+        query = query.filter(Job.business_unit == business_unit.upper())
 
     return query.order_by(Job.created_at.desc()).all()
 
@@ -176,7 +176,7 @@ def update_job(
     job.job_date = payload.job_date
     job.company_name = payload.company_name
     job.organization_id = payload.organization_id
-    job.business_category = payload.business_category
+    job.business_unit = payload.business_unit
     job.mandatory_skill = payload.mandatory_skill
     job.assigned_to = payload.assigned_to
     job.status = payload.status or "ACTIVE"

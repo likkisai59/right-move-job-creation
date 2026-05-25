@@ -57,7 +57,7 @@ async def add_candidate(
     email_address: str = Form(...),
     phone_number: str = Form(...),
     country_code: str = Form("+91"),
-    business_category: str = Form("IT"),
+    business_unit: str = Form("IT"),
     current_location: Optional[str] = Form(None),
     current_last_company: Optional[str] = Form(None),
     total_experience: Optional[str] = Form(None),
@@ -92,7 +92,7 @@ async def add_candidate(
             email_address=email_address,
             phone_number=phone_number,
             country_code=country_code,
-            business_category=business_category,
+            business_unit=business_unit,
             current_location=current_location,
             current_last_company=current_last_company,
             total_experience=total_experience,
@@ -149,12 +149,12 @@ def list_candidates(
     skills: Optional[str] = Query(None, description="Partial matching on skills"),
     total_experience: Optional[str] = Query(None, description="Partial matching on total experience"),
     current_location: Optional[str] = Query(None, description="Partial matching on current location"),
-    business_category: Optional[str] = Query(None, description="Filter by IT, ITSM, BPO"),
+    business_unit: Optional[str] = Query(None, description="Filter by IT, ITSM, BPO"),
     notice_period: Optional[str] = Query(None, description="Filter by notice period"),
     db: Session = Depends(get_db)
 ):
     try:
-        candidates = get_all_candidates(db, search, candidate_code, skills, total_experience, current_location, business_category, notice_period)
+        candidates = get_all_candidates(db, search, candidate_code, skills, total_experience, current_location, business_unit, notice_period)
         data = [CandidateResponse.model_validate(c).model_dump(mode="json") for c in candidates]
         return JSONResponse(status_code=200, content=success_response("Candidates fetched successfully", data))
     except Exception as exc:
@@ -167,19 +167,19 @@ def export_candidates(
     search: Optional[str] = Query(None, description="General search on name, skills, or code"),
     skills: Optional[str] = Query(None, description="Partial matching on skills"),
     total_experience: Optional[str] = Query(None, description="Partial matching on total experience"),
-    business_category: Optional[str] = Query(None, description="Filter by IT, ITSM, BPO"),
+    business_unit: Optional[str] = Query(None, description="Filter by IT, ITSM, BPO"),
     notice_period: Optional[str] = Query(None, description="Filter by notice period"),
     format: str = Query("csv", description="csv or excel"),
     db: Session = Depends(get_db)
 ):
     candidates_orm = get_all_candidates(
         db=db, search=search, skills=skills, total_experience=total_experience, 
-        business_category=business_category, notice_period=notice_period
+        business_unit=business_unit, notice_period=notice_period
     )
 
     HEADERS = [
         "DB ID", "Candidate Code", "First Name", "Last Name", "Email Address", "Country Code", "Phone Number", 
-        "Business Category", "Current Location", "Current/Last Company", "Total Experience", "Relevant Exp (Years)",
+        "Business Unit", "Current Location", "Current/Last Company", "Total Experience", "Relevant Exp (Years)",
         "Highest Education", "Skills", "Mapped Job ID", "Relevant Exp by Skill", "Current CTC", "Expected CTC", 
         "Notice Period", "Reason for Job Change", "Resume File Name", "Resume File Path", "Resume URL", "Created At", "Updated At"
     ]
@@ -196,7 +196,7 @@ def export_candidates(
             c.last_name,
             c.email_address,
             phone,
-            c.business_category,
+            c.business_unit,
             c.current_location or "—",
             c.current_last_company or "—",
             c.total_experience or "—",

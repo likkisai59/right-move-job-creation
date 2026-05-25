@@ -27,7 +27,7 @@ const mapToFrontend = (dbRecord) => {
     date: dbRecord.job_date,
     companyName: dbRecord.company_name,
     organizationId: dbRecord.organization_id || '',
-    businessCategory: dbRecord.business_category || 'IT',
+    businessUnit: dbRecord.business_unit || 'IT',
     mandatorySkill: dbRecord.mandatory_skill || '',
     jobTitle: displayTitle,
     budget: requirements.length > 0 ? requirements[0].budget : '—',
@@ -57,7 +57,7 @@ const mapToBackend = (formData) => {
     job_date: formData.date,
     company_name: formData.companyName,
     organization_id: formData.organizationId ? Number(formData.organizationId) : null,
-    business_category: formData.businessCategory || 'IT',
+    business_unit: formData.businessUnit || 'IT',
     mandatory_skill: formData.mandatorySkill,
     requirements: (formData.requirements || []).map(req => ({
       job_title: req.job_title,
@@ -85,8 +85,8 @@ export const fetchJobs = async (params = {}) => {
   if (params.startDate) queryParams.start_date = params.startDate;
   if (params.endDate) queryParams.end_date = params.endDate;
   if (params.status) queryParams.status = params.status;
-  if (params.businessCategory && params.businessCategory !== 'All') {
-    queryParams.business_category = params.businessCategory;
+  if (params.businessUnit && params.businessUnit !== 'All') {
+    queryParams.business_unit = params.businessUnit;
   }
 
   const response = await api.get('/jobs', { params: queryParams });

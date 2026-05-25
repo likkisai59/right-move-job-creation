@@ -7,8 +7,8 @@ import { fetchCandidates } from './candidatesApi';
 export const fetchDashboardStats = async (category = "All") => {
   try {
     const [jobsRes, candidatesRes] = await Promise.all([
-      fetchJobs({ businessCategory: category }),
-      fetchCandidates({ businessCategory: category })
+      fetchJobs({ businessUnit: category }),
+      fetchCandidates({ businessUnit: category })
     ]);
     const jobsData = jobsRes.data || [];
     const candidatesData = candidatesRes.data || [];

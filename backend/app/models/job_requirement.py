@@ -39,7 +39,7 @@ class Job(Base):
     job_date = Column(Date, nullable=False)
     company_name = Column(String(255), nullable=False)
     organization_id = Column(Integer, ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True)
-    business_category = Column(String(50), nullable=False, server_default="IT")
+    business_unit = Column(String(50), nullable=False, server_default="IT")
     
     # Name of the recruiter assigned to this requirement
     assigned_to = Column(String(255), nullable=False)

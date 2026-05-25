@@ -124,7 +124,7 @@ def list_jobs(
     start_date: Optional[date] = Query(None, description="Filter jobs from this date (YYYY-MM-DD)"),
     end_date: Optional[date] = Query(None, description="Filter jobs up to this date (YYYY-MM-DD)"),
     status_filter: Optional[str] = Query(None, alias="status", description="Filter by status: ACTIVE, CLOSED, ON_HOLD"),
-    business_category: Optional[str] = Query(None, description="Filter by IT, ITSM, BPO"),
+    business_unit: Optional[str] = Query(None, description="Filter by IT, ITSM, BPO"),
     db: Session = Depends(get_db),
 ):
     """
@@ -139,7 +139,7 @@ def list_jobs(
             start_date=start_date,
             end_date=end_date,
             status=status_filter,
-            business_category=business_category
+            business_unit=business_unit
         )
 
         # Convert list of ORM objects → list of JSON-safe dicts
@@ -198,7 +198,7 @@ def export_jobs(
 
     # ── 2. Flatten ORM objects → list of plain dicts ────────────
     HEADERS = [
-        "Job Code", "Date", "Company Name", "Business Category",
+        "Job Code", "Date", "Company Name", "Business Unit",
         "Job Title(s)", "Mandatory Skill", "Assigned To",
         "Total Candidates", "Status",
     ]
@@ -211,7 +211,7 @@ def export_jobs(
             job.job_code,
             str(job.job_date),
             job.company_name,
-            job.business_category,
+            job.business_unit,
             titles,
             job.mandatory_skill or "—",
             job.assigned_to,
