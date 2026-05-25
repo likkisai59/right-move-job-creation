@@ -24,11 +24,13 @@ const mapToFrontend = (dbRecord) => {
   return {
     id: dbRecord.id,
     jobCode: dbRecord.job_code,
-    date: dbRecord.job_date,
+    date: dbRecord.requisition_open_date,
     companyName: dbRecord.company_name,
     organizationId: dbRecord.organization_id || '',
     businessUnit: dbRecord.business_unit || 'IT',
-    mandatorySkill: dbRecord.mandatory_skill || '',
+    externalSpoc: dbRecord.external_spoc || '',
+    externalSpocEmailId: dbRecord.external_spoc_email_id || '',
+    mandatorySkill: dbRecord.mandatory_skill || '', // Keep a fallback at root if needed for display, but main data is in reqs
     jobTitle: displayTitle,
     budget: requirements.length > 0 ? requirements[0].budget : '—',
     requirements: requirements.map(req => ({
@@ -40,12 +42,13 @@ const mapToFrontend = (dbRecord) => {
       max_experience: req.max_experience,
       location: req.location,
       required_skills: req.required_skills,
-      num_candidates: req.num_candidates
+      number_of_open_positions: req.number_of_open_positions,
+      status: req.status || 'ACTIVE',
+      mandatorySkill: req.mandatory_skill || ''
     })),
-    numberOfCandidates: requirements.reduce((sum, r) => sum + r.num_candidates, 0),
+    numberOfCandidates: requirements.reduce((sum, r) => sum + r.number_of_open_positions, 0),
     experience: requirements.map(r => r.experience).join(', '),
     assignedTo: dbRecord.assigned_to || '',
-    status: dbRecord.status || 'ACTIVE',
     created_at: dbRecord.created_at,
     updated_at: dbRecord.updated_at,
   };
@@ -54,11 +57,12 @@ const mapToFrontend = (dbRecord) => {
 // Helper to map frontend camelCase to backend snake_case expected payload
 const mapToBackend = (formData) => {
   return {
-    job_date: formData.date,
+    requisition_open_date: formData.date,
     company_name: formData.companyName,
     organization_id: formData.organizationId ? Number(formData.organizationId) : null,
     business_unit: formData.businessUnit || 'IT',
-    mandatory_skill: formData.mandatorySkill,
+    external_spoc: formData.externalSpoc || null,
+    external_spoc_email_id: formData.externalSpocEmailId || null,
     requirements: (formData.requirements || []).map(req => ({
       job_title: req.job_title,
       budget: req.budget,
@@ -67,10 +71,11 @@ const mapToBackend = (formData) => {
       max_experience: req.max_experience ? Number(req.max_experience) : 0,
       location: req.location || '',
       required_skills: req.required_skills || '',
-      num_candidates: Number(req.num_candidates)
+      number_of_open_positions: Number(req.number_of_open_positions),
+      status: (req.status || 'ACTIVE').toUpperCase(),
+      mandatory_skill: req.mandatorySkill || ''
     })),
     assigned_to: formData.assignedTo,
-    status: (formData.status || 'ACTIVE').toUpperCase(),
 
   };
 };

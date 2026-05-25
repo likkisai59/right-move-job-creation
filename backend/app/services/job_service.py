@@ -36,13 +36,13 @@ def create_job_requirement(db: Session, payload: JobCreateRequest) -> Job:
 
     new_job = Job(
         job_code=job_code,
-        job_date=payload.job_date,
+        requisition_open_date=payload.requisition_open_date,
         company_name=payload.company_name,
         organization_id=payload.organization_id,
         business_unit=payload.business_unit,
-        mandatory_skill=payload.mandatory_skill,
+        external_spoc=payload.external_spoc,
+        external_spoc_email_id=payload.external_spoc_email_id,
         assigned_to=payload.assigned_to,
-        status=payload.status or "ACTIVE",
     )
 
     # Add requirements
@@ -55,7 +55,9 @@ def create_job_requirement(db: Session, payload: JobCreateRequest) -> Job:
             max_experience=req.max_experience,
             location=req.location,
             required_skills=req.required_skills,
-            num_candidates=req.num_candidates
+            number_of_open_positions=req.number_of_open_positions,
+            status=req.status or "ACTIVE",
+            mandatory_skill=req.mandatory_skill
         )
         new_job.requirements.append(new_requirement)
 
@@ -98,10 +100,10 @@ def get_all_jobs(
         )
 
     if start_date:
-        query = query.filter(Job.job_date >= start_date)
+        query = query.filter(Job.requisition_open_date >= start_date)
 
     if end_date:
-        query = query.filter(Job.job_date <= end_date)
+        query = query.filter(Job.requisition_open_date <= end_date)
 
     if status:
         query = query.filter(Job.status == status.upper())
@@ -133,10 +135,10 @@ def get_filtered_jobs_for_export(
         query = query.filter(Job.company_name.ilike(f"%{company.strip()}%"))
 
     if start_date:
-        query = query.filter(Job.job_date >= start_date)
+        query = query.filter(Job.requisition_open_date >= start_date)
 
     if end_date:
-        query = query.filter(Job.job_date <= end_date)
+        query = query.filter(Job.requisition_open_date <= end_date)
 
     if status:
         query = query.filter(Job.status == status.strip().upper())
@@ -173,13 +175,13 @@ def update_job(
         return None
 
     # Apply parent fields
-    job.job_date = payload.job_date
+    job.requisition_open_date = payload.requisition_open_date
     job.company_name = payload.company_name
     job.organization_id = payload.organization_id
     job.business_unit = payload.business_unit
-    job.mandatory_skill = payload.mandatory_skill
+    job.external_spoc = payload.external_spoc
+    job.external_spoc_email_id = payload.external_spoc_email_id
     job.assigned_to = payload.assigned_to
-    job.status = payload.status or "ACTIVE"
 
     # Update requirements (replace existing ones)
     job.requirements = []
@@ -194,7 +196,9 @@ def update_job(
             max_experience=req.max_experience,
             location=req.location,
             required_skills=req.required_skills,
-            num_candidates=req.num_candidates
+            number_of_open_positions=req.number_of_open_positions,
+            status=req.status or "ACTIVE",
+            mandatory_skill=req.mandatory_skill
         )
         job.requirements.append(new_requirement)
 
@@ -292,8 +296,8 @@ def get_matching_candidates(db: Session, job_id: int, strict: bool = True) -> Li
     
     required_skills = parse_skills(requirement.required_skills)
     if not required_skills:
-        # Fallback to Job's mandatory_skill if requirement.required_skills is empty
-        required_skills = parse_skills(job.mandatory_skill)
+        # Fallback to Requirement's mandatory_skill if required_skills is empty
+        required_skills = parse_skills(requirement.mandatory_skill)
 
     min_exp = requirement.min_experience or 0
     max_exp = requirement.max_experience or 100

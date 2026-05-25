@@ -29,50 +29,13 @@ class RequirementCreate(BaseModel):
     max_experience: Optional[int] = Field(default=0)
     location: Optional[str] = Field(default=None)
     required_skills: Optional[str] = Field(default=None, description="JSON array of skills")
-    num_candidates: int = Field(..., gt=0, description="Number of candidates needed (must be > 0)")
+    number_of_open_positions: int = Field(..., gt=0, description="Number of candidates needed (must be > 0)")
+    status: Optional[str] = Field(default="ACTIVE", description="Status: ACTIVE | ON_HOLD | CLOSED | DRAFT")
+    mandatory_skill: str = Field(..., min_length=1, description="Required core skill, e.g. 'React, Python'")
 
     @field_validator("job_title", "budget", "experience", mode="before")
     @classmethod
     def strip_fields(cls, v: str) -> str:
-        if isinstance(v, str):
-            return v.strip()
-        return v
-
-class RequirementResponse(BaseModel):
-    id: int
-    job_title: str
-    budget: str
-    experience: str
-    min_experience: Optional[int] = 0
-    max_experience: Optional[int] = 0
-    location: Optional[str] = None
-    required_skills: Optional[str] = None
-    num_candidates: int
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-
-    model_config = {
-        "from_attributes": True
-    }
-
-
-# ─────────────────────────────────────────────────────────────
-# REQUEST SCHEMA — POST /api/jobs
-# ─────────────────────────────────────────────────────────────
-class JobCreateRequest(BaseModel):
-    job_date: date = Field(..., description="Date of the job requirement (YYYY-MM-DD)")
-    company_name: str = Field(..., min_length=1, description="Name of the hiring company")
-    organization_id: Optional[int] = Field(default=None, description="Linked Organization Master ID")
-    business_unit: str = Field(default="IT", description="Options: IT, ITSM, BPO")
-    requirements: List[RequirementCreate] = Field(..., min_length=1, description="List of hiring requirements")
-    mandatory_skill: str = Field(..., min_length=1, description="Required core skill, e.g. 'React, Python'")
-    assigned_to: str = Field(..., min_length=1, description="Name of the assigned recruiter")
-    status: Optional[str] = Field(default="ACTIVE", description="Status: ACTIVE | ON_HOLD | CLOSED | DRAFT")
-
-    @field_validator("company_name", "assigned_to", mode="before")
-    @classmethod
-    def strip_strings(cls, v: str) -> str:
-        """Remove leading/trailing whitespace from all string fields."""
         if isinstance(v, str):
             return v.strip()
         return v
@@ -90,17 +53,57 @@ class JobCreateRequest(BaseModel):
             )
         return normalized
 
+class RequirementResponse(BaseModel):
+    id: int
+    job_title: str
+    budget: str
+    experience: str
+    min_experience: Optional[int] = 0
+    max_experience: Optional[int] = 0
+    location: Optional[str] = None
+    required_skills: Optional[str] = None
+    number_of_open_positions: int
+    status: str
+    mandatory_skill: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    model_config = {
+        "from_attributes": True
+    }
+
+
+# ─────────────────────────────────────────────────────────────
+# REQUEST SCHEMA — POST /api/jobs
+# ─────────────────────────────────────────────────────────────
+class JobCreateRequest(BaseModel):
+    requisition_open_date: date = Field(..., description="Date of the job requirement (YYYY-MM-DD)")
+    company_name: str = Field(..., min_length=1, description="Name of the hiring company")
+    organization_id: Optional[int] = Field(default=None, description="Linked Organization Master ID")
+    business_unit: str = Field(default="IT", description="Options: IT, ITSM, BPO")
+    external_spoc: Optional[str] = Field(default=None, description="External SPOC Name")
+    external_spoc_email_id: Optional[str] = Field(default=None, description="External SPOC Email ID")
+    requirements: List[RequirementCreate] = Field(..., min_length=1, description="List of hiring requirements")
+    assigned_to: str = Field(..., min_length=1, description="Name of the assigned recruiter")
+
+    @field_validator("company_name", "assigned_to", mode="before")
+    @classmethod
+    def strip_strings(cls, v: str) -> str:
+        """Remove leading/trailing whitespace from all string fields."""
+        if isinstance(v, str):
+            return v.strip()
+        return v
+
     model_config = {
         "json_schema_extra": {
             "example": {
-                "job_date": "2026-03-28",
+                "requisition_open_date": "2026-03-28",
                 "company_name": "Microsoft",
                 "requirements": [
-                    { "job_title": "Software Engineer", "budget": "18-22 LPA", "experience": "5 years", "num_candidates": 10 },
-                    { "job_title": "Full Stack Dev", "budget": "15-20 LPA", "experience": "2 years", "num_candidates": 5 }
+                    { "job_title": "Software Engineer", "budget": "18-22 LPA", "experience": "5 years", "number_of_open_positions": 10, "status": "ACTIVE", "mandatory_skill": "React" },
+                    { "job_title": "Full Stack Dev", "budget": "15-20 LPA", "experience": "2 years", "number_of_open_positions": 5, "status": "ACTIVE", "mandatory_skill": "Python" }
                 ],
-                "assigned_to": "Priya Sharma",
-                "status": "ACTIVE",
+                "assigned_to": "Priya Sharma"
             }
         }
     }
@@ -110,14 +113,14 @@ class JobCreateRequest(BaseModel):
 # UPDATE REQUEST SCHEMA — PUT /api/jobs/{id}
 # ─────────────────────────────────────────────────────────────
 class JobUpdateRequest(BaseModel):
-    job_date: date = Field(..., description="Date of the job requirement (YYYY-MM-DD)")
+    requisition_open_date: date = Field(..., description="Date of the job requirement (YYYY-MM-DD)")
     company_name: str = Field(..., min_length=1, description="Name of the hiring company")
     organization_id: Optional[int] = Field(default=None, description="Linked Organization Master ID")
     business_unit: str = Field(default="IT", description="Options: IT, ITSM, BPO")
+    external_spoc: Optional[str] = Field(default=None, description="External SPOC Name")
+    external_spoc_email_id: Optional[str] = Field(default=None, description="External SPOC Email ID")
     requirements: List[RequirementCreate] = Field(..., min_length=1, description="List of hiring requirements")
-    mandatory_skill: Optional[str] = Field(default=None, description="Required core skill")
     assigned_to: str = Field(..., min_length=1, description="Name of the assigned recruiter")
-    status: Optional[str] = Field(default="ACTIVE", description="Status: ACTIVE | ON_HOLD | CLOSED | DRAFT")
 
     @field_validator("company_name", "assigned_to", mode="before")
     @classmethod
@@ -125,18 +128,6 @@ class JobUpdateRequest(BaseModel):
         if isinstance(v, str):
             return v.strip()
         return v
-
-    @field_validator("status", mode="before")
-    @classmethod
-    def validate_status(cls, v: str) -> str:
-        if v is None:
-            return "ACTIVE"
-        normalized = str(v).strip().upper()
-        if normalized not in ALLOWED_STATUSES:
-            raise ValueError(
-                f"Invalid status '{v}'. Allowed values: {', '.join(sorted(ALLOWED_STATUSES))}"
-            )
-        return normalized
 
 
 # ─────────────────────────────────────────────────────────────
@@ -146,14 +137,14 @@ class JobUpdateRequest(BaseModel):
 class JobResponse(BaseModel):
     id: int
     job_code: str
-    job_date: date
+    requisition_open_date: date
     company_name: str
     organization_id: Optional[int] = None
     business_unit: str
-    mandatory_skill: Optional[str] = None
+    external_spoc: Optional[str] = None
+    external_spoc_email_id: Optional[str] = None
     requirements: List[RequirementResponse]
     assigned_to: str
-    status: str
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

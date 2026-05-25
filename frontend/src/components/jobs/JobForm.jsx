@@ -34,10 +34,10 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
       organizationId: '',
       companyName: '',
       businessUnit: 'IT',
-      mandatorySkill: '',
-      requirements: [{ job_title: '', budget: '', experience: '', num_candidates: '', min_experience: 0, max_experience: 10, location: '', required_skills: '' }],
+      externalSpoc: '',
+      externalSpocEmailId: '',
+      requirements: [{ job_title: '', budget: '', experience: '', number_of_open_positions: '', min_experience: 0, max_experience: 10, location: '', required_skills: '', status: 'ACTIVE', mandatorySkill: '' }],
       assignedTo: '',
-      status: 'ACTIVE',
     },
   });
 
@@ -88,7 +88,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
         {/* Date */}
         <Input
-          label="Date"
+          label="Requisition Open Date"
           type="date"
           required
           error={errors.date?.message}
@@ -134,9 +134,9 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
         <input type="hidden" {...register('organizationId', { required: 'Organization is required' })} />
         <input type="hidden" {...register('companyName', { required: 'Company name is required' })} />
 
-        {/* Business Category */}
+        {/* Business Unit */}
         <Select
-          label="Business Category"
+          label="Business Unit"
           required
           options={[
             { value: 'IT', label: 'IT' },
@@ -159,20 +159,26 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
           })}
         />
 
-        {/* Status */}
-        <Select
-          label="Status"
-          options={JOB_STATUS_OPTIONS}
-          {...register('status')}
+        {/* External SPOC */}
+        <Input
+          label="External SPOC"
+          placeholder="Enter External SPOC Name"
+          error={errors.externalSpoc?.message}
+          {...register('externalSpoc')}
         />
 
-        {/* Mandatory Skill */}
+        {/* External SPOC Email */}
         <Input
-          label="Mandatory Skill"
-          placeholder="e.g. React, Python"
-          required
-          error={errors.mandatorySkill?.message}
-          {...register('mandatorySkill', { required: 'Mandatory skill is required' })}
+          label="External SPOC Email ID"
+          type="email"
+          placeholder="e.g. spoc@company.com"
+          error={errors.externalSpocEmailId?.message}
+          {...register('externalSpocEmailId', {
+            pattern: {
+              value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+              message: 'Invalid email format'
+            }
+          })}
         />
       </div>
 
@@ -184,7 +190,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
             type="button"
             variant="secondary"
             size="sm"
-            onClick={() => append({ job_title: '', budget: '', experience: '', num_candidates: '' })}
+            onClick={() => append({ job_title: '', budget: '', experience: '', number_of_open_positions: '', status: 'ACTIVE', mandatorySkill: '' })}
             icon={Plus}
           >
             Add Requirement
@@ -224,15 +230,31 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
 
                 {/* Num Candidates */}
                 <Input
-                  label="Num Candidates"
+                  label="Number of Open Positions"
                   type="number"
                   placeholder="e.g. 10"
                   required
-                  error={errors.requirements?.[index]?.num_candidates?.message}
-                  {...register(`requirements.${index}.num_candidates`, {
+                  error={errors.requirements?.[index]?.number_of_open_positions?.message}
+                  {...register(`requirements.${index}.number_of_open_positions`, {
                     required: 'Required',
                     min: { value: 1, message: 'Min 1' }
                   })}
+                />
+
+                {/* Status */}
+                <Select
+                  label="Status"
+                  options={JOB_STATUS_OPTIONS}
+                  {...register(`requirements.${index}.status`)}
+                />
+
+                {/* Mandatory Skill */}
+                <Input
+                  label="Mandatory Skill"
+                  placeholder="e.g. React, Python"
+                  required
+                  error={errors.requirements?.[index]?.mandatorySkill?.message}
+                  {...register(`requirements.${index}.mandatorySkill`, { required: 'Mandatory skill is required' })}
                 />
 
                 {/* Matching Criteria Section */}

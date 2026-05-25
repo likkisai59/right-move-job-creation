@@ -199,6 +199,7 @@ def export_jobs(
     # ── 2. Flatten ORM objects → list of plain dicts ────────────
     HEADERS = [
         "Job Code", "Date", "Company Name", "Business Unit",
+        "External SPOC", "External SPOC Email",
         "Job Title(s)", "Mandatory Skill", "Assigned To",
         "Total Candidates", "Status",
     ]
@@ -206,17 +207,24 @@ def export_jobs(
     rows = []
     for job in jobs_orm:
         titles = ", ".join(r.job_title for r in job.requirements) if job.requirements else "—"
-        total  = sum(r.num_candidates for r in job.requirements)
+        total  = sum(r.number_of_open_positions for r in job.requirements)
+        
+        # Since status and mandatory_skill are now at the requirement level, we can join them or take the first one
+        skills = ", ".join(filter(None, set(r.mandatory_skill for r in job.requirements))) if job.requirements else "—"
+        statuses = ", ".join(set(r.status for r in job.requirements)) if job.requirements else "—"
+
         rows.append([
             job.job_code,
-            str(job.job_date),
+            str(job.requisition_open_date),
             job.company_name,
             job.business_unit,
+            job.external_spoc or "—",
+            job.external_spoc_email_id or "—",
             titles,
-            job.mandatory_skill or "—",
+            skills,
             job.assigned_to,
             total,
-            job.status,
+            statuses,
         ])
 
     # ── 3a. CSV ─────────────────────────────────────────────────
