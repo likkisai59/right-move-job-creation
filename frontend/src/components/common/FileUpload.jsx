@@ -109,6 +109,11 @@ const FileUpload = ({ onFileSelect, accept, maxSizeMB = MAX_RESUME_SIZE_MB, valu
                 {value.name || value}
               </span>
             </div>
+            {value.size && (
+              <span className="text-xs text-gray-400">
+                {(value.size / 1024).toFixed(1)} KB
+              </span>
+            )}
             <button
               type="button"
               onClick={handleRemove}

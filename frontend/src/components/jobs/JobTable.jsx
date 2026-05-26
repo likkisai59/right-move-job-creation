@@ -331,7 +331,7 @@ const JobTable = ({ jobs = [], loading = false, onEdit }) => {
           >
             <Eye size={15} />
           </button>
-          
+
           <button
             onClick={(e) => {
               e.stopPropagation();
