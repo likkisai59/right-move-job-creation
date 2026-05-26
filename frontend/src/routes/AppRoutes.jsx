@@ -18,6 +18,7 @@ import OrganizationEditPage from '../pages/organizations/OrganizationEditPage';
 import EmployeeListPage from '../pages/employees/EmployeeListPage';
 import AddEmployeePage from '../pages/employees/AddEmployeePage';
 import EditEmployeePage from '../pages/employees/EditEmployeePage';
+import SettingsPage from '../pages/SettingsPage';
 import LoginPage from '../pages/LoginPage';
 import { isAuthenticated } from '../api/authApi';
 
@@ -76,6 +77,9 @@ const AppRoutes = () => {
                     <Route path="/employees" element={<EmployeeListPage />} />
                     <Route path="/employees/create" element={<AddEmployeePage />} />
                     <Route path="/employees/edit/:id" element={<EditEmployeePage />} />
+
+                    {/* Settings */}
+                    <Route path="/settings" element={<SettingsPage />} />
 
                     {/* Catch-all within protected area */}
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />

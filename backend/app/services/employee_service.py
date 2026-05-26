@@ -32,7 +32,6 @@ def create_employee(db: Session, payload: EmployeeCreateRequest) -> Employee:
         employee_id=emp_code,
         first_name=payload.first_name,
         last_name=payload.last_name,
-        preferred_name=payload.preferred_name,
         blood_group=payload.blood_group,
         gender=payload.gender,
         country_code=payload.country_code,
@@ -44,7 +43,47 @@ def create_employee(db: Session, payload: EmployeeCreateRequest) -> Employee:
         date_of_joining=payload.date_of_joining,
         package=payload.package,
         status=payload.status,
-        last_working_date=payload.last_working_date
+        last_working_date=payload.last_working_date,
+        
+        # New fields
+        date_of_birth=payload.date_of_birth,
+        contact_number_office=payload.contact_number_office,
+        emergency_contact_number=payload.emergency_contact_number,
+        aadhar_number=payload.aadhar_number,
+        aadhar_url=payload.aadhar_url,
+        pan_number=payload.pan_number,
+        pan_url=payload.pan_url,
+        marksheet_10th_url=payload.marksheet_10th_url,
+        marksheet_12th_url=payload.marksheet_12th_url,
+        marksheet_graduation_url=payload.marksheet_graduation_url,
+        present_address_proof_url=payload.present_address_proof_url,
+        permanent_address_proof_url=payload.permanent_address_proof_url,
+        photo_url=payload.photo_url,
+        medical_condition=payload.medical_condition,
+        resume_url=payload.resume_url,
+        salary_slips_url=payload.salary_slips_url,
+        offer_letter_url=payload.offer_letter_url,
+        last_company_name=payload.last_company_name,
+        
+        # Bank Details
+        bank_name=payload.bank_name,
+        bank_account_number=payload.bank_account_number,
+        bank_ifsc_code=payload.bank_ifsc_code,
+
+        # Reporting & Compliance Details
+        assigned_business_unit=payload.assigned_business_unit,
+        reporting_to=payload.reporting_to,
+        work_mode=payload.work_mode,
+        ctc=payload.ctc,
+        compliance=payload.compliance,
+
+        # Asset & System Configuration Details
+        system_assigned=payload.system_assigned,
+        sim_card_assigned=payload.sim_card_assigned,
+        email_id_configured=payload.email_id_configured,
+        linkedin_configured=payload.linkedin_configured,
+        google_sheet_configured=payload.google_sheet_configured,
+        whatsapp_business_configured=payload.whatsapp_business_configured
     )
     
     db.add(new_employee)
@@ -109,10 +148,16 @@ def export_employees_to_excel(employees: List[Employee]) -> BytesIO:
 
     # Header containing all db fields
     headers = [
-        "ID", "Employee ID", "First Name", "Last Name", "Preferred Name",
-        "Blood Group", "Gender", "Country Code", "Contact Number", "Email",
-        "Permanent Address", "Current Address", "Designation", "Date of Joining",
-        "Package (LPA)", "Status", "Last Working Date"
+        "ID", "Employee ID", "First Name", "Last Name",
+        "Blood Group", "Gender", "Country Code", "Contact Number (Personal)", "Email",
+        "Permanent Address", "Current Address (Present)", "Designation", "Date of Joining",
+        "Package (LPA)", "Status", "Last Working Date", "Date of Birth", "Contact Number (Office)",
+        "Emergency Contact", "Aadhar Number", "Aadhar URL", "PAN Number", "PAN URL",
+        "10th Marksheet", "12th Marksheet", "Graduation Marksheet", "Present Address Proof",
+        "Permanent Address Proof", "Photo", "Medical Condition",
+        "Resume", "Salary Slips (Last 3)", "Last Offer Letter", "Last Company Name",
+        "Assigned Business Unit", "Reporting To", "Work Mode", "CTC", "Compliance",
+        "System Assigned", "SIM Card Assigned", "Email ID Configured", "LinkedIn Configured", "Google Sheet Configured", "Whatsapp Business Configuration"
     ]
     ws.append(headers)
 
@@ -128,7 +173,6 @@ def export_employees_to_excel(employees: List[Employee]) -> BytesIO:
             emp.employee_id,
             emp.first_name,
             emp.last_name,
-            emp.preferred_name or "",
             emp.blood_group or "",
             emp.gender or "",
             emp.country_code or "",
@@ -140,7 +184,36 @@ def export_employees_to_excel(employees: List[Employee]) -> BytesIO:
             emp.date_of_joining.strftime("%Y-%m-%d") if emp.date_of_joining else "",
             float(emp.package) if emp.package else 0.0,
             emp.status,
-            emp.last_working_date.strftime("%Y-%m-%d") if emp.last_working_date else ""
+            emp.last_working_date.strftime("%Y-%m-%d") if emp.last_working_date else "",
+            emp.date_of_birth.strftime("%Y-%m-%d") if emp.date_of_birth else "",
+            emp.contact_number_office or "",
+            emp.emergency_contact_number or "",
+            emp.aadhar_number or "",
+            emp.aadhar_url or "",
+            emp.pan_number or "",
+            emp.pan_url or "",
+            emp.marksheet_10th_url or "",
+            emp.marksheet_12th_url or "",
+            emp.marksheet_graduation_url or "",
+            emp.present_address_proof_url or "",
+            emp.permanent_address_proof_url or "",
+            emp.photo_url or "",
+            emp.medical_condition or "",
+            emp.resume_url or "",
+            emp.salary_slips_url or "",
+            emp.offer_letter_url or "",
+            emp.last_company_name or "",
+            emp.assigned_business_unit or "",
+            emp.reporting_to or "",
+            emp.work_mode or "",
+            float(emp.ctc) if emp.ctc is not None else 0.0,
+            emp.compliance or "",
+            emp.system_assigned or "",
+            emp.sim_card_assigned or "",
+            emp.email_id_configured or "",
+            emp.linkedin_configured or "",
+            emp.google_sheet_configured or "",
+            emp.whatsapp_business_configured or ""
         ])
 
     # Adjust column widths

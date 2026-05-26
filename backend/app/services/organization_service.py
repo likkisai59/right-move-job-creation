@@ -56,7 +56,17 @@ def export_organizations_to_excel(organizations: List[Organization]) -> BytesIO:
     ws.title = "Organizations"
 
     # Header
-    headers = ["ID", "Organization Name", "Contact Number", "Address", "Commission %", "Status", "Contract Signed Date", "Contract End Date"]
+    headers = [
+        "ID", 
+        "Organization ID", 
+        "Organization Name", 
+        "Contact Number", 
+        "Status", 
+        "Contract Signed Date", 
+        "Contract End Date",
+        "Created At",
+        "Updated At"
+    ]
     ws.append(headers)
 
     # Style Header
@@ -71,11 +81,9 @@ def export_organizations_to_excel(organizations: List[Organization]) -> BytesIO:
         
         ws.append([
             org.id,
-            org.organization_id,
+            org.organization_id or "",
             org.organization_name,
             contact,
-            org.address or "",
-            float(org.commission_percentage) if org.commission_percentage else 0.0,
             org.status,
             org.contract_signed_date.strftime("%Y-%m-%d") if org.contract_signed_date else "",
             org.contract_end_date.strftime("%Y-%m-%d") if org.contract_end_date else "",

@@ -43,7 +43,7 @@ const JobTable = ({ jobs = [], loading = false, onEdit }) => {
       ),
     },
     {
-      key: 'businessCategory',
+      key: 'businessUnit',
       header: 'Category',
       render: (val) => (
         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
@@ -132,7 +132,7 @@ const JobTable = ({ jobs = [], loading = false, onEdit }) => {
       header: 'Candidates',
       render: (val, row) => {
         const hasMore = row.requirements && row.requirements.length > 1;
-        const firstCount = row.requirements?.[0]?.num_candidates ?? val;
+        const firstCount = row.requirements?.[0]?.number_of_open_positions ?? val;
         const candidatesPopoverId = row.id + '-candidates';
 
         return (
@@ -168,7 +168,7 @@ const JobTable = ({ jobs = [], loading = false, onEdit }) => {
 
                 <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
                   {row.requirements.map((req, idx) => {
-                    const count = req.num_candidates ?? 0;
+                    const count = req.number_of_open_positions ?? 0;
                     return (
                       <div key={req.id || idx} className="flex flex-col gap-1">
                         <span className="text-xs font-semibold text-gray-900 leading-tight">

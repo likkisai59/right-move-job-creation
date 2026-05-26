@@ -12,7 +12,7 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
   const columns = [
     {
       key: 'employeeId',
-      header: 'Emp ID',
+      header: 'EMPID',
       render: (val) => (
         <span className="font-mono text-xs text-blue-700 font-semibold bg-blue-50 px-2 py-1 rounded border border-blue-100">
           {val}
@@ -21,79 +21,52 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
     },
     {
       key: 'firstName',
-      header: 'Employee Name',
-      minWidth: '150px',
-      render: (_, row) => (
-        <div className="flex flex-col">
-          <span className="font-medium text-gray-900">{`${row.firstName} ${row.lastName}`}</span>
-        </div>
-      ),
+      header: 'First Name',
+      render: (val) => <span className="font-medium text-gray-900">{val || '—'}</span>,
     },
     {
-      key: 'preferredName',
-      header: 'Preferred Name',
-      render: (val) => (
-        <span className="text-gray-600">
-          {val || '—'}
-        </span>
-      ),
+      key: 'lastName',
+      header: 'Last Name',
+      render: (val) => <span className="font-medium text-gray-900">{val || '—'}</span>,
     },
     {
-      key: 'contact',
-      header: 'Contact',
-      render: (_, row) => (
-        <div className="flex flex-col text-sm text-gray-600">
-          {row.contactNumber ? (
-            <span>{row.countryCode} {row.contactNumber}</span>
-          ) : (
-            <span>—</span>
-          )}
-          {row.email ? (
-            <span className="text-xs text-gray-400">{row.email}</span>
-          ) : null}
-        </div>
-      ),
+      key: 'contactNumberOffice',
+      header: 'Contact (Office)',
+      render: (val) => <span className="text-gray-600 text-sm">{val || '—'}</span>,
     },
     {
       key: 'designation',
       header: 'Designation',
       render: (val) => (
         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
-          {val}
+          {val || '—'}
         </span>
       ),
     },
     {
-      key: 'bloodGroup',
-      header: 'Blood Group',
-      render: (val) => (
-        val ? (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-50 text-red-700 border border-red-100">
-            {val}
-          </span>
-        ) : <span className="text-gray-400">—</span>
-      ),
+      key: 'reportingTo',
+      header: 'Reporting Manager',
+      render: (val) => <span className="text-gray-600 text-sm">{val || '—'}</span>,
     },
     {
       key: 'dateOfJoining',
-      header: 'Joined',
+      header: 'Joining Date',
       render: (val) => <span className="text-gray-600 text-sm">{formatDate(val)}</span>,
     },
     {
-      key: 'package',
-      header: 'Package',
+      key: 'ctc',
+      header: 'CTC',
       render: (val) => <span className="text-gray-600 text-sm">{val ? `₹${val.toLocaleString()}` : '—'}</span>,
     },
     {
-      key: 'status',
-      header: 'Status',
+      key: 'compliance',
+      header: 'Compliance',
       render: (val) => {
-        const isActive = val === 'Active';
+        if (!val || val === 'None') {
+          return <span className="text-gray-400 text-sm">None</span>;
+        }
         return (
-          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-            isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
-          }`}>
-            <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${isActive ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
             {val}
           </span>
         );

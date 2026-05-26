@@ -127,15 +127,6 @@ export const EMPLOYEE_STATUS_OPTIONS = [
   { value: 'Inactive', label: 'Inactive' }
 ];
 
-export const EMPLOYEE_DESIGNATION_OPTIONS = [
-  { value: 'Software Engineer', label: 'Software Engineer' },
-  { value: 'Senior Software Engineer', label: 'Senior Software Engineer' },
-  { value: 'HR Manager', label: 'HR Manager' },
-  { value: 'Project Manager', label: 'Project Manager' },
-  { value: 'Sales Executive', label: 'Sales Executive' },
-  { value: 'Director', label: 'Director' }
-];
-
 export const EMPLOYEE_GENDER_OPTIONS = [
   { value: 'Male', label: 'Male' },
   { value: 'Female', label: 'Female' },
@@ -151,4 +142,30 @@ export const EMPLOYEE_BLOOD_GROUP_OPTIONS = [
   { value: 'AB-', label: 'AB-' },
   { value: 'O+', label: 'O+' },
   { value: 'O-', label: 'O-' },
+];
+
+export const EMPLOYEE_BUSINESS_UNIT_OPTIONS = [
+  { value: 'IT', label: 'IT' },
+  { value: 'ITES', label: 'ITES' },
+  { value: 'F&A', label: 'F&A' },
+  { value: 'FLP', label: 'FLP' },
+  { value: 'Lateral', label: 'Lateral' },
+  { value: 'BPO', label: 'BPO' }
+];
+
+export const EMPLOYEE_WORK_MODE_OPTIONS = [
+  { value: 'Office', label: 'Office' },
+  { value: 'Work from Home', label: 'Work from Home' },
+  { value: 'Onsite', label: 'Onsite' }
+];
+
+export const EMPLOYEE_COMPLIANCE_OPTIONS = [
+  { value: 'None', label: 'None' },
+  { value: 'TDS', label: 'TDS' },
+  { value: 'PF', label: 'PF' }
+];
+
+export const EMPLOYEE_YES_NO_OPTIONS = [
+  { value: 'Yes', label: 'Yes' },
+  { value: 'No', label: 'No' }
 ];
