@@ -23,6 +23,7 @@ from app.core.database import engine, Base
 # Import models so SQLAlchemy knows about them before create_all()
 from app.models import job_requirement  # noqa: F401
 from app.models import candidate  # noqa: F401
+from app.models import candidate_edit_history  # noqa: F401
 from app.models import organization  # noqa: F401
 from app.models import job_candidate  # noqa: F401
 from app.models import employee  # noqa: F401

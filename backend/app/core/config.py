@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     # App
     APP_NAME: str = "Right Move CRM"
     APP_ENV: str = "development"
+    
+    # Gemini API Key (Using VITE_ prefix as it's shared with frontend in .env)
+    VITE_GEMINI_API_KEY: Optional[str] = None
 
     @model_validator(mode="after")
     def assemble_db_url(self) -> Self:

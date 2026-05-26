@@ -55,10 +55,10 @@ const JobListPage = () => {
     try {
       // Build query params from current filters
       const params = new URLSearchParams();
-      if (filters.company)   params.append('company',     filters.company);
-      if (filters.startDate) params.append('start_date',  filters.startDate);
-      if (filters.endDate)   params.append('end_date',    filters.endDate);
-      if (filters.status)    params.append('status',      filters.status);
+      if (filters.company) params.append('company', filters.company);
+      if (filters.startDate) params.append('start_date', filters.startDate);
+      if (filters.endDate) params.append('end_date', filters.endDate);
+      if (filters.status) params.append('status', filters.status);
       params.append('format', format);
 
       const response = await fetch(

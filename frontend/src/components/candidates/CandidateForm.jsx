@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Lock, AlertTriangle, CheckCircle } from 'lucide-react';
 import Input from '../common/Input';
 import Select from '../common/Select';
 import Button from '../common/Button';
 import FileUpload from '../common/FileUpload';
 import SkillsInput from './SkillsInput';
-import { NOTICE_PERIODS, EXPERIENCE_OPTIONS, EDUCATION_OPTIONS, COUNTRY_CODES } from '../../utils/constants';
-import { checkDuplicateCandidate } from '../../api/candidatesApi';
-import { AlertTriangle } from 'lucide-react';
-
+import {
+  NOTICE_PERIODS,
+  EXPERIENCE_OPTIONS,
+  EDUCATION_OPTIONS,
+  COUNTRY_CODES,
+  BUSINESS_UNIT_OPTIONS,
+  SOURCE_OPTIONS,
+} from '../../utils/constants';
+import { checkDuplicateCandidate, parseResume } from '../../api/candidatesApi';
+import { fetchRecruiters } from '../../api/employeesApi';
+import { getCurrentUser } from '../../api/authApi';
 
 const SectionTitle = ({ children }) => (
   <div className="mb-5">
@@ -21,25 +28,46 @@ const SectionTitle = ({ children }) => (
 
 const DEFAULT_FORM_VALUES = {
   id: '',
+  // Personal Details
   firstName: '',
   lastName: '',
   countryCode: '+91',
-  businessUnit: 'IT',
-  phone: '',
   email: '',
+  alternativeEmail: '',
+  phone: '',
+  alternativePhone: '',
   currentLocation: '',
+  highestQualification: '',
+  // Employee Details
+  businessUnit: 'IT',
   currentCompany: '',
+  currentDesignation: '',
   totalExperience: '',
   relevantExperience: '',
-  highestEducation: '',
   skills: [],
-  currentCTC: '',
-  expectedCTC: '',
-  noticePeriod: '',
-  reasonForChange: '',
-  resumeFile: null,
   skills_draft: '',
   relevantExperienceBySkill: [],
+  noticePeriod: '',
+  lwd: '',
+  employmentLocation: '',
+  currentCTC: '',
+  fixedCTC: '',
+  variableCTC: '',
+  expectedCTC: '',
+  reasonForChange: '',
+  source: '',
+  comments: '',
+  recruiterName: '',
+  resumeFile: null,
+};
+
+// ── Determine if form is accessed via public/open link ────────────────────
+// Convention: if URL contains /public/ or a query param ?public=1, treat as public
+const isPublicForm = () => {
+  return (
+    window.location.pathname.includes('/public/') ||
+    new URLSearchParams(window.location.search).get('public') === '1'
+  );
 };
 
 const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) => {
@@ -53,6 +81,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
     getValues,
     watch,
     setError,
+    clearErrors,
   } = useForm({
     defaultValues: { ...DEFAULT_FORM_VALUES, ...defaultValues },
     mode: 'onChange',
@@ -65,9 +94,38 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
 
   const [resumeFile, setResumeFile] = useState(null);
   const [warnings, setWarnings] = useState({ name: false, phone: false, email: false });
-  const totalExperience = watch('totalExperience');
+  const [ctcError, setCtcError] = useState('');
+  const [recruiterOptions, setRecruiterOptions] = useState([]);
+  const [recruiterReadOnly, setRecruiterReadOnly] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
+  const [parseMessage, setParseMessage] = useState({ type: '', text: '' });
+  const [parseConfidence, setParseConfidence] = useState(null);
+  const publicForm = isPublicForm();
 
-  // Fresher logic: Clear relevant experience if total experience is changed to 'fresher'
+  const totalExperience = watch('totalExperience');
+  const noticePeriod = watch('noticePeriod');
+  const currentCTC = watch('currentCTC');
+  const fixedCTC = watch('fixedCTC');
+
+  // ── Recruiter logic ────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!publicForm) {
+      // CASE 1: Logged-in recruiter — auto-fill from session
+      const user = getCurrentUser();
+      if (user) {
+        const name = user.name || user.username || user.email || '';
+        setValue('recruiterName', name);
+        setRecruiterReadOnly(true);
+      }
+    } else {
+      // CASE 2: Public form — load recruiter dropdown from API
+      fetchRecruiters()
+        .then((options) => setRecruiterOptions(options))
+        .catch(() => setRecruiterOptions([]));
+    }
+  }, [publicForm, setValue]);
+
+  // ── Fresher logic ──────────────────────────────────────────────────────
   useEffect(() => {
     if (totalExperience === 'fresher') {
       setValue('relevantExperience', '0');
@@ -75,36 +133,63 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
     }
   }, [totalExperience, setValue]);
 
+  // ── Variable CTC auto-calculation ─────────────────────────────────────
+  useEffect(() => {
+    const curr = parseFloat(currentCTC) || 0;
+    const fixed = parseFloat(fixedCTC) || 0;
 
+    if (currentCTC && fixedCTC) {
+      if (fixed > curr) {
+        // Fixed > Current: show error, set variable to 0
+        setCtcError('Fixed CTC cannot be greater than Current CTC');
+        setValue('variableCTC', '0');
+      } else {
+        setCtcError('');
+        setValue('variableCTC', String(parseFloat((curr - fixed).toFixed(2))));
+      }
+    } else {
+      setCtcError('');
+      setValue('variableCTC', '');
+    }
+  }, [currentCTC, fixedCTC, setValue]);
+
+  // ── Reset on defaultValues change ─────────────────────────────────────
   useEffect(() => {
     if (defaultValues) {
-      reset({ ...DEFAULT_FORM_VALUES, ...defaultValues });
-      setWarnings({ name: false, phone: false, email: false }); // Reset warnings on form reset
+      const newValues = { ...DEFAULT_FORM_VALUES, ...defaultValues };
+      
+      // Ensure recruiterName is not overwritten by empty defaultValues for internal users
+      if (!publicForm) {
+        const user = getCurrentUser();
+        if (user) {
+          // Only overwrite if defaultValues doesn't explicitly have a different recruiterName
+          // (e.g. when editing an existing candidate, we want to keep the original recruiterName)
+          if (!defaultValues.recruiterName) {
+            newValues.recruiterName = user.name || user.username || user.email || '';
+          }
+        }
+      }
+      
+      reset(newValues);
+      setWarnings({ name: false, phone: false, email: false });
+      setCtcError('');
     }
-  }, [defaultValues, reset]);
+  }, [defaultValues, reset, publicForm]);
 
+  // ── Duplicate check ───────────────────────────────────────────────────
   const handleCheckDuplicates = async (field) => {
     const values = getValues();
     const params = {};
 
     if (field === 'name') {
       const fullName = `${values.firstName || ''} ${values.lastName || ''}`.trim();
-      if (!fullName) {
-        setWarnings(prev => ({ ...prev, name: false }));
-        return;
-      }
+      if (!fullName) { setWarnings(prev => ({ ...prev, name: false })); return; }
       params.full_name = fullName;
     } else if (field === 'phone') {
-      if (!values.phone) {
-        setWarnings(prev => ({ ...prev, phone: false }));
-        return;
-      }
+      if (!values.phone) { setWarnings(prev => ({ ...prev, phone: false })); return; }
       params.phone_number = values.phone;
     } else if (field === 'email') {
-      if (!values.email) {
-        setWarnings(prev => ({ ...prev, email: false }));
-        return;
-      }
+      if (!values.email) { setWarnings(prev => ({ ...prev, email: false })); return; }
       params.email_address = values.email;
     }
 
@@ -116,8 +201,6 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
         phone: field === 'phone' ? results.phone_exists : prev.phone,
         email: field === 'email' ? results.email_exists : prev.email,
       }));
-
-      // Strict blocking for Email and Phone
       if (field === 'email' && results.email_exists) {
         setError('email', { type: 'manual', message: 'This email is already registered.' });
       }
@@ -129,42 +212,306 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
     }
   };
 
-
+  // ── Form Submit ───────────────────────────────────────────────────────
   const handleFormSubmit = (data) => {
-    // Final check for strict duplicates
+    // Block if duplicates detected
     if (warnings.email || warnings.phone) {
       if (warnings.email) setError('email', { type: 'manual', message: 'This email is already registered.' });
       if (warnings.phone) setError('phone', { type: 'manual', message: 'This phone number is already registered.' });
       return;
     }
 
-    // Collect final skills: existing chips + any unsaved draft text
+    // Block if Fixed CTC > Current CTC
+    if (ctcError) {
+      setError('fixedCTC', { type: 'manual', message: ctcError });
+      return;
+    }
+
     const finalSkills = [...(data.skills || [])];
     const draftText = data.skills_draft?.trim();
-
     if (draftText) {
-      // Support comma-separated draft text if any
-      const splitDraft = draftText.split(',').map(s => s.trim()).filter(Boolean);
-      splitDraft.forEach(skill => {
-        if (!finalSkills.includes(skill)) {
-          finalSkills.push(skill);
-        }
+      draftText.split(',').map(s => s.trim()).filter(Boolean).forEach(skill => {
+        if (!finalSkills.includes(skill)) finalSkills.push(skill);
       });
     }
 
-    // Pass the finalized data upward
     const submissionData = { ...data, skills: finalSkills };
-    delete submissionData.skills_draft; // Clean up the helper field
-
+    delete submissionData.skills_draft;
     onSubmit({ ...submissionData, resumeFile });
   };
+
+  // ── Helper: Map experience string → dropdown value ───────────────────────
+  const mapExperience = (rawExp) => {
+    if (!rawExp) return '';
+    const s = rawExp.toString().trim().toLowerCase();
+    if (s === 'fresher' || s === '0' || s === '0 years') return 'fresher';
+    // e.g. "25+" or "25+ years"
+    if (s.includes('25+') || s.startsWith('25')) return '25+';
+    const numMatch = s.match(/(\d+)/);
+    if (numMatch) {
+      const n = parseInt(numMatch[1], 10);
+      if (n === 0) return 'fresher';
+      if (n >= 25) return '25+';
+      return String(n); // "3", "12" etc — matches EXPERIENCE_OPTIONS values directly
+    }
+    return '';
+  };
+
+  // ── Helper: Normalize notice period string → dropdown value ───────────────
+  const mapNoticePeriod = (raw) => {
+    if (!raw) return '';
+    const s = raw.toString().trim().toLowerCase();
+    if (s.includes('immediate')) return 'Immediate';
+    if (s.includes('serving') || s.includes('current')) return 'Currently Serving';
+    if (s.includes('30') || s.includes('one month') || s.includes('1 month')) return '30 Days';
+    if (s.includes('45')) return '45 Days';
+    if (s.includes('60') || s.includes('two month') || s.includes('2 month')) return '60 Days';
+    if (s.includes('90') || s.includes('three month') || s.includes('3 month')) return '90 Days';
+    return '';
+  };
+
+  // ── Helper: Normalize qualification → dropdown value ─────────────────────
+  const mapQualification = (raw) => {
+    if (!raw) return '';
+    const s = raw.toLowerCase();
+    if (s.includes('phd') || s.includes('ph.d')) return 'PhD';
+    if (s.includes('m.tech') || s.includes('mtech')) return 'M.Tech';
+    if (s.includes('mca')) return 'MCA';
+    if (s.includes('mba')) return 'MBA';
+    if (s.includes('m.sc') || s.includes('msc')) return 'M.Sc';
+    if (s.includes('b.tech') || s.includes('btech') || s.includes('b tech') || s.includes('b.e') || s.includes('be')) return 'B.Tech';
+    if (s.includes('bca')) return 'BCA';
+    if (s.includes('b.sc') || s.includes('bsc')) return 'B.Sc';
+    if (s.includes('b.com') || s.includes('bcom')) return 'B.Com';
+    if (s.includes('diploma')) return 'Diploma';
+    if (s.includes('intermediate') || s.includes('12th')) return 'Intermediate';
+    if (s.includes('ssc') || s.includes('10th')) return 'SSC';
+    if (s.includes('degree')) return 'Degree';
+    return ''; // leave blank if can't map — don't risk wrong value
+  };
+
+  // ── Helper: Clean phone number (remove country codes, spaces, dashes) ─────
+  const cleanPhone = (raw) => {
+    if (!raw) return '';
+    // Remove common country code prefixes for India (+91, 0091, 091)
+    let cleaned = raw.toString().trim();
+    cleaned = cleaned.replace(/^(\+91|0091|091)\s*/,'');
+    // Keep only digits and limit to 10 for Indian numbers
+    cleaned = cleaned.replace(/\D/g, '');
+    return cleaned.slice(-10); // take last 10 digits to handle any prefix leftovers
+  };
+
+  // ── Helper: Normalize & deduplicate skills ────────────────────────────────
+  const mergeSkills = (existing, incoming, overwrite) => {
+    const base = overwrite ? [] : [...(existing || [])];
+    // Normalize: trim whitespace, handle "React.js" vs "Reactjs" etc.
+    const normalize = (s) => s.trim().toLowerCase().replace(/[.\s]/g, '');
+    const seen = new Set(base.map(normalize));
+    const merged = [...base];
+    (incoming || []).forEach(skill => {
+      const sk = skill.trim();
+      if (sk && !seen.has(normalize(sk))) {
+        seen.add(normalize(sk));
+        merged.push(sk);
+      }
+    });
+    return merged;
+  };
+
+  // ── Helper: Smart location – extract just city name ────────────────────
+  const extractCity = (rawLocation) => {
+    if (!rawLocation) return '';
+    // Take the first segment before a comma ("Hyderabad, Telangana" → "Hyderabad")
+    return rawLocation.split(',')[0].trim();
+  };
+
+  // ── Auto Fill from Resume ────────────────────────────────────────────────
+  const handleResumeUpload = async (file) => {
+    // If there is already a resume file, ask for confirmation before replacing
+    if (file && resumeFile) {
+      const confirmReplace = window.confirm(
+        `A resume "${resumeFile.name}" is already uploaded.\nDo you want to replace it?`
+      );
+      if (!confirmReplace) return; // user cancelled – do nothing
+    }
+
+    setResumeFile(file);
+    if (!file) {
+      setParseMessage({ type: '', text: '' });
+      setParseConfidence(null);
+      return;
+    }
+
+    setIsParsing(true);
+    setParseMessage({ type: 'info', text: 'Parsing resume...' });
+
+    try {
+      const response = await parseResume(file);
+
+      if (response && response.success && response.data) {
+        const d = response.data;
+        const currentVals = getValues();
+
+        // ── Overwrite protection: check for field collisions ─────────────
+        const collisionFields = [
+          { key: 'firstName', val: d.first_name },
+          { key: 'lastName', val: d.last_name },
+          { key: 'email', val: d.email },
+          { key: 'phone', val: d.phone },
+        ];
+        let shouldOverwrite = false;
+        const hasCollision = collisionFields.some(
+          f => f.val && currentVals[f.key] && currentVals[f.key] !== ''
+        );
+        if (hasCollision) {
+          shouldOverwrite = window.confirm(
+            'Resume contains data for fields you have already filled in.\nDo you want to overwrite them with the extracted resume details?'
+          );
+        }
+
+        // ── Apply value helper: only writes if field is empty OR overwrite ─
+        const apply = (field, value) => {
+          if (value === undefined || value === null || value === '') return false;
+          const cur = currentVals[field];
+          if (shouldOverwrite || cur === undefined || cur === null || cur === '') {
+            setValue(field, value, { shouldValidate: true, shouldDirty: true });
+            return true;
+          }
+          return false;
+        };
+
+        // ── Track how many fields were successfully filled ────────────────
+        let filled = 0;
+
+        // Personal Details
+        if (apply('firstName', d.first_name)) filled++;
+        if (apply('lastName', d.last_name)) filled++;
+        if (apply('email', d.email)) filled++;
+        if (apply('alternativeEmail', d.alternative_email)) filled++;
+
+        // Phone: strip country code before applying
+        const cleanedPhone = cleanPhone(d.phone);
+        if (apply('phone', cleanedPhone)) filled++;
+        const cleanedAltPhone = cleanPhone(d.alternative_phone);
+        if (apply('alternativePhone', cleanedAltPhone)) filled++;
+
+        if (apply('currentLocation', extractCity(d.current_location))) filled++;
+
+        // Qualification: map to dropdown value
+        const mappedQual = mapQualification(d.highest_qualification);
+        if (mappedQual && apply('highestQualification', mappedQual)) filled++;
+
+        // Employee Details
+        if (apply('currentCompany', d.current_company)) filled++;
+        if (apply('currentDesignation', d.current_designation)) filled++;
+
+        // Experience: normalize → dropdown value
+        const mappedExp = mapExperience(d.total_experience);
+        if (mappedExp && apply('totalExperience', mappedExp)) filled++;
+
+        // Notice Period: normalize → dropdown value
+        const mappedNotice = mapNoticePeriod(d.notice_period);
+        if (mappedNotice && apply('noticePeriod', mappedNotice)) filled++;
+
+        // CTC (numeric only)
+        if (d.current_ctc) {
+          const m = d.current_ctc.toString().match(/[\d.]+/);
+          if (m && apply('currentCTC', m[0])) filled++;
+        }
+        if (d.expected_ctc) {
+          const m = d.expected_ctc.toString().match(/[\d.]+/);
+          if (m && apply('expectedCTC', m[0])) filled++;
+        }
+
+        // Skills: merge & deduplicate
+        if (d.skills && Array.isArray(d.skills) && d.skills.length > 0) {
+          const merged = mergeSkills(currentVals.skills, d.skills, shouldOverwrite);
+          setValue('skills', merged, { shouldValidate: true, shouldDirty: true });
+          filled++;
+        }
+
+        // Business Unit: auto-suggest based on parsed domain
+        if (d.business_unit) {
+          const validBUs = ['IT', 'ITES', 'BPO', 'Lateral', 'FLP', 'F&A'];
+          if (validBUs.includes(d.business_unit)) {
+            apply('businessUnit', d.business_unit);
+          }
+        }
+
+        // Candidate Summary → auto-fill comments if empty
+        if (d.candidate_summary && apply('comments', d.candidate_summary)) filled++;
+
+        // Confidence tracking
+        setParseConfidence(d.confidence ?? null);
+
+        // ── Determine success/partial message ────────────────────────────
+        const totalExtracted = Object.values(d).filter(v =>
+          v && (typeof v === 'string' ? v.trim() !== '' : (Array.isArray(v) ? v.length > 0 : true))
+        ).length;
+
+        if (filled === 0) {
+          setParseMessage({
+            type: 'warning',
+            text: 'Resume parsed but no new fields were filled. Please enter details manually.',
+          });
+        } else if (totalExtracted < 5) {
+          setParseMessage({
+            type: 'warning',
+            text: `Some fields could not be extracted. Please review and fill remaining details manually.`,
+          });
+        } else {
+          setParseMessage({
+            type: 'success',
+            text: `Resume parsed successfully! ${filled} field${filled !== 1 ? 's' : ''} auto-filled.`,
+          });
+        }
+      } else {
+        throw new Error(response?.message || 'Parse response invalid');
+      }
+    } catch (err) {
+      console.error('[Resume Auto-Fill] Failed:', err);
+      setParseMessage({
+        type: 'error',
+        text: 'Resume parsing failed. Please enter details manually.',
+      });
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  // LWD is shown when notice period is selected. Mandatory only for Immediate/Currently Serving.
+  const showLWD = !!noticePeriod;
+  const isLwdMandatory = noticePeriod === 'Immediate' || noticePeriod === 'Currently Serving';
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} noValidate>
 
-      {/* SECTION 2: Personal Details */}
+      {/* ── SECTION 1: Personal Details ── */}
       <SectionTitle>Personal Details</SectionTitle>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+
+        {/* Candidate ID — Fully locked, system-generated */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+            Candidate ID
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+              <Lock size={9} /> Auto-Generated
+            </span>
+          </label>
+          <input
+            type="text"
+            readOnly
+            disabled
+            tabIndex={-1}
+            onKeyDown={(e) => e.preventDefault()}
+            onPaste={(e) => e.preventDefault()}
+            onCopy={(e) => e.preventDefault()}
+            className="w-full rounded-lg border border-gray-100 bg-gray-50 text-gray-500 text-sm px-3 py-2.5 cursor-not-allowed select-none"
+            {...register('id')}
+          />
+        </div>
+
+        {/* First Name */}
         <Input
           label="First Name"
           placeholder="Enter first name"
@@ -172,14 +519,13 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           error={errors.firstName?.message}
           {...register('firstName', {
             required: 'First name is required',
-            pattern: {
-              value: /^[A-Za-z ]+$/,
-              message: 'Name should contain only alphabets'
-            },
-            validate: value => value.trim().length > 0 || 'Name should contain only alphabets',
-            onBlur: () => handleCheckDuplicates('name')
+            pattern: { value: /^[A-Za-z ]+$/, message: 'Name should contain only alphabets' },
+            validate: value => value.trim().length > 0 || 'Name cannot be empty',
+            onBlur: () => handleCheckDuplicates('name'),
           })}
         />
+
+        {/* Last Name */}
         <div>
           <Input
             label="Last Name"
@@ -188,12 +534,9 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
             error={errors.lastName?.message}
             {...register('lastName', {
               required: 'Last name is required',
-              pattern: {
-                value: /^[A-Za-z ]+$/,
-                message: 'Name should contain only alphabets'
-              },
-              validate: value => value.trim().length > 0 || 'Name should contain only alphabets',
-              onBlur: () => handleCheckDuplicates('name')
+              pattern: { value: /^[A-Za-z ]+$/, message: 'Name should contain only alphabets' },
+              validate: value => value.trim().length > 0 || 'Name cannot be empty',
+              onBlur: () => handleCheckDuplicates('name'),
             })}
           />
           {warnings.name && (
@@ -204,17 +547,43 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           )}
         </div>
 
+        {/* Email ID */}
+        <div className="flex flex-col">
+          <Input
+            label="Email ID"
+            type="email"
+            placeholder="Enter email address"
+            required
+            error={errors.email?.message}
+            {...register('email', {
+              required: 'Email is required',
+              pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email address' },
+              onBlur: () => handleCheckDuplicates('email'),
+            })}
+          />
+          {warnings.email && !errors.email && (
+            <div className="mt-1.5 flex items-center gap-1.5 text-red-600 bg-red-50 px-3 py-1.5 rounded-lg border border-red-100">
+              <AlertTriangle size={14} />
+              <span className="text-[11px] font-medium leading-none">This email is already registered.</span>
+            </div>
+          )}
+        </div>
+
+        {/* Alternative Email ID (Optional) */}
         <Input
-          label="Candidate ID"
-          placeholder="Generating..."
-          readOnly
-          error={errors.id?.message}
-          {...register('id')}
+          label="Alternative Email ID"
+          type="email"
+          placeholder="Enter alternative email (optional)"
+          error={errors.alternativeEmail?.message}
+          {...register('alternativeEmail', {
+            pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email address' },
+          })}
         />
 
+        {/* Contact Number */}
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
-            Phone Number <span className="text-red-500">*</span>
+            Contact Number <span className="text-red-500">*</span>
           </label>
           <div className="flex gap-2">
             <div className="w-28">
@@ -231,11 +600,8 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
                 error={errors.phone?.message}
                 {...register('phone', {
                   required: 'Phone number is required',
-                  pattern: {
-                    value: /^[0-9]{8,15}$/,
-                    message: 'Enter 8-15 digits',
-                  },
-                  onBlur: () => handleCheckDuplicates('phone')
+                  pattern: { value: /^[0-9]{8,15}$/, message: 'Enter 8-15 digits' },
+                  onBlur: () => handleCheckDuplicates('phone'),
                 })}
               />
               {warnings.phone && !errors.phone && (
@@ -248,68 +614,78 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           </div>
         </div>
 
-        <Select
-          label="Business Category"
+        {/* Alternative Contact Number (Optional) */}
+        <Input
+          label="Alternative Contact Number"
+          type="tel"
+          placeholder="Enter alternative contact (optional)"
+          error={errors.alternativePhone?.message}
+          {...register('alternativePhone', {
+            pattern: { value: /^[0-9]{8,15}$/, message: 'Enter 8-15 digits' },
+          })}
+        />
+
+        {/* Current Location */}
+        <Input
+          label="Current Location"
+          placeholder="Enter current location"
           required
-          options={[
-            { value: 'IT', label: 'IT' },
-            { value: 'ITSM', label: 'ITSM' },
-            { value: 'BPO', label: 'BPO' },
-          ]}
+          error={errors.currentLocation?.message}
+          {...register('currentLocation', { required: 'Current location is required' })}
+        />
+
+        {/* Highest Qualification */}
+        <Select
+          label="Highest Qualification"
+          placeholder="Select qualification"
+          required
+          options={EDUCATION_OPTIONS}
+          error={errors.highestQualification?.message}
+          {...register('highestQualification', { required: 'Highest qualification is required' })}
+        />
+
+      </div>
+
+      {/* ── SECTION 2: Employee Details ── */}
+      <SectionTitle>Employee Details</SectionTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+
+        {/* Business Unit */}
+        <Select
+          label="Business Unit"
+          required
+          options={BUSINESS_UNIT_OPTIONS}
           error={errors.businessUnit?.message}
           {...register('businessUnit', { required: 'Business unit is required' })}
         />
 
-        <div className="flex flex-col">
-          <Input
-            label="Email Address"
-            type="email"
-            placeholder="Enter email address"
-            required
-            error={errors.email?.message}
-            {...register('email', {
-              required: 'Email is required',
-              pattern: {
-                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                message: 'Enter a valid email address',
-              },
-              onBlur: () => handleCheckDuplicates('email')
-            })}
-          />
-          {warnings.email && !errors.email && (
-            <div className="mt-1.5 flex items-center gap-1.5 text-red-600 bg-red-50 px-3 py-1.5 rounded-lg border border-red-100">
-              <AlertTriangle size={14} />
-              <span className="text-[11px] font-medium leading-none">This email is already registered.</span>
-            </div>
-          )}
-        </div>
+        {/* Current Company */}
         <Input
-          label="Current Location"
-          placeholder="Enter location"
-          error={errors.currentLocation?.message}
-          {...register('currentLocation')}
-        />
-      </div>
-
-      {/* SECTION 2: Professional Details */}
-      <SectionTitle>Professional Details</SectionTitle>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
-        <Input
-          label="Current / Last Company"
-          placeholder="Enter company name"
+          label="Current Company"
+          placeholder="Enter current company"
           error={errors.currentCompany?.message}
           {...register('currentCompany')}
         />
+
+        {/* Current Designation */}
+        <Input
+          label="Current Designation"
+          placeholder="Enter current designation"
+          error={errors.currentDesignation?.message}
+          {...register('currentDesignation')}
+        />
+
+        {/* Total Experience */}
         <Select
           label="Total Experience"
           placeholder="Select experience"
           required
           options={EXPERIENCE_OPTIONS}
           error={errors.totalExperience?.message}
-          {...register('totalExperience', {
-            required: 'Total experience is required',
-          })}
+          {...register('totalExperience', { required: 'Total experience is required' })}
         />
+
+        {/* Relevant Experience (Years) */}
         <Input
           label="Relevant Experience (Years)"
           type="number"
@@ -326,16 +702,180 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
             min: { value: 0, message: 'Cannot be negative' },
           })}
         />
+
+        {/* Notice Period */}
         <Select
-          label="Highest Education"
-          placeholder="Select education"
-          options={EDUCATION_OPTIONS}
-          error={errors.highestEducation?.message}
-          {...register('highestEducation')}
+          label="Notice Period"
+          placeholder="Select notice period"
+          required
+          options={NOTICE_PERIODS}
+          error={errors.noticePeriod?.message}
+          {...register('noticePeriod', { required: 'Notice period is required' })}
         />
+
+        {/* LWD — Conditional: shown when notice period is selected */}
+        {showLWD && (
+          <Input
+            label="LWD (Last Working Day)"
+            type="date"
+            required={isLwdMandatory}
+            error={errors.lwd?.message}
+            {...register('lwd', { required: isLwdMandatory ? 'Last working day is required' : false })}
+          />
+        )}
+
+        {/* Employment Location (Optional) */}
+        <Input
+          label="Employment Location"
+          placeholder="Enter employment location (optional)"
+          error={errors.employmentLocation?.message}
+          {...register('employmentLocation')}
+        />
+
+        {/* Current CTC */}
+        <Input
+          label="Current CTC (₹ LPA)"
+          type="number"
+          placeholder="e.g. 8.5"
+          required
+          error={errors.currentCTC?.message}
+          {...register('currentCTC', {
+            required: 'Current CTC is required',
+            min: { value: 0, message: 'Cannot be negative' },
+          })}
+        />
+
+        {/* Fixed CTC */}
+        <div className="flex flex-col">
+          <Input
+            label="Fixed CTC (₹ LPA)"
+            type="number"
+            placeholder="e.g. 7.0"
+            required
+            error={errors.fixedCTC?.message || ctcError}
+            {...register('fixedCTC', {
+              required: 'Fixed CTC is required',
+              min: { value: 0, message: 'Cannot be negative' },
+            })}
+          />
+          {ctcError && !errors.fixedCTC && (
+            <p className="text-xs text-red-500 flex items-center gap-1 mt-1">
+              <AlertTriangle size={12} /> {ctcError}
+            </p>
+          )}
+        </div>
+
+        {/* Variable CTC (Read-only, auto-calculated) */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-gray-700">Variable CTC (₹ LPA)</label>
+          <input
+            type="number"
+            readOnly
+            disabled
+            tabIndex={-1}
+            className="w-full rounded-lg border border-gray-100 bg-gray-50 text-gray-500 text-sm px-3 py-2.5 cursor-not-allowed"
+            {...register('variableCTC')}
+          />
+          <p className="text-[11px] text-gray-400">Auto-calculated: Current CTC − Fixed CTC</p>
+        </div>
+
+        {/* Expected CTC */}
+        <Input
+          label="Expected CTC (₹ LPA)"
+          type="number"
+          placeholder="e.g. 12"
+          required
+          error={errors.expectedCTC?.message}
+          {...register('expectedCTC', {
+            required: 'Expected CTC is required',
+            min: { value: 0, message: 'Cannot be negative' },
+          })}
+        />
+
+        {/* Source */}
+        <Select
+          label="Source"
+          placeholder="Select source"
+          required
+          options={SOURCE_OPTIONS}
+          error={errors.source?.message}
+          {...register('source', { required: 'Source is required' })}
+        />
+
+        {/* Recruiter Name — CASE 1: readonly auto-fill | CASE 2: public dropdown */}
+        {!publicForm ? (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+              Recruiter Name
+              {recruiterReadOnly && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">
+                  <Lock size={9} /> Auto-filled
+                </span>
+              )}
+            </label>
+            <input
+              type="text"
+              readOnly={recruiterReadOnly}
+              placeholder="Enter recruiter name"
+              className={`w-full rounded-lg border text-sm px-3 py-2.5 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                recruiterReadOnly
+                  ? 'border-gray-100 bg-gray-50 text-gray-500 cursor-not-allowed'
+                  : 'border-gray-200 bg-white text-gray-900 hover:border-gray-300'
+              }`}
+              {...register('recruiterName')}
+            />
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+              Recruiter Name <span className="text-red-500">*</span>
+            </label>
+            <select
+              className="w-full rounded-lg border border-gray-200 bg-white text-sm text-gray-900 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all"
+              {...register('recruiterName', { required: 'Please select a recruiter' })}
+            >
+              <option value="">Select recruiter...</option>
+              {recruiterOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            {errors.recruiterName && (
+              <p className="text-xs text-red-500 flex items-center gap-1">
+                <AlertTriangle size={12} /> {errors.recruiterName.message}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Reason for Job Change */}
+        <div className="md:col-span-2">
+          <label className="text-sm font-medium text-gray-700 block mb-1.5">
+            Reason for Job Change
+          </label>
+          <textarea
+            placeholder="Enter reason for job change..."
+            rows={3}
+            className="w-full rounded-lg border border-gray-200 bg-white text-sm text-gray-900 placeholder-gray-400 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all resize-none"
+            {...register('reasonForChange')}
+          />
+        </div>
+
+        {/* Comments */}
+        <div className="md:col-span-2">
+          <label className="text-sm font-medium text-gray-700 block mb-1.5">
+            Comments
+          </label>
+          <textarea
+            placeholder="Enter any additional comments..."
+            rows={2}
+            className="w-full rounded-lg border border-gray-200 bg-white text-sm text-gray-900 placeholder-gray-400 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all resize-none"
+            {...register('comments')}
+          />
+        </div>
+
       </div>
 
-      {/* SECTION 3: Relevant Experience by Skill (New) */}
+      {/* ── SECTION 3: Relevant Experience by Skill ── */}
       <SectionTitle>Relevant Experience by Skill (Optional)</SectionTitle>
       <div className={`mb-8 ${totalExperience === 'fresher' ? 'opacity-50 pointer-events-none' : ''}`}>
         <div className="flex items-center justify-between mb-4">
@@ -372,7 +912,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
                   error={errors.relevantExperienceBySkill?.[index]?.experience?.message}
                   {...register(`relevantExperienceBySkill.${index}.experience`, {
                     required: 'Experience is required',
-                    min: { value: 0, message: 'Must be 0 or greater' }
+                    min: { value: 0, message: 'Must be 0 or greater' },
                   })}
                 />
               </div>
@@ -389,7 +929,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
         </div>
       </div>
 
-      {/* SECTION 4: Other Skills */}
+      {/* ── SECTION 4: Other Skills ── */}
       <div className="mb-8">
         <label className="text-sm font-medium text-gray-700 flex items-center gap-1 mb-1.5">
           Other Skills <span className="text-red-500">*</span>
@@ -401,7 +941,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
             validate: (val) => {
               const draft = getValues('skills_draft')?.trim();
               return (val && val.length > 0) || (draft && draft.length > 0) || 'At least one skill is required';
-            }
+            },
           }}
           render={({ field }) => (
             <SkillsInput
@@ -416,59 +956,39 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
         />
       </div>
 
-      {/* SECTION 4: Compensation & Availability */}
-      <SectionTitle>Compensation & Availability</SectionTitle>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
-        <Input
-          label="Current CTC (₹ LPA)"
-          type="number"
-          placeholder="e.g. 8.5"
-          required
-          error={errors.currentCTC?.message}
-          {...register('currentCTC', {
-            required: 'Current CTC is required',
-            min: { value: 0, message: 'Cannot be negative' },
-          })}
-        />
-        <Input
-          label="Expected CTC (₹ LPA)"
-          type="number"
-          placeholder="e.g. 12"
-          error={errors.expectedCTC?.message}
-          {...register('expectedCTC', {
-            min: { value: 0, message: 'Cannot be negative' },
-          })}
-        />
-        <Select
-          label="Notice Period"
-          placeholder="Select notice period"
-          required
-          options={NOTICE_PERIODS}
-          error={errors.noticePeriod?.message}
-          {...register('noticePeriod', {
-            required: 'Notice period is required',
-          })}
-        />
-        <div className="md:col-span-2">
-          <label className="text-sm font-medium text-gray-700 block mb-1.5">
-            Reason for Job Change
-          </label>
-          <textarea
-            placeholder="Enter reason for job change..."
-            rows={3}
-            className="w-full rounded-lg border border-gray-200 bg-white text-sm text-gray-900 placeholder-gray-400 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all resize-none"
-            {...register('reasonForChange')}
-          />
-        </div>
-      </div>
-
-      {/* SECTION 5: Resume Upload */}
+      {/* ── SECTION 5: Resume Upload ── */}
       <SectionTitle>Resume Upload</SectionTitle>
       <div className="mb-8">
-        <FileUpload
-          onFileSelect={setResumeFile}
-          value={resumeFile}
-        />
+        <FileUpload onFileSelect={handleResumeUpload} value={resumeFile} />
+        
+        {/* Parsing Status Indication */}
+        {parseMessage.text && (
+          <div className={`mt-3 p-3 rounded-lg flex items-center justify-between gap-2 text-sm font-medium animate-fade-in ${
+            parseMessage.type === 'info'    ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+            parseMessage.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+            parseMessage.type === 'warning' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+            'bg-red-50 text-red-700 border border-red-100'
+          }`}>
+            <div className="flex items-center gap-2">
+              {parseMessage.type === 'info' && (
+                <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin shrink-0" />
+              )}
+              {parseMessage.type === 'success' && <CheckCircle size={16} className="shrink-0" />}
+              {parseMessage.type === 'warning' && <AlertTriangle size={16} className="shrink-0" />}
+              {parseMessage.type === 'error' && <AlertTriangle size={16} className="shrink-0" />}
+              {parseMessage.text}
+            </div>
+            {parseConfidence !== null && parseMessage.type !== 'info' && (
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                parseConfidence >= 70 ? 'bg-emerald-100 text-emerald-700' :
+                parseConfidence >= 40 ? 'bg-amber-100 text-amber-700' :
+                'bg-red-100 text-red-600'
+              }`}>
+                {parseConfidence}% accuracy
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Actions */}
@@ -478,12 +998,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
             Cancel
           </Button>
         )}
-        <Button
-          type="submit"
-          variant="primary"
-          size="lg"
-          loading={loading}
-        >
+        <Button type="submit" variant="primary" size="lg" loading={loading || isParsing}>
           Submit Application
         </Button>
       </div>

@@ -216,3 +216,15 @@ export const exportEmployees = async (params = {}) => {
   link.remove();
   window.URL.revokeObjectURL(url);
 };
+
+// 7. FETCH RECRUITERS (for Candidate Form recruiter dropdown)
+// Returns employees as dropdown options { value: full_name, label: full_name }
+export const fetchRecruiters = async () => {
+  const response = await api.get('/employees', { params: { status: 'Active' } });
+  const employees = response.data.data || [];
+  return employees.map((emp) => ({
+    value: `${emp.first_name} ${emp.last_name}`.trim(),
+    label: `${emp.first_name} ${emp.last_name}`.trim(),
+  }));
+};
+

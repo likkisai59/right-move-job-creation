@@ -20,11 +20,29 @@ export const JOB_STATUSES = {
 };
 
 export const NOTICE_PERIODS = [
-  { value: 'immediate', label: 'Immediate' },
-  { value: '15-days', label: '15 Days' },
-  { value: '30-days', label: '1 Month' },
-  { value: '60-days', label: '2 Months' },
-  { value: '90-days', label: '3 Months' },
+  { value: 'Immediate', label: 'Immediate' },
+  { value: 'Currently Serving', label: 'Currently Serving' },
+  { value: '30 Days', label: '30 Days' },
+  { value: '45 Days', label: '45 Days' },
+  { value: '60 Days', label: '60 Days' },
+  { value: '90 Days', label: '90 Days' },
+];
+
+export const BUSINESS_UNIT_OPTIONS = [
+  { value: 'IT', label: 'IT' },
+  { value: 'ITES', label: 'ITES' },
+  { value: 'BPO', label: 'BPO' },
+  { value: 'Lateral', label: 'Lateral' },
+  { value: 'FLP', label: 'FLP' },
+  { value: 'F&A', label: 'F&A' },
+];
+
+export const SOURCE_OPTIONS = [
+  { value: 'Naukri', label: 'Naukri' },
+  { value: 'LinkedIn', label: 'LinkedIn' },
+  { value: 'Monster', label: 'Monster' },
+  { value: 'Shine', label: 'Shine' },
+  { value: 'Referral', label: 'Referral' },
 ];
 
 export const JOB_SHIFTS = [
@@ -40,7 +58,7 @@ export const JOB_WORK_MODES = [
 ];
 
 export const EXPERIENCE_OPTIONS = [
-  { value: 'fresher', label: 'Fresher (0 years)' },
+  { value: 'fresher', label: 'Fresher (0 Years)' },
   { value: '1', label: '1 Year' },
   { value: '2', label: '2 Years' },
   { value: '3', label: '3 Years' },
@@ -50,19 +68,39 @@ export const EXPERIENCE_OPTIONS = [
   { value: '7', label: '7 Years' },
   { value: '8', label: '8 Years' },
   { value: '9', label: '9 Years' },
-  { value: '10+', label: '10+ Years' },
+  { value: '10', label: '10 Years' },
+  { value: '11', label: '11 Years' },
+  { value: '12', label: '12 Years' },
+  { value: '13', label: '13 Years' },
+  { value: '14', label: '14 Years' },
+  { value: '15', label: '15 Years' },
+  { value: '16', label: '16 Years' },
+  { value: '17', label: '17 Years' },
+  { value: '18', label: '18 Years' },
+  { value: '19', label: '19 Years' },
+  { value: '20', label: '20 Years' },
+  { value: '21', label: '21 Years' },
+  { value: '22', label: '22 Years' },
+  { value: '23', label: '23 Years' },
+  { value: '24', label: '24 Years' },
+  { value: '25+', label: '25+ Years' },
 ];
 
 export const EDUCATION_OPTIONS = [
-  { value: 'btech', label: 'B.Tech / B.E.' },
-  { value: 'mtech', label: 'M.Tech / M.E.' },
-  { value: 'bsc', label: 'B.Sc' },
-  { value: 'msc', label: 'M.Sc' },
-  { value: 'bca', label: 'BCA' },
-  { value: 'mca', label: 'MCA' },
-  { value: 'mba', label: 'MBA' },
-  { value: 'diploma', label: 'Diploma' },
-  { value: 'other', label: 'Other' },
+  { value: 'SSC', label: 'SSC' },
+  { value: 'Intermediate', label: 'Intermediate' },
+  { value: 'Diploma', label: 'Diploma' },
+  { value: 'B.Tech', label: 'B.Tech' },
+  { value: 'BE', label: 'BE' },
+  { value: 'B.Sc', label: 'B.Sc' },
+  { value: 'B.Com', label: 'B.Com' },
+  { value: 'BCA', label: 'BCA' },
+  { value: 'M.Tech', label: 'M.Tech' },
+  { value: 'MCA', label: 'MCA' },
+  { value: 'MBA', label: 'MBA' },
+  { value: 'Degree', label: 'Degree' },
+  { value: 'PhD', label: 'PhD' },
+  { value: 'Other', label: 'Other' },
 ];
 
 export const CANDIDATE_STATUS_COLORS = {

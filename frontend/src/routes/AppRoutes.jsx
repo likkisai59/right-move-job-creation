@@ -9,6 +9,7 @@ import EditJobPage from '../pages/jobs/EditJobPage';
 import JobDetailsPage from '../pages/jobs/JobDetailsPage';
 import CandidateListPage from '../pages/candidates/CandidateListPage';
 import AddCandidatePage from '../pages/candidates/AddCandidatePage';
+import EditCandidatePage from '../pages/candidates/EditCandidatePage';
 import CandidateDetails from '../pages/candidates/CandidateDetails';
 import GlobalSearchPage from '../pages/GlobalSearchPage';
 import OrganizationCreatePage from '../pages/organizations/OrganizationCreatePage';
@@ -63,6 +64,7 @@ const AppRoutes = () => {
                     <Route path="/jobs/edit/:id" element={<EditJobPage />} />
                     <Route path="/candidates" element={<CandidateListPage />} />
                     <Route path="/candidates/create" element={<AddCandidatePage />} />
+                    <Route path="/candidates/edit/:id" element={<EditCandidatePage />} />
                     <Route path="/candidates/:id" element={<CandidateDetails />} />
                     <Route path="/search" element={<GlobalSearchPage />} />
 
