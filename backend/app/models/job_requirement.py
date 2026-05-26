@@ -95,6 +95,13 @@ class JobRequirement(Base):
     # Core Skill
     mandatory_skill = Column(String(500), nullable=True) # Supporting text for multiple skills
 
+    # Additional Requirement Details
+    notice_period = Column(String(50), nullable=True)
+    qualification = Column(String(100), nullable=True)
+    shifts = Column(String(100), nullable=True)
+    work_mode = Column(String(50), nullable=True)
+    job_description = Column(String(255), nullable=True)
+
     # ── Timestamps ────────────────────────────────────────────
     created_at = Column(DateTime, nullable=True, server_default=func.now())
     updated_at = Column(

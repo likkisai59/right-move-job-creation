@@ -14,11 +14,13 @@
 
 import csv
 import io
+import os
+import shutil
 from datetime import date
 from typing import Optional
 
 import openpyxl
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, File, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -108,6 +110,35 @@ def create_job(
                 errors=[{"field": "server", "message": str(exc)}],
             ),
         )
+
+
+# ── POST /api/jobs/upload ──────────────────────────────────────
+
+@router.post(
+    "/upload",
+    summary="Upload Job Description Document",
+    description="Uploads a job description file and returns its stored path.",
+    status_code=status.HTTP_201_CREATED,
+)
+def upload_job_description(file: UploadFile = File(...)):
+    try:
+        from datetime import datetime
+        filename = f"{int(datetime.now().timestamp())}_{file.filename}"
+        
+        # Ensure uploads directory exists
+        os.makedirs("uploads", exist_ok=True)
+        
+        filepath = os.path.join("uploads", filename)
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        file_url = f"/uploads/{filename}"
+        return JSONResponse(
+            status_code=201, 
+            content=success_response("File uploaded successfully", {"file_url": file_url})
+        )
+    except Exception as exc:
+        return JSONResponse(status_code=500, content=error_response(str(exc)))
 
 
 # ── GET /api/jobs ─────────────────────────────────────────────

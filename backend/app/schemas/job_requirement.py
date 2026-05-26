@@ -32,6 +32,11 @@ class RequirementCreate(BaseModel):
     number_of_open_positions: int = Field(..., gt=0, description="Number of candidates needed (must be > 0)")
     status: Optional[str] = Field(default="ACTIVE", description="Status: ACTIVE | ON_HOLD | CLOSED | DRAFT")
     mandatory_skill: str = Field(..., min_length=1, description="Required core skill, e.g. 'React, Python'")
+    notice_period: Optional[str] = Field(default=None)
+    qualification: Optional[str] = Field(default=None)
+    shifts: Optional[str] = Field(default=None)
+    work_mode: Optional[str] = Field(default=None)
+    job_description: Optional[str] = Field(default=None)
 
     @field_validator("job_title", "budget", "experience", mode="before")
     @classmethod
@@ -65,6 +70,11 @@ class RequirementResponse(BaseModel):
     number_of_open_positions: int
     status: str
     mandatory_skill: Optional[str] = None
+    notice_period: Optional[str] = None
+    qualification: Optional[str] = None
+    shifts: Optional[str] = None
+    work_mode: Optional[str] = None
+    job_description: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

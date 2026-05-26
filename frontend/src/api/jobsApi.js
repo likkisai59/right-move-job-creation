@@ -44,7 +44,12 @@ const mapToFrontend = (dbRecord) => {
       required_skills: req.required_skills,
       number_of_open_positions: req.number_of_open_positions,
       status: req.status || 'ACTIVE',
-      mandatorySkill: req.mandatory_skill || ''
+      mandatorySkill: req.mandatory_skill || '',
+      noticePeriod: req.notice_period || '',
+      qualification: req.qualification || '',
+      shifts: req.shifts || '',
+      workMode: req.work_mode || '',
+      jobDescription: req.job_description || ''
     })),
     numberOfCandidates: requirements.reduce((sum, r) => sum + r.number_of_open_positions, 0),
     experience: requirements.map(r => r.experience).join(', '),
@@ -73,7 +78,12 @@ const mapToBackend = (formData) => {
       required_skills: req.required_skills || '',
       number_of_open_positions: Number(req.number_of_open_positions),
       status: (req.status || 'ACTIVE').toUpperCase(),
-      mandatory_skill: req.mandatorySkill || ''
+      mandatory_skill: req.mandatorySkill || '',
+      notice_period: req.noticePeriod || null,
+      qualification: req.qualification || null,
+      shifts: req.shifts || null,
+      work_mode: req.workMode || null,
+      job_description: req.jobDescription || null
     })),
     assigned_to: formData.assignedTo,
 
@@ -157,4 +167,14 @@ export const rejectCandidate = async (jobId, candidateId) => {
 export const fetchShortlistedCandidates = async (id) => {
   const response = await api.get(`/jobs/${id}/shortlisted`);
   return { data: response.data.data };
+};
+
+// ── POST /api/jobs/upload ────────────────────────────────────
+export const uploadJobDescription = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post('/jobs/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data; // { message: "...", data: { file_url: "..." } }
 };

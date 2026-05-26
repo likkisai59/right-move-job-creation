@@ -6,6 +6,8 @@ import Select from '../common/Select';
 import Button from '../common/Button';
 import { mockRecruiters } from '../../utils/mockData';
 import { fetchOrganizations } from '../../api/organizationsApi';
+import { uploadJobDescription } from '../../api/jobsApi';
+import { NOTICE_PERIODS, EDUCATION_OPTIONS, JOB_SHIFTS, JOB_WORK_MODES } from '../../utils/constants';
 import SearchableSelect from '../common/SearchableSelect';
 
 
@@ -36,7 +38,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
       businessUnit: 'IT',
       externalSpoc: '',
       externalSpocEmailId: '',
-      requirements: [{ job_title: '', budget: '', experience: '', number_of_open_positions: '', min_experience: 0, max_experience: 10, location: '', required_skills: '', status: 'ACTIVE', mandatorySkill: '' }],
+      requirements: [{ job_title: '', budget: '', experience: '', number_of_open_positions: '', min_experience: 0, max_experience: 10, location: '', required_skills: '', status: 'ACTIVE', mandatorySkill: '', noticePeriod: '', qualification: '', shifts: '', workMode: '', jobDescription: '' }],
       assignedTo: '',
     },
   });
@@ -190,7 +192,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
             type="button"
             variant="secondary"
             size="sm"
-            onClick={() => append({ job_title: '', budget: '', experience: '', number_of_open_positions: '', status: 'ACTIVE', mandatorySkill: '' })}
+            onClick={() => append({ job_title: '', budget: '', experience: '', number_of_open_positions: '', status: 'ACTIVE', mandatorySkill: '', noticePeriod: '', qualification: '', shifts: '', workMode: '', jobDescription: '' })}
             icon={Plus}
           >
             Add Requirement
@@ -256,6 +258,65 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
                   error={errors.requirements?.[index]?.mandatorySkill?.message}
                   {...register(`requirements.${index}.mandatorySkill`, { required: 'Mandatory skill is required' })}
                 />
+
+                {/* Notice Period */}
+                <Select
+                  label="Notice Period"
+                  placeholder="Select Notice Period"
+                  options={NOTICE_PERIODS}
+                  {...register(`requirements.${index}.noticePeriod`)}
+                />
+
+                {/* Qualification */}
+                <Select
+                  label="Qualification"
+                  placeholder="Select Qualification"
+                  options={EDUCATION_OPTIONS}
+                  {...register(`requirements.${index}.qualification`)}
+                />
+
+                {/* Shifts */}
+                <Select
+                  label="Shifts"
+                  placeholder="Select Shift"
+                  options={JOB_SHIFTS}
+                  {...register(`requirements.${index}.shifts`)}
+                />
+
+                {/* Work Mode */}
+                <Select
+                  label="Work Mode"
+                  placeholder="Select Work Mode"
+                  options={JOB_WORK_MODES}
+                  {...register(`requirements.${index}.workMode`)}
+                />
+
+                {/* Job Description Upload */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-gray-700">Job Description (Upload)</label>
+                  <input
+                    type="file"
+                    className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    onChange={async (e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        try {
+                          const res = await uploadJobDescription(e.target.files[0]);
+                          setValue(`requirements.${index}.jobDescription`, res.data.file_url, { shouldValidate: true });
+                          alert('Job description uploaded successfully!');
+                        } catch (err) {
+                          alert('Failed to upload job description.');
+                          console.error(err);
+                        }
+                      }
+                    }}
+                  />
+                  <input type="hidden" {...register(`requirements.${index}.jobDescription`)} />
+                  {watch(`requirements.${index}.jobDescription`) && (
+                    <a href={`http://localhost:8000${watch(`requirements.${index}.jobDescription`)}`} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline mt-1">
+                      View Uploaded File
+                    </a>
+                  )}
+                </div>
 
                 {/* Matching Criteria Section */}
                 <div className="md:col-span-2 mt-2 pt-2 border-t border-gray-100">

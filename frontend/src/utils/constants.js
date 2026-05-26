@@ -27,6 +27,18 @@ export const NOTICE_PERIODS = [
   { value: '90-days', label: '3 Months' },
 ];
 
+export const JOB_SHIFTS = [
+  { value: 'General', label: 'General' },
+  { value: 'Night', label: 'Night' },
+  { value: 'Rotational', label: 'Rotational' }
+];
+
+export const JOB_WORK_MODES = [
+  { value: 'On-site', label: 'On-site' },
+  { value: 'Hybrid', label: 'Hybrid' },
+  { value: 'Remote', label: 'Remote' }
+];
+
 export const EXPERIENCE_OPTIONS = [
   { value: 'fresher', label: 'Fresher (0 years)' },
   { value: '1', label: '1 Year' },
