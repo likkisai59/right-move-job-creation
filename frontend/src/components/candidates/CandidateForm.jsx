@@ -11,9 +11,9 @@ import {
   EXPERIENCE_OPTIONS,
   EDUCATION_OPTIONS,
   COUNTRY_CODES,
-  BUSINESS_UNIT_OPTIONS,
   SOURCE_OPTIONS,
 } from '../../utils/constants';
+import { fetchBusinessUnits } from '../../api/businessUnitsApi';
 import { checkDuplicateCandidate, parseResume } from '../../api/candidatesApi';
 import { fetchRecruiters } from '../../api/employeesApi';
 import { getCurrentUser } from '../../api/authApi';
@@ -93,6 +93,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
   });
 
   const [resumeFile, setResumeFile] = useState(null);
+  const [businessUnits, setBusinessUnits] = useState([]);
   const [warnings, setWarnings] = useState({ name: false, phone: false, email: false });
   const [ctcError, setCtcError] = useState('');
   const [recruiterOptions, setRecruiterOptions] = useState([]);
@@ -124,6 +125,35 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
         .catch(() => setRecruiterOptions([]));
     }
   }, [publicForm, setValue]);
+
+  // ── Fetch active business units ────────────────────────────────────────
+  useEffect(() => {
+    const loadBusinessUnits = async () => {
+      try {
+        const res = await fetchBusinessUnits({ active_only: true });
+        if (res.success) {
+          let options = res.data.map(bu => ({
+            value: bu.name,
+            label: bu.name
+          }));
+          
+          if (defaultValues?.businessUnit) {
+            const hasCurrent = options.some(opt => opt.value === defaultValues.businessUnit);
+            if (!hasCurrent) {
+              options.push({
+                value: defaultValues.businessUnit,
+                label: `${defaultValues.businessUnit} (Inactive)`
+              });
+            }
+          }
+          setBusinessUnits(options);
+        }
+      } catch (err) {
+        console.error('Failed to load business units for form:', err);
+      }
+    };
+    loadBusinessUnits();
+  }, [defaultValues]);
 
   // ── Fresher logic ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -654,7 +684,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
         <Select
           label="Business Unit"
           required
-          options={BUSINESS_UNIT_OPTIONS}
+          options={businessUnits}
           error={errors.businessUnit?.message}
           {...register('businessUnit', { required: 'Business unit is required' })}
         />

@@ -31,6 +31,8 @@ from app.models import attendance as attendance_model  # noqa: F401
 from app.models import shift as shift_model  # noqa: F401
 from app.models import leave as leave_model  # noqa: F401
 from app.models import designation  # noqa: F401
+from app.models import business_unit  # noqa: F401
+from app.models import work_mode  # noqa: F401
 
 # Import routers
 from app.routes import jobs
@@ -40,6 +42,8 @@ from app.routes import auth
 from app.routes import employees
 from app.routes import attendance
 from app.routes import designation as designation_router
+from app.routes import business_unit as business_unit_router
+from app.routes import work_mode as work_mode_router
 
 
 # ── Lifespan: runs once on startup ────────────────────────────
@@ -52,12 +56,15 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     print(f"[*] Database tables ready - {settings.APP_NAME} started")
     
-    # Auto-seed default designations if empty
+    # Auto-seed default designations, business units, and work modes if empty
     from app.core.database import SessionLocal
     from app.models.designation import Designation
+    from app.models.business_unit import BusinessUnit
+    from app.models.work_mode import WorkMode
     
     db = SessionLocal()
     try:
+        # Seed Designations
         if db.query(Designation).count() == 0:
             initial_names = [
                 'Director', 'Sr.Manager', 'Manager', 'Asst Manager', 
@@ -68,9 +75,26 @@ async def lifespan(app: FastAPI):
                 db.add(Designation(name=name, is_active=True))
             db.commit()
             print("✓ Seeded 10 default designations to database")
+
+        # Seed Business Units
+        if db.query(BusinessUnit).count() == 0:
+            initial_bu = ['IT', 'HR', 'Sales', 'Marketing', 'Finance', 'Operations']
+            for name in initial_bu:
+                db.add(BusinessUnit(name=name, is_active=True))
+            db.commit()
+            print("✓ Seeded default business units to database")
+
+        # Seed Work Modes
+        if db.query(WorkMode).count() == 0:
+            initial_wm = ['WFH', 'Office', 'Hybrid']
+            for name in initial_wm:
+                db.add(WorkMode(name=name, is_active=True))
+            db.commit()
+            print("✓ Seeded default work modes to database")
+            
     except Exception as e:
         db.rollback()
-        print(f"⚠️ Warning: Failed to seed default designations: {e}")
+        print(f"⚠️ Warning: Failed to seed default data: {e}")
     finally:
         db.close()
         
@@ -106,6 +130,8 @@ app.include_router(auth.router)
 app.include_router(employees.router)
 app.include_router(attendance.router)
 app.include_router(designation_router.router)
+app.include_router(business_unit_router.router)
+app.include_router(work_mode_router.router)
 
 # ── Static Files ──────────────────────────────────────────────
 # Ensure uploads directory exists

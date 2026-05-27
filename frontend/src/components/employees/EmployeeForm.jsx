@@ -10,12 +10,12 @@ import {
   EMPLOYEE_GENDER_OPTIONS,
   EMPLOYEE_BLOOD_GROUP_OPTIONS,
   COUNTRY_CODES,
-  EMPLOYEE_BUSINESS_UNIT_OPTIONS,
-  EMPLOYEE_WORK_MODE_OPTIONS,
   EMPLOYEE_COMPLIANCE_OPTIONS,
   EMPLOYEE_YES_NO_OPTIONS
 } from '../../utils/constants';
 import { fetchDesignations } from '../../api/designationsApi';
+import { fetchBusinessUnits } from '../../api/businessUnitsApi';
+import { fetchWorkModes } from '../../api/workModesApi';
 import { uploadEmployeeFile } from '../../api/employeesApi';
 
 const SectionTitle = ({ children }) => (
@@ -144,6 +144,8 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   const isEditing = !!initialData;
 
   const [designations, setDesignations] = useState([]);
+  const [businessUnits, setBusinessUnits] = useState([]);
+  const [workModes, setWorkModes] = useState([]);
 
   const {
     register,
@@ -241,6 +243,68 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     };
 
     loadDesignations();
+  }, [initialData]);
+
+  // Fetch active business units and format for select options
+  useEffect(() => {
+    const loadBusinessUnits = async () => {
+      try {
+        const res = await fetchBusinessUnits({ active_only: true });
+        if (res.success) {
+          let options = res.data.map(bu => ({
+            value: bu.name,
+            label: bu.name
+          }));
+
+          if (initialData?.assignedBusinessUnit) {
+            const hasCurrent = options.some(opt => opt.value === initialData.assignedBusinessUnit);
+            if (!hasCurrent) {
+              options.push({
+                value: initialData.assignedBusinessUnit,
+                label: `${initialData.assignedBusinessUnit} (Inactive)`
+              });
+            }
+          }
+
+          setBusinessUnits(options);
+        }
+      } catch (err) {
+        console.error('Failed to load business units for form:', err);
+      }
+    };
+
+    loadBusinessUnits();
+  }, [initialData]);
+
+  // Fetch active work modes and format for select options
+  useEffect(() => {
+    const loadWorkModes = async () => {
+      try {
+        const res = await fetchWorkModes({ active_only: true });
+        if (res.success) {
+          let options = res.data.map(wm => ({
+            value: wm.name,
+            label: wm.name
+          }));
+
+          if (initialData?.workMode) {
+            const hasCurrent = options.some(opt => opt.value === initialData.workMode);
+            if (!hasCurrent) {
+              options.push({
+                value: initialData.workMode,
+                label: `${initialData.workMode} (Inactive)`
+              });
+            }
+          }
+
+          setWorkModes(options);
+        }
+      } catch (err) {
+        console.error('Failed to load work modes for form:', err);
+      }
+    };
+
+    loadWorkModes();
   }, [initialData]);
 
   // Format dates correctly for input type="date" if initialData is passed
@@ -628,7 +692,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
 
         <Select
           label="Assigned Business Unit"
-          options={EMPLOYEE_BUSINESS_UNIT_OPTIONS}
+          options={businessUnits}
           required
           error={errors.assignedBusinessUnit?.message}
           {...register('assignedBusinessUnit', { required: 'Assigned business unit is required' })}
@@ -644,7 +708,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
 
         <Select
           label="Work Mode"
-          options={EMPLOYEE_WORK_MODE_OPTIONS}
+          options={workModes}
           required
           error={errors.workMode?.message}
           {...register('workMode', { required: 'Work mode is required' })}

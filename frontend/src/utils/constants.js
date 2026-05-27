@@ -29,14 +29,6 @@ export const NOTICE_PERIODS = [
   { value: '90 Days', label: '90 Days' },
 ];
 
-export const BUSINESS_UNIT_OPTIONS = [
-  { value: 'IT', label: 'IT' },
-  { value: 'ITES', label: 'ITES' },
-  { value: 'BPO', label: 'BPO' },
-  { value: 'Lateral', label: 'Lateral' },
-  { value: 'FLP', label: 'FLP' },
-  { value: 'F&A', label: 'F&A' },
-];
 
 export const SOURCE_OPTIONS = [
   { value: 'Naukri', label: 'Naukri' },
@@ -52,11 +44,6 @@ export const JOB_SHIFTS = [
   { value: 'Rotational', label: 'Rotational' }
 ];
 
-export const JOB_WORK_MODES = [
-  { value: 'On-site', label: 'On-site' },
-  { value: 'Hybrid', label: 'Hybrid' },
-  { value: 'Remote', label: 'Remote' }
-];
 
 export const EXPERIENCE_OPTIONS = [
   { value: 'fresher', label: 'Fresher (0 Years)' },
@@ -157,20 +144,6 @@ export const EMPLOYEE_BLOOD_GROUP_OPTIONS = [
   { value: 'O-', label: 'O-' },
 ];
 
-export const EMPLOYEE_BUSINESS_UNIT_OPTIONS = [
-  { value: 'IT', label: 'IT' },
-  { value: 'ITES', label: 'ITES' },
-  { value: 'F&A', label: 'F&A' },
-  { value: 'FLP', label: 'FLP' },
-  { value: 'Lateral', label: 'Lateral' },
-  { value: 'BPO', label: 'BPO' }
-];
-
-export const EMPLOYEE_WORK_MODE_OPTIONS = [
-  { value: 'Office', label: 'Office' },
-  { value: 'Work from Home', label: 'Work from Home' },
-  { value: 'Onsite', label: 'Onsite' }
-];
 
 export const EMPLOYEE_COMPLIANCE_OPTIONS = [
   { value: 'None', label: 'None' },

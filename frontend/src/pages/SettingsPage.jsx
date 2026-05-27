@@ -16,11 +16,43 @@ import {
   Activity
 } from 'lucide-react';
 import { fetchDesignations, createDesignation, updateDesignation } from '../api/designationsApi';
+import { fetchBusinessUnits, createBusinessUnit, updateBusinessUnit } from '../api/businessUnitsApi';
+import { fetchWorkModes, createWorkMode, updateWorkMode } from '../api/workModesApi';
+
+const getApiHelpers = (tab) => {
+  switch (tab) {
+    case 'business_units':
+      return {
+        fetch: fetchBusinessUnits,
+        create: createBusinessUnit,
+        update: updateBusinessUnit,
+        entityLabel: 'Business Unit',
+        placeholder: 'e.g. IT, HR, Sales...'
+      };
+    case 'work_modes':
+      return {
+        fetch: fetchWorkModes,
+        create: createWorkMode,
+        update: updateWorkMode,
+        entityLabel: 'Work Mode',
+        placeholder: 'e.g. WFH, Office, Hybrid...'
+      };
+    case 'designations':
+    default:
+      return {
+        fetch: fetchDesignations,
+        create: createDesignation,
+        update: updateDesignation,
+        entityLabel: 'Designation',
+        placeholder: 'e.g. Lead Developer, QA Lead...'
+      };
+  }
+};
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState('designations');
-  const [designations, setDesignations] = useState([]);
-  const [newDesignationName, setNewDesignationName] = useState('');
+  const [items, setItems] = useState([]);
+  const [newItemName, setNewItemName] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,34 +60,37 @@ const SettingsPage = () => {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
-  // Tab configurations for future extensibility
+  // Tab configurations
   const tabs = [
     { id: 'designations', label: 'Designations', icon: Briefcase, active: true },
+    { id: 'business_units', label: 'Business Unit', icon: Sliders, active: true },
+    { id: 'work_modes', label: 'Work Mode', icon: Activity, active: true },
   ];
 
-  // Fetch designations
-  const loadDesignations = async (isSilent = false) => {
+  // Fetch items for current active tab
+  const loadItems = async (isSilent = false) => {
     if (!isSilent) setLoading(true);
     setError(null);
+    const api = getApiHelpers(activeTab);
     try {
-      const res = await fetchDesignations();
+      const res = await api.fetch();
       if (res.success) {
-        setDesignations(res.data);
+        setItems(res.data);
       } else {
-        setError(res.message || 'Failed to load designations');
+        setError(res.message || `Failed to load ${api.entityLabel.toLowerCase()}s`);
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || err.message || 'Error fetching designations');
+      setError(err.response?.data?.message || err.message || `Error fetching ${api.entityLabel.toLowerCase()}s`);
     } finally {
       if (!isSilent) setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (activeTab === 'designations') {
-      loadDesignations();
-    }
+    setNewItemName('');
+    setEditingId(null);
+    loadItems();
   }, [activeTab]);
 
   // Show success alert temporarily
@@ -70,24 +105,25 @@ const SettingsPage = () => {
     setTimeout(() => setError(null), 3000);
   };
 
-  // Add new designation
+  // Add new item
   const handleAdd = async (e) => {
     e.preventDefault();
-    if (!newDesignationName.trim()) return;
+    if (!newItemName.trim()) return;
 
     setActionLoading(true);
     setError(null);
+    const api = getApiHelpers(activeTab);
     try {
-      const res = await createDesignation(newDesignationName.trim());
+      const res = await api.create(newItemName.trim());
       if (res.success) {
-        setNewDesignationName('');
-        triggerSuccess('Designation added successfully!');
-        loadDesignations(true);
+        setNewItemName('');
+        triggerSuccess(`${api.entityLabel} added successfully!`);
+        loadItems(true);
       } else {
         triggerError(res.message);
       }
     } catch (err) {
-      triggerError(err.response?.data?.message || 'Failed to add designation');
+      triggerError(err.response?.data?.message || `Failed to add ${api.entityLabel.toLowerCase()}`);
     } finally {
       setActionLoading(false);
     }
@@ -100,34 +136,36 @@ const SettingsPage = () => {
     setError(null);
   };
 
-  // Save renamed designation
+  // Save renamed item
   const saveRename = async (id) => {
     if (!editingName.trim()) return;
     setActionLoading(true);
     setError(null);
+    const api = getApiHelpers(activeTab);
     try {
-      const res = await updateDesignation(id, { name: editingName.trim() });
+      const res = await api.update(id, { name: editingName.trim() });
       if (res.success) {
         setEditingId(null);
-        triggerSuccess('Designation renamed successfully!');
-        loadDesignations(true);
+        triggerSuccess(`${api.entityLabel} renamed successfully!`);
+        loadItems(true);
       } else {
         triggerError(res.message);
       }
     } catch (err) {
-      triggerError(err.response?.data?.message || 'Failed to update designation');
+      triggerError(err.response?.data?.message || `Failed to update ${api.entityLabel.toLowerCase()}`);
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Toggle designation active/inactive status
+  // Toggle item active/inactive status
   const toggleStatus = async (id, currentStatus) => {
     setError(null);
+    const api = getApiHelpers(activeTab);
     try {
-      const res = await updateDesignation(id, { is_active: !currentStatus });
+      const res = await api.update(id, { is_active: !currentStatus });
       if (res.success) {
-        loadDesignations(true);
+        loadItems(true);
       } else {
         triggerError(res.message);
       }
@@ -135,6 +173,8 @@ const SettingsPage = () => {
       triggerError(err.response?.data?.message || 'Failed to toggle status');
     }
   };
+
+  const currentApi = getApiHelpers(activeTab);
 
   return (
     <PageContainer>
@@ -206,140 +246,137 @@ const SettingsPage = () => {
           {/* Right Main Configuration Window */}
           <div className="lg:col-span-3 space-y-6">
 
-            {/* Designations View */}
-            {activeTab === 'designations' && (
-              <div className="space-y-6">
+            <div className="space-y-6">
 
-                {/* Add New Box */}
-                <Card className="sticky top-[84px] z-20 bg-white shadow-md border border-gray-100/80 transition-all duration-200">
-                  <h3 className="text-sm font-bold text-gray-800 mb-4">Add Custom Designation</h3>
-                  <form onSubmit={handleAdd} className="flex gap-3 items-end">
-                    <div className="flex-1">
-                      <Input
-                        placeholder="e.g. Lead Developer, QA Lead..."
-                        value={newDesignationName}
-                        onChange={(e) => setNewDesignationName(e.target.value)}
-                        disabled={actionLoading}
-                        required
-                      />
-                    </div>
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      loading={actionLoading}
-                      disabled={actionLoading || !newDesignationName.trim()}
-                    >
-                      <div className="flex items-center gap-1">
-                        <Plus size={16} />
-                        <span>Add</span>
-                      </div>
-                    </Button>
-                  </form>
-                </Card>
-
-                {/* List Table */}
-                <Card className="overflow-hidden relative z-0">
-                  <div className="p-5 border-b border-gray-50 flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-gray-800">Existing Designations</h3>
-                    <span className="text-xs font-bold text-gray-400 bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
-                      Total: {designations.length}
-                    </span>
+              {/* Add New Box */}
+              <Card className="sticky top-[84px] z-20 bg-white shadow-md border border-gray-100/80 transition-all duration-200">
+                <h3 className="text-sm font-bold text-gray-800 mb-4">Add Custom {currentApi.entityLabel}</h3>
+                <form onSubmit={handleAdd} className="flex gap-3 items-end">
+                  <div className="flex-1">
+                    <Input
+                      placeholder={currentApi.placeholder}
+                      value={newItemName}
+                      onChange={(e) => setNewItemName(e.target.value)}
+                      disabled={actionLoading}
+                      required
+                    />
                   </div>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    loading={actionLoading}
+                    disabled={actionLoading || !newItemName.trim()}
+                  >
+                    <div className="flex items-center gap-1">
+                      <Plus size={16} />
+                      <span>Add</span>
+                    </div>
+                  </Button>
+                </form>
+              </Card>
 
-                  {loading ? (
-                    <div className="flex justify-center items-center py-12">
-                      <div className="w-8 h-8 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
-                    </div>
-                  ) : designations.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400 text-sm">
-                      No designations configured in the database.
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="bg-gray-50/50">
-                            <th className="px-6 py-3 text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Designation Name</th>
-                            <th className="px-6 py-3 text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-center">Status</th>
-                            <th className="px-6 py-3 text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                          {designations.map((des) => (
-                            <tr key={des.id} className="hover:bg-gray-50/30 transition-colors">
-                              <td className="px-6 py-4">
-                                {editingId === des.id ? (
-                                  <div className="flex items-center gap-2 max-w-sm">
-                                    <Input
-                                      value={editingName}
-                                      onChange={(e) => setEditingName(e.target.value)}
-                                      size="sm"
-                                      disabled={actionLoading}
-                                    />
-                                    <button
-                                      onClick={() => saveRename(des.id)}
-                                      className="p-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors"
-                                      title="Save"
-                                    >
-                                      <Check size={16} />
-                                    </button>
-                                    <button
-                                      onClick={() => setEditingId(null)}
-                                      className="p-1.5 bg-gray-50 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
-                                      title="Cancel"
-                                    >
-                                      <X size={16} />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <span className={`font-semibold text-sm ${des.is_active ? 'text-gray-700' : 'text-gray-400 line-through'}`}>
-                                    {des.name}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="px-6 py-4 text-center">
-                                <div className="flex items-center justify-center">
+              {/* List Table */}
+              <Card className="overflow-hidden relative z-0">
+                <div className="p-5 border-b border-gray-50 flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-gray-800">Existing {currentApi.entityLabel}s</h3>
+                  <span className="text-xs font-bold text-gray-400 bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
+                    Total: {items.length}
+                  </span>
+                </div>
+
+                {loading ? (
+                  <div className="flex justify-center items-center py-12">
+                    <div className="w-8 h-8 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+                  </div>
+                ) : items.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400 text-sm">
+                    No {currentApi.entityLabel.toLowerCase()}s configured in the database.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-gray-50/50">
+                          <th className="px-6 py-3 text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">{currentApi.entityLabel} Name</th>
+                          <th className="px-6 py-3 text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-center">Status</th>
+                          <th className="px-6 py-3 text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {items.map((item) => (
+                          <tr key={item.id} className="hover:bg-gray-50/30 transition-colors">
+                            <td className="px-6 py-4">
+                              {editingId === item.id ? (
+                                <div className="flex items-center gap-2 max-w-sm">
+                                  <Input
+                                    value={editingName}
+                                    onChange={(e) => setEditingName(e.target.value)}
+                                    size="sm"
+                                    disabled={actionLoading}
+                                  />
                                   <button
-                                    role="switch"
-                                    aria-checked={des.is_active}
-                                    title={des.is_active ? "Click to Deactivate" : "Click to Activate"}
-                                    onClick={() => toggleStatus(des.id, des.is_active)}
-                                    className={[
-                                      'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
-                                      des.is_active ? 'bg-emerald-500' : 'bg-rose-500'
-                                    ].join(' ')}
+                                    onClick={() => saveRename(item.id)}
+                                    className="p-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors"
+                                    title="Save"
                                   >
-                                    <span
-                                      className={[
-                                        'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out',
-                                        des.is_active ? 'translate-x-5' : 'translate-x-0'
-                                      ].join(' ')}
-                                    />
+                                    <Check size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingId(null)}
+                                    className="p-1.5 bg-gray-50 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+                                    title="Cancel"
+                                  >
+                                    <X size={16} />
                                   </button>
                                 </div>
-                              </td>
+                              ) : (
+                                <span className={`font-semibold text-sm ${item.is_active ? 'text-gray-700' : 'text-gray-400 line-through'}`}>
+                                  {item.name}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <div className="flex items-center justify-center">
+                                <button
+                                  role="switch"
+                                  aria-checked={item.is_active}
+                                  title={item.is_active ? "Click to Deactivate" : "Click to Activate"}
+                                  onClick={() => toggleStatus(item.id, item.is_active)}
+                                  className={[
+                                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+                                    item.is_active ? 'bg-emerald-500' : 'bg-rose-500'
+                                  ].join(' ')}
+                                >
+                                  <span
+                                    className={[
+                                      'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out',
+                                      item.is_active ? 'translate-x-5' : 'translate-x-0'
+                                    ].join(' ')}
+                                  />
+                                </button>
+                              </div>
+                            </td>
 
-                              <td className="px-6 py-4 text-right">
-                                {editingId !== des.id && (
-                                  <button
-                                    onClick={() => startEdit(des.id, des.name)}
-                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                                    title="Rename Designation"
-                                  >
-                                    <Edit2 size={15} />
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </Card>
+                            <td className="px-6 py-4 text-right">
+                              {editingId !== item.id && (
+                                <button
+                                  onClick={() => startEdit(item.id, item.name)}
+                                  className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                  title={`Rename ${currentApi.entityLabel}`}
+                                >
+                                  <Edit2 size={15} />
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </Card>
 
-              </div>
-            )}
+            </div>
 
           </div>
 

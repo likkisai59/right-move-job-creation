@@ -7,7 +7,9 @@ import Button from '../common/Button';
 import { mockRecruiters } from '../../utils/mockData';
 import { fetchOrganizations } from '../../api/organizationsApi';
 import { uploadJobDescription } from '../../api/jobsApi';
-import { NOTICE_PERIODS, EDUCATION_OPTIONS, JOB_SHIFTS, JOB_WORK_MODES } from '../../utils/constants';
+import { NOTICE_PERIODS, EDUCATION_OPTIONS, JOB_SHIFTS } from '../../utils/constants';
+import { fetchBusinessUnits } from '../../api/businessUnitsApi';
+import { fetchWorkModes } from '../../api/workModesApi';
 import SearchableSelect from '../common/SearchableSelect';
 
 
@@ -44,6 +46,8 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
   });
 
   const [organizations, setOrganizations] = React.useState([]);
+  const [businessUnits, setBusinessUnits] = React.useState([]);
+  const [workModes, setWorkModes] = React.useState([]);
 
   useEffect(() => {
     const loadOrgs = async () => {
@@ -56,6 +60,49 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
     };
     loadOrgs();
   }, []);
+
+  useEffect(() => {
+    const loadBUsAndWorkModes = async () => {
+      try {
+        const buRes = await fetchBusinessUnits({ active_only: true });
+        if (buRes.success) {
+          let options = buRes.data.map(bu => ({ value: bu.name, label: bu.name }));
+          if (defaultValues?.businessUnit) {
+            const hasCurrent = options.some(opt => opt.value === defaultValues.businessUnit);
+            if (!hasCurrent) {
+              options.push({
+                value: defaultValues.businessUnit,
+                label: `${defaultValues.businessUnit} (Inactive)`
+              });
+            }
+          }
+          setBusinessUnits(options);
+        }
+
+        const wmRes = await fetchWorkModes({ active_only: true });
+        if (wmRes.success) {
+          let options = wmRes.data.map(wm => ({ value: wm.name, label: wm.name }));
+          if (defaultValues?.requirements) {
+            defaultValues.requirements.forEach(req => {
+              if (req.workMode) {
+                const hasCurrent = options.some(opt => opt.value === req.workMode);
+                if (!hasCurrent) {
+                  options.push({
+                    value: req.workMode,
+                    label: `${req.workMode} (Inactive)`
+                  });
+                }
+              }
+            });
+          }
+          setWorkModes(options);
+        }
+      } catch (err) {
+        console.error('Failed to load business units or work modes for job form:', err);
+      }
+    };
+    loadBUsAndWorkModes();
+  }, [defaultValues]);
 
   const handleOrgChange = (e) => {
     const orgId = Number(e.target.value);
@@ -140,11 +187,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
         <Select
           label="Business Unit"
           required
-          options={[
-            { value: 'IT', label: 'IT' },
-            { value: 'ITSM', label: 'ITSM' },
-            { value: 'BPO', label: 'BPO' },
-          ]}
+          options={businessUnits}
           error={errors.businessUnit?.message}
           {...register('businessUnit', { required: 'Business unit is required' })}
         />
@@ -287,7 +330,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
                 <Select
                   label="Work Mode"
                   placeholder="Select Work Mode"
-                  options={JOB_WORK_MODES}
+                  options={workModes}
                   {...register(`requirements.${index}.workMode`)}
                 />
 
