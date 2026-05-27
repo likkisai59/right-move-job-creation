@@ -10,7 +10,8 @@ class EmployeeLoginRequest(BaseModel):
 # ── Attendance ────────────────────────────────────────────────
 class AttendanceBase(BaseModel):
     attendance_date: date
-    status: str
+    first_half_status: str
+    second_half_status: str
     work_mode: str
 
 class AttendanceCreate(AttendanceBase):

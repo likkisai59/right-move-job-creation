@@ -11,7 +11,8 @@ class Attendance(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False)
     attendance_date = Column(Date, nullable=False)
-    status = Column(String(10), nullable=False)  # P, A, L, H
+    first_half_status = Column(String(10), nullable=False)  # P, LOA, H, L
+    second_half_status = Column(String(10), nullable=False) # P, LOA, H, L
     work_mode = Column(String(20), nullable=False) # WFH, Office, Hybrid
 
     # Relationship back to employee

@@ -1,19 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import date
 
 from app.core.database import get_db
-from app.models.employee import Employee
-from app.models.attendance import Attendance
-from app.models.shift import Shift
-from app.models.leave import Leave
 from app.schemas.attendance import (
     EmployeeLoginRequest, 
     AttendanceCreate, AttendanceResponse,
     ShiftResponse, LeaveCreate, LeaveResponse
 )
-from app.utils.response import success_response, error_response
+from app.services import attendance_service
+from app.utils.response import success_response
 
 router = APIRouter(prefix="/api/attendance", tags=["Employee Attendance Portal"])
 
@@ -23,17 +19,7 @@ def employee_login(payload: EmployeeLoginRequest, db: Session = Depends(get_db))
     """
     Login for employees using Name as username and Employee ID as password.
     """
-    # Find employee by checking if first_name + last_name matches
-    # This is a simplified check as per user request.
-    employees = db.query(Employee).all()
-    target_emp = None
-    
-    for emp in employees:
-        full_name = f"{emp.first_name} {emp.last_name}".strip().lower()
-        if full_name == payload.username.strip().lower() and emp.employee_id == payload.password:
-            target_emp = emp
-            break
-            
+    target_emp = attendance_service.authenticate_employee(db, payload.username, payload.password)
     if not target_emp:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -55,47 +41,37 @@ def employee_login(payload: EmployeeLoginRequest, db: Session = Depends(get_db))
 # ── Attendance Marking ───────────────────────────────────────
 @router.post("/mark", response_model=AttendanceResponse)
 def mark_attendance(employee_id: int, payload: AttendanceCreate, db: Session = Depends(get_db)):
-    # Check if already marked for today
-    existing = db.query(Attendance).filter(
-        Attendance.employee_id == employee_id,
-        Attendance.attendance_date == payload.attendance_date
-    ).first()
-    
-    if existing:
-        # Update existing
-        existing.status = payload.status
-        existing.work_mode = payload.work_mode
-        db.commit()
-        db.refresh(existing)
-        return existing
-        
-    new_record = Attendance(
-        employee_id=employee_id,
-        **payload.dict()
-    )
-    db.add(new_record)
-    db.commit()
-    db.refresh(new_record)
-    return new_record
+    """
+    Mark daily attendance (first half and second half).
+    """
+    return attendance_service.mark_employee_attendance(db, employee_id, payload)
 
 @router.get("/history/{employee_id}", response_model=List[AttendanceResponse])
 def get_attendance_history(employee_id: int, db: Session = Depends(get_db)):
-    return db.query(Attendance).filter(Attendance.employee_id == employee_id).all()
+    """
+    Get weekly/monthly attendance history.
+    """
+    return attendance_service.get_employee_attendance_history(db, employee_id)
 
 # ── Shift Management ─────────────────────────────────────────
 @router.get("/shift/{employee_id}", response_model=List[ShiftResponse])
 def get_employee_shift(employee_id: int, db: Session = Depends(get_db)):
-    return db.query(Shift).filter(Shift.employee_id == employee_id).all()
+    """
+    Retrieve shift assignments.
+    """
+    return attendance_service.get_employee_shift_records(db, employee_id)
 
 # ── Leave Management ─────────────────────────────────────────
 @router.post("/leave/apply", response_model=LeaveResponse)
 def apply_leave(payload: LeaveCreate, db: Session = Depends(get_db)):
-    new_leave = Leave(**payload.dict())
-    db.add(new_leave)
-    db.commit()
-    db.refresh(new_leave)
-    return new_leave
+    """
+    Apply for employee leave.
+    """
+    return attendance_service.create_leave_request(db, payload)
 
 @router.get("/leave/history/{employee_id}", response_model=List[LeaveResponse])
 def get_leave_history(employee_id: int, db: Session = Depends(get_db)):
-    return db.query(Leave).filter(Leave.employee_id == employee_id).all()
+    """
+    Retrieve leave application history.
+    """
+    return attendance_service.get_employee_leave_history(db, employee_id)

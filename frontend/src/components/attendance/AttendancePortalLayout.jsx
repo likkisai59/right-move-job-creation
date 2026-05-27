@@ -105,11 +105,10 @@ const AttendancePortalLayout = () => {
           {/* Compact Return to Dashboard Button beside/left to profile card */}
           <button
             onClick={() => navigate('/dashboard')}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700 hover:text-gray-900 transition-all text-xs font-bold shadow-sm shrink-0"
-            title="Return to CRM Dashboard"
+            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-5 transition-colors group"
           >
-            <ArrowLeft size={13} className="stroke-[2.5]" />
-            <span>Back to Dashboard</span>
+            <ArrowLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+            Back
           </button>
 
           {/* Basic Info Header (Profile Card) */}

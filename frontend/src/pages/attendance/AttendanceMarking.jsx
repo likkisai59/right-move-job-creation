@@ -3,6 +3,14 @@ import { CalendarCheck, Info, CheckCircle2, Save, AlertCircle } from 'lucide-rea
 import { markAttendance, getAttendanceHistory } from '../../api/attendanceApi';
 
 const AttendanceMarking = () => {
+  const formatDate = (date) => {
+    if (!date) return '';
+    const d = String(date.getDate()).padStart(2, '0');
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const y = date.getFullYear();
+    return `${d}/${m}/${y}`;
+  };
+
   const employee = JSON.parse(localStorage.getItem('employee_data') || '{}');
   const [weekData, setWeekData] = useState({}); // { '2024-05-10': 'P', ... }
   const [loading, setLoading] = useState(false);
@@ -12,30 +20,31 @@ const AttendanceMarking = () => {
   // ── Status Options ──
   const STATUSES = [
     { id: 'P',   label: 'P',   full: 'Present' },
-    { id: 'LOA', label: 'LOA', full: 'Leave Of Absence' },
     { id: 'H',   label: 'H',   full: 'Holiday' },
     { id: 'L',   label: 'L',   full: 'Leave' }
   ];
 
-  // ── Generate Current Week (Mon to Sun) ──
+  // ── Generate Current Week (Sun to Sat) ──
   const getWeekDays = () => {
     const today = new Date();
     const day = today.getDay(); // 0 (Sun) to 6 (Sat)
-    const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
-    const monday = new Date(today.setDate(diff));
+    
+    // Get Sunday of the current week
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() - day);
     
     const days = [];
     for (let i = 0; i < 7; i++) {
-      const nextDay = new Date(monday);
-      nextDay.setDate(monday.getDate() + i);
+      const nextDay = new Date(sunday);
+      nextDay.setDate(sunday.getDate() + i);
       days.push(nextDay);
     }
     return days;
   };
 
   const weekDays = getWeekDays();
-  const lastDayOfWeek = weekDays[6];
-  const isEndOfWeek = new Date() >= lastDayOfWeek;
+  const todayDay = new Date().getDay();
+  const isEndOfWeek = todayDay === 5 || todayDay === 6; // Allow submission on Friday (5) and Saturday (6)
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -43,7 +52,10 @@ const AttendanceMarking = () => {
         const history = await getAttendanceHistory(employee.id);
         const dataMap = {};
         history.forEach(rec => {
-          dataMap[rec.attendance_date] = rec.status;
+          dataMap[rec.attendance_date] = {
+            first_half: rec.first_half_status || '',
+            second_half: rec.second_half_status || ''
+          };
         });
         setWeekData(dataMap);
       } catch (err) {
@@ -55,11 +67,17 @@ const AttendanceMarking = () => {
     fetchHistory();
   }, [employee.id]);
 
-  const handleStatusChange = (dateStr, status) => {
-    setWeekData(prev => ({
-      ...prev,
-      [dateStr]: status
-    }));
+  const handleStatusChange = (dateStr, half, status) => {
+    setWeekData(prev => {
+      const current = prev[dateStr] || { first_half: '', second_half: '' };
+      return {
+        ...prev,
+        [dateStr]: {
+          ...current,
+          [half]: status
+        }
+      };
+    });
   };
 
   const handleSubmit = async () => {
@@ -70,10 +88,12 @@ const AttendanceMarking = () => {
       // but here we loop through current week's changes
       for (const day of weekDays) {
         const dateStr = day.toISOString().split('T')[0];
-        if (weekData[dateStr]) {
+        const dayData = weekData[dateStr];
+        if (dayData && dayData.first_half && dayData.second_half) {
           await markAttendance(employee.id, {
             attendance_date: dateStr,
-            status: weekData[dateStr],
+            first_half_status: dayData.first_half,
+            second_half_status: dayData.second_half,
             work_mode: 'Office' // Default
           });
         }
@@ -110,17 +130,26 @@ const AttendanceMarking = () => {
             </div>
             <p className="text-gray-500 text-sm">
               Current Week: <span className="font-bold text-gray-700">
-                {weekDays[0].toLocaleDateString()} — {weekDays[6].toLocaleDateString()}
+                {formatDate(weekDays[0])} — {formatDate(weekDays[6])}
               </span>
             </p>
           </div>
 
-          {!isEndOfWeek && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-xl text-xs font-bold border border-amber-100">
-              <Info size={14} />
-              Submission available on {weekDays[6].toLocaleDateString()}
+          <div className="flex flex-col items-end gap-3">
+            {!isEndOfWeek && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-xl text-xs font-bold border border-amber-100">
+                <Info size={14} />
+                Submission available on {formatDate(weekDays[5])} or {formatDate(weekDays[6])}
+              </div>
+            )}
+            
+            {/* Status Legend */}
+            <div className="flex flex-wrap gap-2 text-[10px] text-gray-500 justify-end">
+              <span className="px-2 py-1 bg-gray-50 border border-gray-100 rounded-lg"><strong className="text-gray-700">P</strong> - Present</span>
+              <span className="px-2 py-1 bg-gray-50 border border-gray-100 rounded-lg"><strong className="text-gray-700">H</strong> - Holiday</span>
+              <span className="px-2 py-1 bg-gray-50 border border-gray-100 rounded-lg"><strong className="text-gray-700">L</strong> - Leave</span>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Weekly Grid */}
@@ -129,49 +158,82 @@ const AttendanceMarking = () => {
             <thead>
               <tr className="bg-gray-50/50">
                 <th className="px-8 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Date & Day</th>
-                {STATUSES.map(s => (
-                  <th key={s.id} className="px-4 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-widest">
-                    {s.full}
-                  </th>
-                ))}
+                <th className="px-8 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-widest">First Half</th>
+                <th className="px-8 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-widest">Second Half</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {weekDays.map((date) => {
                 const dateStr = date.toISOString().split('T')[0];
                 const isToday = new Date().toISOString().split('T')[0] === dateStr;
+                const dayData = weekData[dateStr] || { first_half: '', second_half: '' };
                 
                 return (
                   <tr key={dateStr} className={`hover:bg-gray-50/50 transition-colors ${isToday ? 'bg-blue-50/20' : ''}`}>
                     <td className="px-8 py-5">
                       <p className={`font-bold ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>
-                        {date.toLocaleDateString('en-US', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                        {formatDate(date)}
                       </p>
                       <p className="text-[10px] font-bold text-gray-400 uppercase">
                         {date.toLocaleDateString('en-US', { weekday: 'long' })}
                       </p>
                     </td>
-                    {STATUSES.map(s => (
-                      <td key={s.id} className="px-4 py-5 text-center">
-                        <label className="relative inline-flex items-center justify-center cursor-pointer group">
-                          <input 
-                            type="radio" 
-                            name={`status-${dateStr}`}
-                            checked={weekData[dateStr] === s.id}
-                            onChange={() => handleStatusChange(dateStr, s.id)}
-                            className="peer sr-only"
-                          />
-                          <div className={`
-                            w-10 h-10 rounded-xl border-2 flex items-center justify-center font-bold text-xs transition-all
-                            ${weekData[dateStr] === s.id 
-                              ? 'bg-blue-600 border-blue-600 text-white shadow-md' 
-                              : 'border-gray-100 text-gray-300 hover:border-gray-200 group-hover:text-gray-400'}
-                          `}>
-                            {s.label}
-                          </div>
-                        </label>
-                      </td>
-                    ))}
+                    
+                    {/* First Half */}
+                    <td className="px-8 py-5 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        {STATUSES.map(s => {
+                          const isSelected = dayData.first_half === s.id;
+                          return (
+                            <label key={s.id} className="relative inline-flex items-center justify-center cursor-pointer group">
+                              <input 
+                                type="radio" 
+                                name={`first-half-${dateStr}`}
+                                checked={isSelected}
+                                onChange={() => handleStatusChange(dateStr, 'first_half', s.id)}
+                                className="peer sr-only"
+                              />
+                              <div className={`
+                                w-9 h-9 rounded-xl border-2 flex items-center justify-center font-bold text-xs transition-all
+                                ${isSelected 
+                                  ? 'bg-blue-600 border-blue-600 text-white shadow-md' 
+                                  : 'border-gray-100 text-gray-400 bg-white hover:border-gray-200 hover:text-gray-600'}
+                              `}>
+                                {s.label}
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </td>
+
+                    {/* Second Half */}
+                    <td className="px-8 py-5 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        {STATUSES.map(s => {
+                          const isSelected = dayData.second_half === s.id;
+                          return (
+                            <label key={s.id} className="relative inline-flex items-center justify-center cursor-pointer group">
+                              <input 
+                                type="radio" 
+                                name={`second-half-${dateStr}`}
+                                checked={isSelected}
+                                onChange={() => handleStatusChange(dateStr, 'second_half', s.id)}
+                                className="peer sr-only"
+                              />
+                              <div className={`
+                                w-9 h-9 rounded-xl border-2 flex items-center justify-center font-bold text-xs transition-all
+                                ${isSelected 
+                                  ? 'bg-blue-600 border-blue-600 text-white shadow-md' 
+                                  : 'border-gray-100 text-gray-400 bg-white hover:border-gray-200 hover:text-gray-600'}
+                              `}>
+                                {s.label}
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
@@ -215,7 +277,7 @@ const AttendanceMarking = () => {
           <div>
             <p className="text-sm font-bold text-blue-900">Weekly Lock Active</p>
             <p className="text-xs text-blue-700 mt-0.5">
-              You can mark your attendance daily, but the final submission for this week will open on **{weekDays[6].toLocaleDateString('en-US', { dateStyle: 'long' })}**.
+              You can mark your attendance daily, but the final submission for this week will open on **{formatDate(weekDays[5])}** or **{formatDate(weekDays[6])}**.
             </p>
           </div>
         </div>
