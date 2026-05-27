@@ -56,6 +56,9 @@ const AppRoutes = () => {
       {/* Admin Login */}
       <Route path="/login" element={<LoginPage />} />
 
+      {/* Employee Portal Login */}
+      <Route path="/attendance-login" element={<AttendanceLoginPage />} />
+
       {/* Employee Portal (Protected) */}
       <Route
         path="/attendance/portal"

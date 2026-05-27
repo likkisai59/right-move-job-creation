@@ -9,11 +9,15 @@ from app.schemas.attendance import AttendanceCreate, LeaveCreate
 def authenticate_employee(db: Session, username: str, password: str) -> Optional[Employee]:
     """
     Authenticate employee by checking if first_name + last_name matches and password is the employee_id.
+    Robust to trailing/leading spaces, case-insensitivity, and spacing differences.
     """
+    clean_username = "".join(username.split()).lower()
+    clean_password = password.strip()
+    
     employees = db.query(Employee).all()
     for emp in employees:
-        full_name = f"{emp.first_name} {emp.last_name}".strip().lower()
-        if full_name == username.strip().lower() and emp.employee_id == password:
+        db_full_name = "".join(f"{emp.first_name}{emp.last_name}".split()).lower()
+        if db_full_name == clean_username and emp.employee_id.strip() == clean_password:
             return emp
     return None
 

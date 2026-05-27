@@ -70,7 +70,7 @@ const AttendanceLoginPage = () => {
                 Username (Full Name)
               </label>
               <div className="relative">
-                <User className="absolute left-3.5 top-1/2 -trangray-y-1/2 text-gray-400" size={18} />
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input
                   type="text"
                   required
@@ -87,7 +87,7 @@ const AttendanceLoginPage = () => {
                 Password (Employee ID)
               </label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -trangray-y-1/2 text-gray-400" size={18} />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input
                   type="password"
                   required
