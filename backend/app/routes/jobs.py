@@ -14,11 +14,13 @@
 
 import csv
 import io
+import os
+import shutil
 from datetime import date
 from typing import Optional
 
 import openpyxl
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, File, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -110,6 +112,35 @@ def create_job(
         )
 
 
+# ── POST /api/jobs/upload ──────────────────────────────────────
+
+@router.post(
+    "/upload",
+    summary="Upload Job Description Document",
+    description="Uploads a job description file and returns its stored path.",
+    status_code=status.HTTP_201_CREATED,
+)
+def upload_job_description(file: UploadFile = File(...)):
+    try:
+        from datetime import datetime
+        filename = f"{int(datetime.now().timestamp())}_{file.filename}"
+        
+        # Ensure uploads directory exists
+        os.makedirs("uploads", exist_ok=True)
+        
+        filepath = os.path.join("uploads", filename)
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        file_url = f"/uploads/{filename}"
+        return JSONResponse(
+            status_code=201, 
+            content=success_response("File uploaded successfully", {"file_url": file_url})
+        )
+    except Exception as exc:
+        return JSONResponse(status_code=500, content=error_response(str(exc)))
+
+
 # ── GET /api/jobs ─────────────────────────────────────────────
 
 @router.get(
@@ -124,7 +155,7 @@ def list_jobs(
     start_date: Optional[date] = Query(None, description="Filter jobs from this date (YYYY-MM-DD)"),
     end_date: Optional[date] = Query(None, description="Filter jobs up to this date (YYYY-MM-DD)"),
     status_filter: Optional[str] = Query(None, alias="status", description="Filter by status: ACTIVE, CLOSED, ON_HOLD"),
-    business_category: Optional[str] = Query(None, description="Filter by IT, ITSM, BPO"),
+    business_unit: Optional[str] = Query(None, description="Filter by IT, ITSM, BPO"),
     db: Session = Depends(get_db),
 ):
     """
@@ -139,7 +170,7 @@ def list_jobs(
             start_date=start_date,
             end_date=end_date,
             status=status_filter,
-            business_category=business_category
+            business_unit=business_unit
         )
 
         # Convert list of ORM objects → list of JSON-safe dicts
@@ -198,7 +229,8 @@ def export_jobs(
 
     # ── 2. Flatten ORM objects → list of plain dicts ────────────
     HEADERS = [
-        "Job Code", "Date", "Company Name", "Business Category",
+        "Job Code", "Date", "Company Name", "Business Unit",
+        "External SPOC", "External SPOC Email",
         "Job Title(s)", "Mandatory Skill", "Assigned To",
         "Total Candidates", "Status",
     ]
@@ -206,17 +238,24 @@ def export_jobs(
     rows = []
     for job in jobs_orm:
         titles = ", ".join(r.job_title for r in job.requirements) if job.requirements else "—"
-        total  = sum(r.num_candidates for r in job.requirements)
+        total  = sum(r.number_of_open_positions for r in job.requirements)
+        
+        # Since status and mandatory_skill are now at the requirement level, we can join them or take the first one
+        skills = ", ".join(filter(None, set(r.mandatory_skill for r in job.requirements))) if job.requirements else "—"
+        statuses = ", ".join(set(r.status for r in job.requirements)) if job.requirements else "—"
+
         rows.append([
             job.job_code,
-            str(job.job_date),
+            str(job.requisition_open_date),
             job.company_name,
-            job.business_category,
+            job.business_unit,
+            job.external_spoc or "—",
+            job.external_spoc_email_id or "—",
             titles,
-            job.mandatory_skill or "—",
+            skills,
             job.assigned_to,
             total,
-            job.status,
+            statuses,
         ])
 
     # ── 3a. CSV ─────────────────────────────────────────────────

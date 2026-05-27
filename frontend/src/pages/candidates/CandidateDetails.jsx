@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetchCandidateById } from '../../api/candidatesApi';
-import { Mail, Phone, MapPin, Building2, GraduationCap, Briefcase, FileText, ChevronLeft, IndianRupee, Clock, Zap } from 'lucide-react';
+import { fetchCandidateById, fetchCandidateHistory } from '../../api/candidatesApi';
+import {
+  Mail, Phone, MapPin, Building2, GraduationCap, Briefcase,
+  FileText, ChevronLeft, IndianRupee, Clock, Zap, ChevronDown,
+  ChevronUp, User, Tag, Calendar, MessageSquare, Layers
+} from 'lucide-react';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
 
@@ -33,10 +37,101 @@ const SectionHeader = ({ title, icon: Icon, color = "bg-blue-500" }) => (
   </div>
 );
 
+// ── Edit History Section ──────────────────────────────────────────────────
+const EditHistorySection = ({ history }) => {
+  const [expanded, setExpanded] = useState(null);
+
+  if (!history || history.length === 0) {
+    return (
+      <p className="text-sm text-gray-400 italic py-2">No edit history available.</p>
+    );
+  }
+
+  const formatFieldName = (field) =>
+    field.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+  return (
+    <div className="space-y-3">
+      {history.map((entry, idx) => {
+        const isOpen = expanded === idx;
+        const changedFields = Array.isArray(entry.changed_fields) ? entry.changed_fields : [];
+        return (
+          <div key={entry.id || idx} className="border border-gray-100 rounded-2xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setExpanded(isOpen ? null : idx)}
+              className="w-full flex items-center justify-between px-5 py-3.5 bg-gray-50/60 hover:bg-gray-100/60 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center">
+                  <User size={14} className="text-indigo-500" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-bold text-gray-800">
+                    {entry.updated_by || 'System'}
+                  </p>
+                  <p className="text-[11px] text-gray-400">
+                    {entry.updated_at
+                      ? new Date(entry.updated_at).toLocaleString('en-IN', {
+                          day: '2-digit', month: 'short', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit'
+                        })
+                      : '—'}
+                    &nbsp;·&nbsp;
+                    <span className="text-indigo-500 font-semibold">
+                      {changedFields.length} field{changedFields.length !== 1 ? 's' : ''} changed
+                    </span>
+                  </p>
+                </div>
+              </div>
+              {isOpen ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+            </button>
+
+            {isOpen && (
+              <div className="px-5 py-4 bg-white">
+                {changedFields.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-100">
+                          <th className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-2 w-1/3">Field</th>
+                          <th className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-2 w-1/3">Previous Value</th>
+                          <th className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-2 w-1/3">New Value</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {changedFields.map((field) => (
+                          <tr key={field} className="border-b border-gray-50 hover:bg-gray-50/40 transition-colors">
+                            <td className="py-2 pr-4 font-semibold text-gray-700">{formatFieldName(field)}</td>
+                            <td className="py-2 pr-4 text-red-500 line-through">
+                              {entry.previous_values?.[field] ?? '—'}
+                            </td>
+                            <td className="py-2 text-emerald-600 font-medium">
+                              {entry.new_values?.[field] ?? '—'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 italic">No field changes recorded.</p>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 const CandidateDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [candidate, setCandidate] = useState(null);
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,8 +140,13 @@ const CandidateDetails = () => {
         setLoading(true);
         const { data } = await fetchCandidateById(id);
         setCandidate(data);
-
-
+        // Also load edit history
+        try {
+          const { data: histData } = await fetchCandidateHistory(id);
+          setHistory(histData || []);
+        } catch (_) {
+          setHistory([]);
+        }
       } catch (error) {
         console.error('Failed to load candidate details:', error);
       } finally {
@@ -54,9 +154,7 @@ const CandidateDetails = () => {
       }
     };
 
-    if (id) {
-      loadCandidate();
-    }
+    if (id) loadCandidate();
   }, [id]);
 
   if (loading) {
@@ -87,7 +185,7 @@ const CandidateDetails = () => {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-5 md:p-6 rounded-[2rem] border border-gray-100 shadow-sm">
         <div className="flex items-center gap-5">
-          <button 
+          <button
             onClick={() => navigate('/candidates')}
             className="w-11 h-11 flex items-center justify-center rounded-2xl bg-white border border-gray-200 text-gray-400 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm hover:shadow-md active:scale-95"
           >
@@ -105,45 +203,53 @@ const CandidateDetails = () => {
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500">
                 <Clock size={14} className="text-gray-400" />
-                <span>Applied on {candidate.appliedDate || '—'}</span>
+                <span>Registered on {candidate.appliedDate || '—'}</span>
               </div>
               <div className="w-1 h-1 rounded-full bg-gray-300 hidden sm:block"></div>
-              <Badge color="purple" label={candidate.businessCategory || 'IT'} className="font-bold py-1 px-3" />
-              
-
+              <Badge color="purple" label={candidate.businessUnit || 'IT'} className="font-bold py-1 px-3" />
+              {candidate.source && (
+                <Badge color="blue" label={`Source: ${candidate.source}`} className="font-bold py-1 px-3" />
+              )}
             </div>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-8 items-start">
-        {/* Left Column: Personal & Resume (4/12) */}
+        {/* Left Column: Personal Details + Resume (4/12) */}
         <div className="lg:col-span-4 space-y-6">
           {/* Personal Details Card */}
           <div className="bg-white rounded-[2rem] p-7 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
             <SectionHeader title="Personal Details" color="bg-blue-500" />
             <div className="space-y-3">
-              <DetailItem icon={Mail} label="Email Address" value={candidate.email} iconColor="text-blue-600" />
+              <DetailItem icon={Mail} label="Email ID" value={candidate.email} iconColor="text-blue-600" />
+              {candidate.alternativeEmail && (
+                <DetailItem icon={Mail} label="Alternative Email" value={candidate.alternativeEmail} iconColor="text-blue-400" />
+              )}
               <DetailItem icon={Phone} label="Contact Number" value={`${candidate.countryCode} ${candidate.phone}`} iconColor="text-indigo-600" />
-              <DetailItem icon={MapPin} label="Current Residence" value={candidate.currentLocation} iconColor="text-rose-600" />
+              {candidate.alternativePhone && (
+                <DetailItem icon={Phone} label="Alternative Contact" value={candidate.alternativePhone} iconColor="text-indigo-400" />
+              )}
+              <DetailItem icon={MapPin} label="Current Location" value={candidate.currentLocation} iconColor="text-rose-600" />
+              <DetailItem icon={GraduationCap} label="Highest Qualification" value={candidate.highestQualification} iconColor="text-purple-600" />
             </div>
           </div>
 
-          {/* Resume Card - Balanced and Compact */}
+          {/* Resume Card */}
           <div className="bg-white rounded-[2rem] p-7 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
             <SectionHeader title="Resume" color="bg-emerald-500" />
             <div className="p-5 rounded-3xl border-2 border-dashed border-gray-100 bg-gray-50/50 flex flex-col items-center justify-center text-center">
               <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-3 shadow-sm ${candidate.resumeUrl ? 'bg-blue-50 text-blue-500' : 'bg-gray-100 text-gray-300'}`}>
                 <FileText size={28} />
               </div>
-              <p 
+              <p
                 className="text-sm font-bold text-gray-900 mb-1 max-w-[180px] truncate cursor-help"
                 title={candidate.resumeFileName || 'No resume uploaded'}
               >
                 {candidate.resumeFileName || 'No resume uploaded'}
               </p>
               {candidate.resumeUrl ? (
-                <button 
+                <button
                   onClick={() => window.open(`http://localhost:8000${candidate.resumeUrl}`, '_blank')}
                   className="mt-3 px-6 py-2 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 hover:shadow-lg transition-all active:scale-95"
                 >
@@ -154,27 +260,53 @@ const CandidateDetails = () => {
               )}
             </div>
           </div>
+
+          {/* Recruiter Info Card */}
+          {(candidate.recruiterName || candidate.comments) && (
+            <div className="bg-white rounded-[2rem] p-7 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+              <SectionHeader title="Recruiter Info" color="bg-amber-500" />
+              <div className="space-y-3">
+                {candidate.recruiterName && (
+                  <DetailItem icon={User} label="Recruiter Name" value={candidate.recruiterName} iconColor="text-amber-600" />
+                )}
+                {candidate.comments && (
+                  <div className="p-3 bg-amber-50/30 rounded-2xl border border-amber-100/40">
+                    <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-2">Comments</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">{candidate.comments}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Right Column: Professional Experience (8/12) */}
+        {/* Right Column: Employee Details + Edit History (8/12) */}
         <div className="lg:col-span-8 space-y-6">
+          {/* Professional Summary Card */}
           <div className="bg-white rounded-[2rem] p-7 md:p-8 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-            <SectionHeader title="Professional Summary" color="bg-indigo-500" />
-            
+            <SectionHeader title="Employee Details" color="bg-indigo-500" />
+
             {/* Core Experience Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+              <DetailItem icon={Layers} label="Business Unit" value={candidate.businessUnit} iconColor="text-purple-600" />
               <DetailItem icon={Building2} label="Current / Last Company" value={candidate.currentCompany} iconColor="text-indigo-600" />
+              <DetailItem icon={Briefcase} label="Current Designation" value={candidate.currentDesignation} iconColor="text-blue-600" />
               <DetailItem icon={Briefcase} label="Total Work Experience" value={candidate.totalExperience} iconColor="text-amber-600" />
-              <DetailItem icon={GraduationCap} label="Educational Qualification" value={candidate.highestEducation} iconColor="text-purple-600" />
-              <DetailItem 
-                icon={Zap} 
-                label="Relevant Experience" 
-                value={candidate.relevantExperience ? `${candidate.relevantExperience} Years` : '—'} 
-                iconColor="text-emerald-600"
-              />
+              <DetailItem icon={GraduationCap} label="Relevant Experience" value={candidate.relevantExperience ? `${candidate.relevantExperience} Years` : '—'} iconColor="text-emerald-600" />
+              <DetailItem icon={MapPin} label="Employment Location" value={candidate.employmentLocation} iconColor="text-rose-400" />
+              <DetailItem icon={Tag} label="Source" value={candidate.source} iconColor="text-cyan-600" />
+              <div>
+                <DetailItem icon={Calendar} label="Notice Period" value={candidate.noticePeriod} iconColor="text-orange-500" />
+                {candidate.lwd && (
+                  <div className="ml-14 mt-1">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">LWD</p>
+                    <p className="text-sm font-semibold text-gray-700">{candidate.lwd}</p>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Skills Tags - Modern Pills */}
+            {/* Skills Tags */}
             <div className="mb-8 bg-gray-50/40 p-5 rounded-3xl border border-gray-50/50">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
@@ -182,8 +314,8 @@ const CandidateDetails = () => {
               </p>
               <div className="flex flex-wrap gap-2">
                 {(candidate.skills || []).map((skill, idx) => (
-                  <span 
-                    key={idx} 
+                  <span
+                    key={idx}
                     className="px-4 py-2 rounded-xl bg-white text-blue-700 text-xs font-bold border border-blue-100/50 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-default"
                   >
                     {skill}
@@ -195,7 +327,7 @@ const CandidateDetails = () => {
               </div>
             </div>
 
-            {/* Detailed Skill Breakout */}
+            {/* Skill-wise Experience Breakout */}
             {candidate.relevantExperienceBySkill && candidate.relevantExperienceBySkill.length > 0 && (
               <div className="mb-8 p-5 rounded-3xl border border-gray-50 bg-white shadow-sm">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -215,46 +347,52 @@ const CandidateDetails = () => {
               </div>
             )}
 
-            {/* Compensation & Notice - Balanced Grid */}
-            <div className="bg-gray-900 rounded-[2rem] p-7 md:p-8 text-white grid grid-cols-1 sm:grid-cols-3 gap-6 relative overflow-hidden shadow-xl items-center text-center sm:text-left">
+            {/* CTC Summary */}
+            <div className="bg-gray-900 rounded-[2rem] p-7 md:p-8 text-white grid grid-cols-2 sm:grid-cols-4 gap-6 relative overflow-hidden shadow-xl items-center text-center sm:text-left">
               <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
               <div className="relative z-10">
                 <p className="text-[10px] font-bold text-blue-300 uppercase tracking-widest mb-2 flex items-center justify-center sm:justify-start gap-2">
-                  <IndianRupee size={12} />
-                  Current CTC
+                  <IndianRupee size={12} />Current CTC
                 </p>
                 <p className="text-2xl font-black">₹{candidate.currentCTC || '0'} <span className="text-[10px] font-bold text-gray-500 uppercase ml-1">LPA</span></p>
               </div>
-              <div className="relative z-10 border-t border-b sm:border-t-0 sm:border-b-0 sm:border-l sm:border-r border-gray-800 py-4 sm:py-0 sm:px-6">
+              <div className="relative z-10 border-t border-b sm:border-t-0 sm:border-b-0 sm:border-l border-gray-800 py-4 sm:py-0 sm:px-4">
+                <p className="text-[10px] font-bold text-yellow-300 uppercase tracking-widest mb-2 flex items-center justify-center sm:justify-start gap-2">
+                  <IndianRupee size={12} />Fixed CTC
+                </p>
+                <p className="text-2xl font-black">₹{candidate.fixedCTC || '0'} <span className="text-[10px] font-bold text-gray-500 uppercase ml-1">LPA</span></p>
+              </div>
+              <div className="relative z-10 border-t border-b sm:border-t-0 sm:border-b-0 sm:border-l sm:border-r border-gray-800 py-4 sm:py-0 sm:px-4">
+                <p className="text-[10px] font-bold text-orange-300 uppercase tracking-widest mb-2 flex items-center justify-center sm:justify-start gap-2">
+                  <Zap size={12} />Variable CTC
+                </p>
+                <p className="text-2xl font-black">₹{candidate.variableCTC || '0'} <span className="text-[10px] font-bold text-gray-500 uppercase ml-1">LPA</span></p>
+              </div>
+              <div className="relative z-10 sm:px-4">
                 <p className="text-[10px] font-bold text-emerald-300 uppercase tracking-widest mb-2 flex items-center justify-center sm:justify-start gap-2">
-                  <Zap size={12} />
-                  Expected CTC
+                  <Zap size={12} />Expected CTC
                 </p>
                 <p className="text-2xl font-black">₹{candidate.expectedCTC || '0'} <span className="text-[10px] font-bold text-gray-500 uppercase ml-1">LPA</span></p>
               </div>
-              <div className="relative z-10">
-                <p className="text-[10px] font-bold text-amber-300 uppercase tracking-widest mb-2 flex items-center justify-center sm:justify-start gap-2">
-                  <Clock size={12} />
-                  Notice Period
-                </p>
-                <div className="inline-block">
-                  <Badge color="yellow" label={candidate.noticePeriod || 'Immediate'} className="font-black text-[10px] py-1.5 px-4 tracking-tighter shadow-sm border-amber-500/20" />
-                </div>
-              </div>
             </div>
 
-            {/* Reason for job change Area */}
+            {/* Reason for Job Change */}
             {candidate.reasonForChange && (
               <div className="mt-8 bg-amber-50/20 p-5 rounded-3xl border border-amber-100/30">
                 <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-3 flex items-center gap-2">
-                  <Zap size={12} />
-                  Career Motivation
+                  <Zap size={12} />Career Motivation
                 </p>
                 <p className="text-sm text-gray-700 leading-relaxed font-medium italic">
                   "{candidate.reasonForChange}"
                 </p>
               </div>
             )}
+          </div>
+
+          {/* Edit History Card */}
+          <div className="bg-white rounded-[2rem] p-7 md:p-8 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <SectionHeader title="Edit History" color="bg-violet-500" icon={MessageSquare} />
+            <EditHistorySection history={history} />
           </div>
         </div>
       </div>

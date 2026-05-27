@@ -23,12 +23,14 @@ from app.core.database import engine, Base
 # Import models so SQLAlchemy knows about them before create_all()
 from app.models import job_requirement  # noqa: F401
 from app.models import candidate  # noqa: F401
+from app.models import candidate_edit_history  # noqa: F401
 from app.models import organization  # noqa: F401
 from app.models import job_candidate  # noqa: F401
 from app.models import employee  # noqa: F401
 from app.models import attendance as attendance_model  # noqa: F401
 from app.models import shift as shift_model  # noqa: F401
 from app.models import leave as leave_model  # noqa: F401
+from app.models import designation  # noqa: F401
 
 # Import routers
 from app.routes import jobs
@@ -37,6 +39,7 @@ from app.routes import organizations
 from app.routes import auth
 from app.routes import employees
 from app.routes import attendance
+from app.routes import designation as designation_router
 
 
 # ── Lifespan: runs once on startup ────────────────────────────
@@ -47,7 +50,30 @@ async def lifespan(app: FastAPI):
     In production, replace with Alembic migrations.
     """
     Base.metadata.create_all(bind=engine)
-    print(f"✓ Database tables ready – {settings.APP_NAME} started")
+    print(f"[*] Database tables ready - {settings.APP_NAME} started")
+    
+    # Auto-seed default designations if empty
+    from app.core.database import SessionLocal
+    from app.models.designation import Designation
+    
+    db = SessionLocal()
+    try:
+        if db.query(Designation).count() == 0:
+            initial_names = [
+                'Director', 'Sr.Manager', 'Manager', 'Asst Manager', 
+                'Team Lead', 'ATL', 'Senior Executive', 'Executive', 
+                'Trainee', 'Intern'
+            ]
+            for name in initial_names:
+                db.add(Designation(name=name, is_active=True))
+            db.commit()
+            print("✓ Seeded 10 default designations to database")
+    except Exception as e:
+        db.rollback()
+        print(f"⚠️ Warning: Failed to seed default designations: {e}")
+    finally:
+        db.close()
+        
     yield  # server runs here
     # (cleanup on shutdown goes after yield)
 
@@ -79,6 +105,7 @@ app.include_router(organizations.router)
 app.include_router(auth.router)
 app.include_router(employees.router)
 app.include_router(attendance.router)
+app.include_router(designation_router.router)
 
 # ── Static Files ──────────────────────────────────────────────
 # Ensure uploads directory exists

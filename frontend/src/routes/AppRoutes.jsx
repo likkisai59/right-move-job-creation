@@ -9,6 +9,7 @@ import EditJobPage from '../pages/jobs/EditJobPage';
 import JobDetailsPage from '../pages/jobs/JobDetailsPage';
 import CandidateListPage from '../pages/candidates/CandidateListPage';
 import AddCandidatePage from '../pages/candidates/AddCandidatePage';
+import EditCandidatePage from '../pages/candidates/EditCandidatePage';
 import CandidateDetails from '../pages/candidates/CandidateDetails';
 import GlobalSearchPage from '../pages/GlobalSearchPage';
 import OrganizationCreatePage from '../pages/organizations/OrganizationCreatePage';
@@ -17,6 +18,7 @@ import OrganizationEditPage from '../pages/organizations/OrganizationEditPage';
 import EmployeeListPage from '../pages/employees/EmployeeListPage';
 import AddEmployeePage from '../pages/employees/AddEmployeePage';
 import EditEmployeePage from '../pages/employees/EditEmployeePage';
+import SettingsPage from '../pages/SettingsPage';
 import LoginPage from '../pages/LoginPage';
 import { isAuthenticated } from '../api/authApi';
 
@@ -99,6 +101,7 @@ const AppRoutes = () => {
                     {/* Candidates */}
                     <Route path="/candidates" element={<CandidateListPage />} />
                     <Route path="/candidates/create" element={<AddCandidatePage />} />
+                    <Route path="/candidates/edit/:id" element={<EditCandidatePage />} />
                     <Route path="/candidates/:id" element={<CandidateDetails />} />
                     
                     {/* Global Search */}
@@ -113,6 +116,9 @@ const AppRoutes = () => {
                     <Route path="/employees" element={<EmployeeListPage />} />
                     <Route path="/employees/create" element={<AddEmployeePage />} />
                     <Route path="/employees/edit/:id" element={<EditEmployeePage />} />
+
+                    {/* Settings */}
+                    <Route path="/settings" element={<SettingsPage />} />
 
                     {/* Catch-all within protected area */}
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -3,20 +3,24 @@ import { Search } from 'lucide-react';
 import Input from '../common/Input';
 import Button from '../common/Button';
 
-const CATEGORY_OPTIONS = [
-  { value: '', label: 'All Categories' },
+const BUSINESS_UNIT_FILTER_OPTIONS = [
+  { value: '', label: 'All Units' },
   { value: 'IT', label: 'IT' },
-  { value: 'ITSM', label: 'ITSM' },
+  { value: 'ITES', label: 'ITES' },
   { value: 'BPO', label: 'BPO' },
+  { value: 'Lateral', label: 'Lateral' },
+  { value: 'FLP', label: 'FLP' },
+  { value: 'F&A', label: 'F&A' },
 ];
 
 const NOTICE_PERIOD_OPTIONS = [
   { value: '', label: 'All Notice Periods' },
   { value: 'Immediate', label: 'Immediate' },
-  { value: '15 Days', label: '15 Days' },
-  { value: '1 Month', label: '1 Month' },
-  { value: '2 Months', label: '2 Months' },
-  { value: '3 Months', label: '3 Months' },
+  { value: 'Currently Serving', label: 'Currently Serving' },
+  { value: '30 Days', label: '30 Days' },
+  { value: '45 Days', label: '45 Days' },
+  { value: '60 Days', label: '60 Days' },
+  { value: '90 Days', label: '90 Days' },
 ];
 
 const CandidateFilters = ({ filters, onChange, onClear }) => {
@@ -24,26 +28,26 @@ const CandidateFilters = ({ filters, onChange, onClear }) => {
     onChange({ ...filters, [field]: value });
   };
 
-  const hasFilters = filters.search || filters.businessCategory || filters.skills || filters.totalExperience || filters.noticePeriod;
+  const hasFilters = filters.search || filters.businessUnit || filters.skills || filters.currentLocation || filters.noticePeriod;
 
   return (
     <div className="flex items-center gap-3 flex-wrap">
       {/* Search Bar */}
       <Input
         icon={Search}
-        placeholder="Search by name..."
+        placeholder="Search by name, email, phone..."
         value={filters.search || ''}
         onChange={(e) => handleChange('search', e.target.value)}
         containerClassName="flex-1 min-w-[200px]"
       />
 
-      {/* Category Dropdown */}
+      {/* Business Unit Dropdown */}
       <select
-        value={filters.businessCategory || ''}
-        onChange={(e) => handleChange('businessCategory', e.target.value)}
+        value={filters.businessUnit || ''}
+        onChange={(e) => handleChange('businessUnit', e.target.value)}
         className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all"
       >
-        {CATEGORY_OPTIONS.map((opt) => (
+        {BUSINESS_UNIT_FILTER_OPTIONS.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
           </option>
@@ -58,11 +62,11 @@ const CandidateFilters = ({ filters, onChange, onClear }) => {
         containerClassName="w-36"
       />
 
-      {/* Experience */}
+      {/* Location */}
       <Input
-        placeholder="Experience..."
-        value={filters.totalExperience || ''}
-        onChange={(e) => handleChange('totalExperience', e.target.value)}
+        placeholder="Location..."
+        value={filters.currentLocation || ''}
+        onChange={(e) => handleChange('currentLocation', e.target.value)}
         containerClassName="w-32"
       />
 

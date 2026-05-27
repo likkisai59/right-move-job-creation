@@ -1,15 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Pencil, Trash2 } from 'lucide-react';
+import { Eye, Pencil } from 'lucide-react';
 import Table from '../common/Table';
-import Badge from '../common/Badge';
 import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
 import { Users } from 'lucide-react';
-import { truncateText } from '../../utils/formatters';
-import TimeStamp from '../common/TimeStamp';
 
-const CandidateTable = ({ candidates = [], loading = false, onDelete }) => {
+const CandidateTable = ({ candidates = [], loading = false }) => {
   const navigate = useNavigate();
 
   const columns = [
@@ -17,10 +14,7 @@ const CandidateTable = ({ candidates = [], loading = false, onDelete }) => {
       key: 'id',
       header: 'Candidate ID',
       render: (val, row) => {
-        // Safely extract the candidate code from the backend. 
-        // If it's missing for some reason, automatically convert their integer DB ID to the CAN0000 format!
         const displayCode = row.candidateCode || row.candidate_code || `CAN${String(val).padStart(4, '0')}`;
-
         return (
           <span className="font-mono text-xs text-blue-700 font-semibold bg-blue-50 px-2 py-1 rounded border border-blue-100">
             {displayCode}
@@ -33,15 +27,12 @@ const CandidateTable = ({ candidates = [], loading = false, onDelete }) => {
       header: 'Full Name',
       minWidth: '150px',
       render: (_, row) => (
-        <div className="flex flex-col">
-          <span className="font-medium text-gray-900">{`${row.firstName} ${row.lastName}`}</span>
-          <TimeStamp created={row.created_at} updated={row.updated_at} />
-        </div>
+        <span className="font-medium text-gray-900">{`${row.firstName} ${row.lastName}`.trim()}</span>
       ),
     },
     {
-      key: 'businessCategory',
-      header: 'Category',
+      key: 'businessUnit',
+      header: 'Business Unit',
       render: (val) => (
         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
           {val || 'IT'}
@@ -50,34 +41,39 @@ const CandidateTable = ({ candidates = [], loading = false, onDelete }) => {
     },
     {
       key: 'skills',
-      header: 'Skills',
-      minWidth: '200px',
-      render: (val) => (
-        <div className="flex flex-wrap gap-1">
-          {(val || []).slice(0, 3).map((skill) => (
-            <span
-              key={skill}
-              className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium"
-            >
-              {skill}
+      header: 'Primary Skills',
+      minWidth: '150px',
+      render: (val) => {
+        const skillsList = val || [];
+        if (skillsList.length === 0) return <span className="text-gray-400">—</span>;
+        
+        return (
+          <div className="flex flex-wrap gap-1">
+            <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
+              {skillsList[0]}
             </span>
-          ))}
-          {(val || []).length > 3 && (
-            <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs">
-              +{val.length - 3}
-            </span>
-          )}
-        </div>
-      ),
+            {skillsList.length > 1 && (
+              <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs font-medium">
+                +{skillsList.length - 1}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'totalExperience',
       header: 'Experience',
+      render: (val) => {
+        if (!val) return '—';
+        if (val.toLowerCase() === 'fresher') return 'Fresher';
+        if (val === '1') return '1 Year';
+        return `${val} Years`;
+      }
     },
-
     {
       key: 'currentCTC',
-      header: 'Current CTC',
+      header: 'Total CTC',
       render: (val) => (val ? `₹${val} LPA` : '—'),
     },
     {
@@ -88,19 +84,12 @@ const CandidateTable = ({ candidates = [], loading = false, onDelete }) => {
     {
       key: 'noticePeriod',
       header: 'Notice Period',
+      render: (val) => val || '—',
     },
     {
       key: 'currentLocation',
-      header: 'Location',
-    },
-    {
-      key: 'reasonForChange',
-      header: 'Reason',
-      render: (val) => (
-        <span title={val} className="text-gray-600">
-          {truncateText(val, 25)}
-        </span>
-      ),
+      header: 'Current Location',
+      render: (val) => val || '—',
     },
     {
       key: 'actions',
@@ -123,12 +112,14 @@ const CandidateTable = ({ candidates = [], loading = false, onDelete }) => {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onDelete && onDelete(row);
+              if (row.id) {
+                navigate(`/candidates/edit/${row.id}`);
+              }
             }}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-            title="Delete candidate"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-blue-500 hover:bg-blue-50 transition-colors"
+            title="Edit candidate"
           >
-            <Trash2 size={15} />
+            <Pencil size={15} />
           </button>
         </div>
       ),

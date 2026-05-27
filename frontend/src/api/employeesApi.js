@@ -12,7 +12,6 @@ const mapToFrontend = (data) => {
     employeeId: data.employee_id,
     firstName: data.first_name,
     lastName: data.last_name,
-    preferredName: data.preferred_name,
     bloodGroup: data.blood_group,
     gender: data.gender,
     countryCode: data.country_code,
@@ -25,6 +24,48 @@ const mapToFrontend = (data) => {
     package: data.package,
     status: data.status,
     lastWorkingDate: data.last_working_date,
+    
+    // New fields
+    dateOfBirth: data.date_of_birth,
+    contactNumberOffice: data.contact_number_office,
+    emergencyContactNumber: data.emergency_contact_number,
+    aadharNumber: data.aadhar_number,
+    aadharUrl: data.aadhar_url,
+    panNumber: data.pan_number,
+    panUrl: data.pan_url,
+    marksheet10thUrl: data.marksheet_10th_url,
+    marksheet12thUrl: data.marksheet_12th_url,
+    marksheetGraduationUrl: data.marksheet_graduation_url,
+    presentAddressProofUrl: data.present_address_proof_url,
+    permanentAddressProofUrl: data.permanent_address_proof_url,
+    photoUrl: data.photo_url,
+    medicalCondition: data.medical_condition,
+    
+    // Bank Details
+    bankName: data.bank_name,
+    bankAccountNumber: data.bank_account_number,
+    bankIfscCode: data.bank_ifsc_code,
+
+    // Document & Other fields
+    resumeUrl: data.resume_url,
+    salarySlipsUrl: data.salary_slips_url,
+    offerLetterUrl: data.offer_letter_url,
+    lastCompanyName: data.last_company_name,
+
+    // Reporting & Compliance Details
+    assignedBusinessUnit: data.assigned_business_unit,
+    reportingTo: data.reporting_to,
+    workMode: data.work_mode,
+    ctc: data.ctc,
+    compliance: data.compliance,
+
+    // Asset & System Configuration Details
+    systemAssigned: data.system_assigned,
+    simCardAssigned: data.sim_card_assigned,
+    emailIdConfigured: data.email_id_configured,
+    linkedinConfigured: data.linkedin_configured,
+    googleSheetConfigured: data.google_sheet_configured,
+    whatsappBusinessConfigured: data.whatsapp_business_configured,
   };
 };
 
@@ -34,7 +75,6 @@ const mapToBackend = (data) => {
   return {
     first_name: data.firstName,
     last_name: data.lastName,
-    preferred_name: data.preferredName,
     blood_group: data.bloodGroup,
     gender: data.gender,
     country_code: data.countryCode,
@@ -47,7 +87,61 @@ const mapToBackend = (data) => {
     package: data.package ? parseFloat(data.package) : null, // Ensure package is a number
     status: data.status,
     last_working_date: data.lastWorkingDate || null,         // Convert empty strings to null
+    
+    // New fields
+    date_of_birth: data.dateOfBirth,
+    contact_number_office: data.contactNumberOffice,
+    emergency_contact_number: data.emergencyContactNumber,
+    aadhar_number: data.aadharNumber,
+    aadhar_url: data.aadharUrl,
+    pan_number: data.panNumber,
+    pan_url: data.panUrl,
+    marksheet_10th_url: data.marksheet10thUrl,
+    marksheet_12th_url: data.marksheet12thUrl,
+    marksheet_graduation_url: data.marksheetGraduationUrl,
+    present_address_proof_url: data.presentAddressProofUrl,
+    permanent_address_proof_url: data.permanentAddressProofUrl,
+    photo_url: data.photoUrl,
+    medical_condition: data.medicalCondition || null,
+
+    // Bank Details
+    bank_name: data.bankName,
+    bank_account_number: data.bankAccountNumber,
+    bank_ifsc_code: data.bankIfscCode,
+
+    // Document & Other fields
+    resume_url: data.resumeUrl,
+    salary_slips_url: data.salarySlipsUrl,
+    offer_letter_url: data.offerLetterUrl,
+    last_company_name: data.lastCompanyName,
+
+    // Reporting & Compliance Details
+    assigned_business_unit: data.assignedBusinessUnit,
+    reporting_to: data.reportingTo,
+    work_mode: data.workMode,
+    ctc: data.ctc ? parseFloat(data.ctc) : null,
+    compliance: data.compliance,
+
+    // Asset & System Configuration Details
+    system_assigned: data.systemAssigned,
+    sim_card_assigned: data.simCardAssigned,
+    email_id_configured: data.emailIdConfigured,
+    linkedin_configured: data.linkedinConfigured,
+    google_sheet_configured: data.googleSheetConfigured,
+    whatsapp_business_configured: data.whatsappBusinessConfigured,
   };
+};
+
+// upload file helper
+export const uploadEmployeeFile = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post('/employees/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -122,3 +216,15 @@ export const exportEmployees = async (params = {}) => {
   link.remove();
   window.URL.revokeObjectURL(url);
 };
+
+// 7. FETCH RECRUITERS (for Candidate Form recruiter dropdown)
+// Returns employees as dropdown options { value: full_name, label: full_name }
+export const fetchRecruiters = async () => {
+  const response = await api.get('/employees', { params: { status: 'Active' } });
+  const employees = response.data.data || [];
+  return employees.map((emp) => ({
+    value: `${emp.first_name} ${emp.last_name}`.trim(),
+    label: `${emp.first_name} ${emp.last_name}`.trim(),
+  }));
+};
+

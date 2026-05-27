@@ -21,14 +21,45 @@ export const JOB_STATUSES = {
 
 export const NOTICE_PERIODS = [
   { value: 'Immediate', label: 'Immediate' },
+  { value: 'Currently Serving', label: 'Currently Serving' },
   { value: '15 Days', label: '15 Days' },
-  { value: '1 Month', label: '1 Month' },
-  { value: '2 Months', label: '2 Months' },
-  { value: '3 Months', label: '3 Months' },
+  { value: '30 Days', label: '30 Days' },
+  { value: '45 Days', label: '45 Days' },
+  { value: '60 Days', label: '60 Days' },
+  { value: '90 Days', label: '90 Days' },
+];
+
+export const BUSINESS_UNIT_OPTIONS = [
+  { value: 'IT', label: 'IT' },
+  { value: 'ITES', label: 'ITES' },
+  { value: 'BPO', label: 'BPO' },
+  { value: 'Lateral', label: 'Lateral' },
+  { value: 'FLP', label: 'FLP' },
+  { value: 'F&A', label: 'F&A' },
+];
+
+export const SOURCE_OPTIONS = [
+  { value: 'Naukri', label: 'Naukri' },
+  { value: 'LinkedIn', label: 'LinkedIn' },
+  { value: 'Monster', label: 'Monster' },
+  { value: 'Shine', label: 'Shine' },
+  { value: 'Referral', label: 'Referral' },
+];
+
+export const JOB_SHIFTS = [
+  { value: 'General', label: 'General' },
+  { value: 'Night', label: 'Night' },
+  { value: 'Rotational', label: 'Rotational' }
+];
+
+export const JOB_WORK_MODES = [
+  { value: 'On-site', label: 'On-site' },
+  { value: 'Hybrid', label: 'Hybrid' },
+  { value: 'Remote', label: 'Remote' }
 ];
 
 export const EXPERIENCE_OPTIONS = [
-  { value: 'fresher', label: 'Fresher (0 years)' },
+  { value: 'fresher', label: 'Fresher (0 Years)' },
   { value: '1', label: '1 Year' },
   { value: '2', label: '2 Years' },
   { value: '3', label: '3 Years' },
@@ -38,19 +69,39 @@ export const EXPERIENCE_OPTIONS = [
   { value: '7', label: '7 Years' },
   { value: '8', label: '8 Years' },
   { value: '9', label: '9 Years' },
-  { value: '10+', label: '10+ Years' },
+  { value: '10', label: '10 Years' },
+  { value: '11', label: '11 Years' },
+  { value: '12', label: '12 Years' },
+  { value: '13', label: '13 Years' },
+  { value: '14', label: '14 Years' },
+  { value: '15', label: '15 Years' },
+  { value: '16', label: '16 Years' },
+  { value: '17', label: '17 Years' },
+  { value: '18', label: '18 Years' },
+  { value: '19', label: '19 Years' },
+  { value: '20', label: '20 Years' },
+  { value: '21', label: '21 Years' },
+  { value: '22', label: '22 Years' },
+  { value: '23', label: '23 Years' },
+  { value: '24', label: '24 Years' },
+  { value: '25+', label: '25+ Years' },
 ];
 
 export const EDUCATION_OPTIONS = [
-  { value: 'btech', label: 'B.Tech / B.E.' },
-  { value: 'mtech', label: 'M.Tech / M.E.' },
-  { value: 'bsc', label: 'B.Sc' },
-  { value: 'msc', label: 'M.Sc' },
-  { value: 'bca', label: 'BCA' },
-  { value: 'mca', label: 'MCA' },
-  { value: 'mba', label: 'MBA' },
-  { value: 'diploma', label: 'Diploma' },
-  { value: 'other', label: 'Other' },
+  { value: 'SSC', label: 'SSC' },
+  { value: 'Intermediate', label: 'Intermediate' },
+  { value: 'Diploma', label: 'Diploma' },
+  { value: 'B.Tech', label: 'B.Tech' },
+  { value: 'BE', label: 'BE' },
+  { value: 'B.Sc', label: 'B.Sc' },
+  { value: 'B.Com', label: 'B.Com' },
+  { value: 'BCA', label: 'BCA' },
+  { value: 'M.Tech', label: 'M.Tech' },
+  { value: 'MCA', label: 'MCA' },
+  { value: 'MBA', label: 'MBA' },
+  { value: 'Degree', label: 'Degree' },
+  { value: 'PhD', label: 'PhD' },
+  { value: 'Other', label: 'Other' },
 ];
 
 export const CANDIDATE_STATUS_COLORS = {
@@ -89,19 +140,6 @@ export const EMPLOYEE_STATUS_OPTIONS = [
   { value: 'Inactive', label: 'Inactive' }
 ];
 
-export const EMPLOYEE_DESIGNATION_OPTIONS = [
-  { value: 'Director', label: 'Director' },
-  { value: 'Sr.Manager', label: 'Sr.Manager' },
-  { value: 'Manager', label: 'Manager' },
-  { value: 'Asst Manager', label: 'Asst Manager' },
-  { value: 'Team Lead', label: 'Team Lead' },
-  { value: 'ATL', label: 'ATL' },
-  { value: 'Senior Executive', label: 'Senior Executive' },
-  { value: 'Executive', label: 'Executive' },
-  { value: 'Trainee', label: 'Trainee' },
-  { value: 'Intern', label: 'Intern' }
-];
-
 export const EMPLOYEE_GENDER_OPTIONS = [
   { value: 'Male', label: 'Male' },
   { value: 'Female', label: 'Female' },
@@ -117,4 +155,30 @@ export const EMPLOYEE_BLOOD_GROUP_OPTIONS = [
   { value: 'AB-', label: 'AB-' },
   { value: 'O+', label: 'O+' },
   { value: 'O-', label: 'O-' },
+];
+
+export const EMPLOYEE_BUSINESS_UNIT_OPTIONS = [
+  { value: 'IT', label: 'IT' },
+  { value: 'ITES', label: 'ITES' },
+  { value: 'F&A', label: 'F&A' },
+  { value: 'FLP', label: 'FLP' },
+  { value: 'Lateral', label: 'Lateral' },
+  { value: 'BPO', label: 'BPO' }
+];
+
+export const EMPLOYEE_WORK_MODE_OPTIONS = [
+  { value: 'Office', label: 'Office' },
+  { value: 'Work from Home', label: 'Work from Home' },
+  { value: 'Onsite', label: 'Onsite' }
+];
+
+export const EMPLOYEE_COMPLIANCE_OPTIONS = [
+  { value: 'None', label: 'None' },
+  { value: 'TDS', label: 'TDS' },
+  { value: 'PF', label: 'PF' }
+];
+
+export const EMPLOYEE_YES_NO_OPTIONS = [
+  { value: 'Yes', label: 'Yes' },
+  { value: 'No', label: 'No' }
 ];

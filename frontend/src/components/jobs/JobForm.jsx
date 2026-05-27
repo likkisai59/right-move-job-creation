@@ -6,6 +6,8 @@ import Select from '../common/Select';
 import Button from '../common/Button';
 import { mockRecruiters } from '../../utils/mockData';
 import { fetchOrganizations } from '../../api/organizationsApi';
+import { uploadJobDescription } from '../../api/jobsApi';
+import { NOTICE_PERIODS, EDUCATION_OPTIONS, JOB_SHIFTS, JOB_WORK_MODES } from '../../utils/constants';
 import SearchableSelect from '../common/SearchableSelect';
 
 
@@ -33,11 +35,11 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
       date: '',
       organizationId: '',
       companyName: '',
-      businessCategory: 'IT',
-      mandatorySkill: '',
-      requirements: [{ job_title: '', budget: '', experience: '', num_candidates: '', min_experience: 0, max_experience: 10, location: '', required_skills: '' }],
+      businessUnit: 'IT',
+      externalSpoc: '',
+      externalSpocEmailId: '',
+      requirements: [{ job_title: '', budget: '', experience: '', number_of_open_positions: '', min_experience: 0, max_experience: 10, location: '', required_skills: '', status: 'ACTIVE', mandatorySkill: '', noticePeriod: '', qualification: '', shifts: '', workMode: '', jobDescription: '' }],
       assignedTo: '',
-      status: 'ACTIVE',
     },
   });
 
@@ -76,7 +78,10 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
 
   useEffect(() => {
     if (defaultValues) {
-      reset(defaultValues);
+      reset({
+        ...defaultValues,
+        assignedTo: defaultValues.assignedTo || ''
+      });
     }
   }, [defaultValues, reset]);
 
@@ -85,7 +90,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
         {/* Date */}
         <Input
-          label="Date"
+          label="Requisition Open Date"
           type="date"
           required
           error={errors.date?.message}
@@ -131,45 +136,51 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
         <input type="hidden" {...register('organizationId', { required: 'Organization is required' })} />
         <input type="hidden" {...register('companyName', { required: 'Company name is required' })} />
 
-        {/* Business Category */}
+        {/* Business Unit */}
         <Select
-          label="Business Category"
+          label="Business Unit"
           required
           options={[
             { value: 'IT', label: 'IT' },
             { value: 'ITSM', label: 'ITSM' },
             { value: 'BPO', label: 'BPO' },
           ]}
-          error={errors.businessCategory?.message}
-          {...register('businessCategory', { required: 'Business category is required' })}
+          error={errors.businessUnit?.message}
+          {...register('businessUnit', { required: 'Business unit is required' })}
         />
 
         {/* Recruiter */}
         <Select
-          label="Assign Recruiter"
-          placeholder="Select recruiter"
+          label="Assign Owner"
+          placeholder="Select Owner"
           required
           options={mockRecruiters}
           error={errors.assignedTo?.message}
           {...register('assignedTo', {
-            required: 'Please select a recruiter',
+            required: 'Please select an owner',
           })}
         />
 
-        {/* Status */}
-        <Select
-          label="Status"
-          options={JOB_STATUS_OPTIONS}
-          {...register('status')}
+        {/* External SPOC */}
+        <Input
+          label="External SPOC"
+          placeholder="Enter External SPOC Name"
+          error={errors.externalSpoc?.message}
+          {...register('externalSpoc')}
         />
 
-        {/* Mandatory Skill */}
+        {/* External SPOC Email */}
         <Input
-          label="Mandatory Skill"
-          placeholder="e.g. React, Python"
-          required
-          error={errors.mandatorySkill?.message}
-          {...register('mandatorySkill', { required: 'Mandatory skill is required' })}
+          label="External SPOC Email ID"
+          type="email"
+          placeholder="e.g. spoc@company.com"
+          error={errors.externalSpocEmailId?.message}
+          {...register('externalSpocEmailId', {
+            pattern: {
+              value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+              message: 'Invalid email format'
+            }
+          })}
         />
       </div>
 
@@ -181,7 +192,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
             type="button"
             variant="secondary"
             size="sm"
-            onClick={() => append({ job_title: '', budget: '', experience: '', num_candidates: '' })}
+            onClick={() => append({ job_title: '', budget: '', experience: '', number_of_open_positions: '', status: 'ACTIVE', mandatorySkill: '', noticePeriod: '', qualification: '', shifts: '', workMode: '', jobDescription: '' })}
             icon={Plus}
           >
             Add Requirement
@@ -221,16 +232,91 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
 
                 {/* Num Candidates */}
                 <Input
-                  label="Num Candidates"
+                  label="Number of Open Positions"
                   type="number"
                   placeholder="e.g. 10"
                   required
-                  error={errors.requirements?.[index]?.num_candidates?.message}
-                  {...register(`requirements.${index}.num_candidates`, {
+                  error={errors.requirements?.[index]?.number_of_open_positions?.message}
+                  {...register(`requirements.${index}.number_of_open_positions`, {
                     required: 'Required',
                     min: { value: 1, message: 'Min 1' }
                   })}
                 />
+
+                {/* Status */}
+                <Select
+                  label="Status"
+                  options={JOB_STATUS_OPTIONS}
+                  {...register(`requirements.${index}.status`)}
+                />
+
+                {/* Mandatory Skill */}
+                <Input
+                  label="Mandatory Skill"
+                  placeholder="e.g. React, Python"
+                  required
+                  error={errors.requirements?.[index]?.mandatorySkill?.message}
+                  {...register(`requirements.${index}.mandatorySkill`, { required: 'Mandatory skill is required' })}
+                />
+
+                {/* Notice Period */}
+                <Select
+                  label="Notice Period"
+                  placeholder="Select Notice Period"
+                  options={NOTICE_PERIODS}
+                  {...register(`requirements.${index}.noticePeriod`)}
+                />
+
+                {/* Qualification */}
+                <Select
+                  label="Qualification"
+                  placeholder="Select Qualification"
+                  options={EDUCATION_OPTIONS}
+                  {...register(`requirements.${index}.qualification`)}
+                />
+
+                {/* Shifts */}
+                <Select
+                  label="Shifts"
+                  placeholder="Select Shift"
+                  options={JOB_SHIFTS}
+                  {...register(`requirements.${index}.shifts`)}
+                />
+
+                {/* Work Mode */}
+                <Select
+                  label="Work Mode"
+                  placeholder="Select Work Mode"
+                  options={JOB_WORK_MODES}
+                  {...register(`requirements.${index}.workMode`)}
+                />
+
+                {/* Job Description Upload */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-gray-700">Job Description (Upload)</label>
+                  <input
+                    type="file"
+                    className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    onChange={async (e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        try {
+                          const res = await uploadJobDescription(e.target.files[0]);
+                          setValue(`requirements.${index}.jobDescription`, res.data.file_url, { shouldValidate: true });
+                          alert('Job description uploaded successfully!');
+                        } catch (err) {
+                          alert('Failed to upload job description.');
+                          console.error(err);
+                        }
+                      }
+                    }}
+                  />
+                  <input type="hidden" {...register(`requirements.${index}.jobDescription`)} />
+                  {watch(`requirements.${index}.jobDescription`) && (
+                    <a href={`http://localhost:8000${watch(`requirements.${index}.jobDescription`)}`} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline mt-1">
+                      View Uploaded File
+                    </a>
+                  )}
+                </div>
 
                 {/* Matching Criteria Section */}
                 <div className="md:col-span-2 mt-2 pt-2 border-t border-gray-100">

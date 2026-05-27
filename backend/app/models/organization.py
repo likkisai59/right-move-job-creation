@@ -10,18 +10,22 @@ class Organization(Base):
     organization_name = Column(String(255), unique=True, nullable=False, index=True)
 
     status = Column(
-        SAEnum('active', 'complete', 'cancel', name="org_status_enum"),
+        SAEnum('active', 'inactive', name="org_status_enum"),
         nullable=False,
         default='active',
     )
 
     contract_signed_date = Column(Date, nullable=True)
     contract_end_date = Column(Date, nullable=True)
-    commission_percentage = Column(Float, nullable=True)
     contact_number = Column(String(20), nullable=True)
     country_code = Column(String(10), nullable=True)
-    address = Column(String(1000), nullable=True)
     is_active = Column(Integer, nullable=False, default=1) # Using Integer (0/1) for boolean for better compatibility or just Boolean
+    band = Column(String(255), nullable=True)
+    rate = Column(String(255), nullable=True)
+
+    poc_country_code = Column(String(10), nullable=True)
+    poc_contact = Column(String(20), nullable=True)
+    poc_email_id = Column(String(255), nullable=True)
 
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())

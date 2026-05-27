@@ -36,24 +36,15 @@ class Job(Base):
     job_code = Column(String(20), unique=True, nullable=False, index=True)
 
     # ── Core Fields ───────────────────────────────────────────
-    job_date = Column(Date, nullable=False)
+    requisition_open_date = Column(Date, nullable=False)
     company_name = Column(String(255), nullable=False)
     organization_id = Column(Integer, ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True)
-    business_category = Column(String(50), nullable=False, server_default="IT")
+    business_unit = Column(String(50), nullable=False, server_default="IT")
+    external_spoc = Column(String(255), nullable=True)
+    external_spoc_email_id = Column(String(255), nullable=True)
     
     # Name of the recruiter assigned to this requirement
     assigned_to = Column(String(255), nullable=False)
-
-    # Status of the requirement
-    status = Column(
-        SAEnum("ACTIVE", "ON_HOLD", "CLOSED", "DRAFT", name="job_status_enum"),
-        nullable=False,
-        default="ACTIVE",
-    )
-
-    # Core Skill
-    mandatory_skill = Column(String(500), nullable=True) # Supporting text for multiple skills
-
 
     # ── Timestamps ────────────────────────────────────────────
     created_at = Column(DateTime, nullable=False, server_default=func.now())
@@ -92,7 +83,24 @@ class JobRequirement(Base):
     max_experience = Column(Integer, nullable=True, default=0)
     location = Column(String(255), nullable=True)
     required_skills = Column(Text, nullable=True) # Stored as JSON string
-    num_candidates = Column(Integer, nullable=False)
+    number_of_open_positions = Column(Integer, nullable=False)
+
+    # Status of the requirement
+    status = Column(
+        SAEnum("ACTIVE", "ON_HOLD", "CLOSED", "DRAFT", name="job_status_enum"),
+        nullable=False,
+        default="ACTIVE",
+    )
+
+    # Core Skill
+    mandatory_skill = Column(String(500), nullable=True) # Supporting text for multiple skills
+
+    # Additional Requirement Details
+    notice_period = Column(String(50), nullable=True)
+    qualification = Column(String(100), nullable=True)
+    shifts = Column(String(100), nullable=True)
+    work_mode = Column(String(50), nullable=True)
+    job_description = Column(String(255), nullable=True)
 
     # ── Timestamps ────────────────────────────────────────────
     created_at = Column(DateTime, nullable=True, server_default=func.now())

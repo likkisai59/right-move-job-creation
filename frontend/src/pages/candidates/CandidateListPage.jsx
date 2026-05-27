@@ -11,7 +11,7 @@ const CandidateListPage = () => {
   const navigate = useNavigate();
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ search: '', businessCategory: '', skills: '', totalExperience: '', noticePeriod: '' });
+  const [filters, setFilters] = useState({ search: '', businessUnit: '', skills: '', currentLocation: '', noticePeriod: '' });
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const exportRef = React.useRef(null);
@@ -64,9 +64,9 @@ const CandidateListPage = () => {
     try {
       const params = new URLSearchParams();
       if (filters.search) params.append('search', filters.search);
-      if (filters.businessCategory) params.append('business_category', filters.businessCategory);
+      if (filters.businessUnit) params.append('business_unit', filters.businessUnit);
       if (filters.skills) params.append('skills', filters.skills);
-      if (filters.totalExperience) params.append('total_experience', filters.totalExperience);
+      if (filters.currentLocation) params.append('current_location', filters.currentLocation);
       if (filters.noticePeriod) params.append('notice_period', filters.noticePeriod);
       params.append('format', format);
 
@@ -147,7 +147,7 @@ const CandidateListPage = () => {
           <CandidateFilters
             filters={filters}
             onChange={setFilters}
-            onClear={() => setFilters({ search: '', businessCategory: '', skills: '', totalExperience: '', noticePeriod: '' })}
+            onClear={() => setFilters({ search: '', businessUnit: '', skills: '', currentLocation: '', noticePeriod: '' })}
           />
         </div>
 
