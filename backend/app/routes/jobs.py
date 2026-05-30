@@ -154,6 +154,8 @@ def list_jobs(
     end_date: Optional[date] = Query(None, description="Filter jobs up to this date (YYYY-MM-DD)"),
     status_filter: Optional[str] = Query(None, alias="status", description="Filter by status: ACTIVE, CLOSED, ON_HOLD"),
     business_unit: Optional[str] = Query(None, description="Filter by IT, ITSM, BPO"),
+    sort_by: Optional[str] = Query(None, description="Field to sort by"),
+    sort_order: Optional[str] = Query("desc", description="Sort order (asc or desc)"),
     skip: int = Query(0, description="Pagination skip"),
     limit: int = Query(1000, description="Pagination limit"),
     db: Session = Depends(get_db),
@@ -171,6 +173,8 @@ def list_jobs(
             end_date=end_date,
             status=status_filter,
             business_unit=business_unit,
+            sort_by=sort_by,
+            sort_order=sort_order,
             skip=skip,
             limit=limit
         )
@@ -211,6 +215,8 @@ def export_jobs(
     end_date:   Optional[date] = Query(None, description="Filter to date (YYYY-MM-DD)"),
     company:    Optional[str]  = Query(None, description="Partial match on company name"),
     status_filter: Optional[str] = Query(None, alias="status", description="ACTIVE | CLOSED | ON_HOLD"),
+    sort_by: Optional[str] = Query(None, description="Field to sort by"),
+    sort_order: Optional[str] = Query("desc", description="Sort order (asc or desc)"),
     format:     str            = Query("csv",  description="csv or excel"),
     db: Session = Depends(get_db),
 ):
@@ -225,6 +231,8 @@ def export_jobs(
         end_date=end_date,
         company=company,
         status=status_filter,
+        sort_by=sort_by,
+        sort_order=sort_order,
     )
 
     # ── 2. Flatten ORM objects → list of plain dicts ────────────

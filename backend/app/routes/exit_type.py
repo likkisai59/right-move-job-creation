@@ -12,7 +12,12 @@ from app.utils.response import success_response, error_response
 router = APIRouter(prefix="/api/exit-types", tags=["Exit Types"])
 
 @router.get("", response_model=List[ExitTypeResponse])
-def get_exit_types(active_only: Optional[bool] = None, db: Session = Depends(get_db)):
+def get_exit_types(
+    active_only: Optional[bool] = None, 
+    sort_by: Optional[str] = None, 
+    sort_order: Optional[str] = "asc", 
+    db: Session = Depends(get_db)
+):
     """
     Get all exit types.
     Optionally filter by active status.
@@ -22,7 +27,8 @@ def get_exit_types(active_only: Optional[bool] = None, db: Session = Depends(get
         if active_only is not None:
             query = query.filter(ExitType.is_active == active_only)
         
-        exit_types = query.order_by(ExitType.name.asc()).all()
+        from app.utils.sorting import apply_sorting
+        exit_types = apply_sorting(query, ExitType, sort_by, sort_order, ExitType.name).all()
         
         # Serialize
         data = [ExitTypeResponse.model_validate(d).model_dump() for d in exit_types]

@@ -103,6 +103,8 @@ export const fetchJobs = async (params = {}) => {
   if (params.businessUnit && params.businessUnit !== 'All') {
     queryParams.business_unit = params.businessUnit;
   }
+  if (params.sortField) queryParams.sort_by = params.sortField;
+  if (params.sortOrder) queryParams.sort_order = params.sortOrder;
 
   const response = await api.get('/jobs', { params: queryParams });
 

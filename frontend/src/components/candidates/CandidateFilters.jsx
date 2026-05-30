@@ -2,6 +2,20 @@ import React from 'react';
 import { Search } from 'lucide-react';
 import Input from '../common/Input';
 import Button from '../common/Button';
+import SortBy from '../common/SortBy';
+
+const SORT_OPTIONS = [
+  { label: 'Candidate ID Ascending', value: 'candidate_code:asc' },
+  { label: 'Candidate ID Descending', value: 'candidate_code:desc' },
+  { label: 'Full Name (A-Z)', value: 'first_name:asc' },
+  { label: 'Full Name (Z-A)', value: 'first_name:desc' },
+  { label: 'Experience (Low to High)', value: 'total_experience:asc' },
+  { label: 'Experience (High to Low)', value: 'total_experience:desc' },
+  { label: 'Notice Period (A-Z)', value: 'notice_period:asc' },
+  { label: 'Location (A-Z)', value: 'current_location:asc' },
+  { label: 'Created Date (Newest)', value: 'created_at:desc' },
+  { label: 'Created Date (Oldest)', value: 'created_at:asc' },
+];
 
 const BUSINESS_UNIT_FILTER_OPTIONS = [
   { value: '', label: 'All Units' },
@@ -82,6 +96,14 @@ const CandidateFilters = ({ filters, onChange, onClear }) => {
           </option>
         ))}
       </select>
+
+      {/* Sort By Dropdown */}
+      <SortBy
+        options={SORT_OPTIONS}
+        sortField={filters.sortField}
+        sortOrder={filters.sortOrder}
+        onChange={({ sortField, sortOrder }) => onChange({ ...filters, sortField, sortOrder })}
+      />
 
       {/* Clear Filters */}
       {hasFilters && (

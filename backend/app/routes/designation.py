@@ -13,7 +13,12 @@ from app.utils.response import success_response, error_response
 router = APIRouter(prefix="/api/designations", tags=["Designations"])
 
 @router.get("", response_model=List[DesignationResponse])
-def get_designations(active_only: Optional[bool] = None, db: Session = Depends(get_db)):
+def get_designations(
+    active_only: Optional[bool] = None, 
+    sort_by: Optional[str] = None, 
+    sort_order: Optional[str] = "asc", 
+    db: Session = Depends(get_db)
+):
     """
     Get all designations.
     Optionally filter by active status.
@@ -23,7 +28,8 @@ def get_designations(active_only: Optional[bool] = None, db: Session = Depends(g
         if active_only is not None:
             query = query.filter(Designation.is_active == active_only)
         
-        designations = query.order_by(Designation.name.asc()).all()
+        from app.utils.sorting import apply_sorting
+        designations = apply_sorting(query, Designation, sort_by, sort_order, Designation.name).all()
         
         # Serialize
         data = [DesignationResponse.model_validate(d).model_dump() for d in designations]

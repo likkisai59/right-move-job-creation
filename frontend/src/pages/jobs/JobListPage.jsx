@@ -11,7 +11,7 @@ const JobListPage = () => {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ company: '', startDate: '', endDate: '', status: '' });
+  const [filters, setFilters] = useState({ company: '', startDate: '', endDate: '', status: '', sortField: '', sortOrder: 'desc' });
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const exportRef = useRef(null);
@@ -56,7 +56,7 @@ const JobListPage = () => {
   };
 
   const handleFilterClear = () => {
-    setFilters({ company: '', startDate: '', endDate: '', status: '' });
+    setFilters({ company: '', startDate: '', endDate: '', status: '', sortField: '', sortOrder: 'desc' });
   };
 
   const handleExport = async (format) => {
@@ -69,6 +69,8 @@ const JobListPage = () => {
       if (filters.startDate) params.append('start_date', filters.startDate);
       if (filters.endDate) params.append('end_date', filters.endDate);
       if (filters.status) params.append('status', filters.status);
+      if (filters.sortField) params.append('sort_by', filters.sortField);
+      if (filters.sortOrder) params.append('sort_order', filters.sortOrder);
       params.append('format', format);
 
       const response = await fetch(

@@ -102,7 +102,9 @@ def get_all_employees(
     designation: Optional[str] = None,
     min_package: Optional[float] = None,
     max_package: Optional[float] = None,
-    blood_group: Optional[str] = None
+    blood_group: Optional[str] = None,
+    sort_by: Optional[str] = None,
+    sort_order: Optional[str] = "desc"
 ) -> List[Employee]:
     """
     Fetches all employees with optional search and filters.
@@ -135,8 +137,9 @@ def get_all_employees(
     if blood_group:
         query = query.filter(Employee.blood_group == blood_group)
 
-    # Sort newest first by primary key
-    return query.order_by(Employee.id.desc()).all()
+    from app.utils.sorting import apply_sorting
+    query = apply_sorting(query, Employee, sort_by, sort_order, Employee.id)
+    return query.all()
 
 import openpyxl
 from io import BytesIO

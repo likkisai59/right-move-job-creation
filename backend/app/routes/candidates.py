@@ -304,6 +304,8 @@ def list_candidates(
     current_location: Optional[str] = Query(None, description="Partial matching on current location"),
     business_unit: Optional[str] = Query(None, description="Filter by business unit"),
     notice_period: Optional[str] = Query(None, description="Filter by notice period"),
+    sort_by: Optional[str] = Query(None, description="Field to sort by"),
+    sort_order: Optional[str] = Query("desc", description="Sort order (asc or desc)"),
     skip: int = Query(0, description="Pagination skip"),
     limit: int = Query(1000, description="Pagination limit"),
     db: Session = Depends(get_db)
@@ -311,7 +313,7 @@ def list_candidates(
     try:
         candidates = get_all_candidates(
             db, search, candidate_code, skills, total_experience,
-            current_location, business_unit, notice_period, skip, limit
+            current_location, business_unit, notice_period, sort_by, sort_order, skip, limit
         )
         data = [CandidateResponse.model_validate(c).model_dump(mode="json") for c in candidates]
         return JSONResponse(status_code=200, content=success_response("Candidates fetched successfully", data))
@@ -327,13 +329,16 @@ def export_candidates(
     total_experience: Optional[str] = Query(None),
     business_unit: Optional[str] = Query(None),
     notice_period: Optional[str] = Query(None),
+    sort_by: Optional[str] = Query(None),
+    sort_order: Optional[str] = Query("desc"),
     format: str = Query("csv", description="csv or excel"),
     db: Session = Depends(get_db)
 ):
     candidates_orm = get_all_candidates(
         db=db, search=search, skills=skills,
         total_experience=total_experience,
-        business_unit=business_unit, notice_period=notice_period
+        business_unit=business_unit, notice_period=notice_period,
+        sort_by=sort_by, sort_order=sort_order, limit=None
     )
 
     HEADERS = [

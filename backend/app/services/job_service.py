@@ -79,6 +79,8 @@ def get_all_jobs(
     end_date: Optional[date] = None,
     status: Optional[str] = None,
     business_unit: Optional[str] = None,
+    sort_by: Optional[str] = None,
+    sort_order: Optional[str] = "desc",
     skip: int = 0,
     limit: Optional[int] = 1000,
 ) -> List[Job]:
@@ -113,7 +115,9 @@ def get_all_jobs(
     if business_unit and business_unit.upper() != "ALL":
         query = query.filter(Job.business_unit == business_unit.upper())
 
-    query = query.order_by(Job.created_at.desc())
+    from app.utils.sorting import apply_sorting
+    query = apply_sorting(query, Job, sort_by, sort_order, Job.created_at)
+    
     if limit is not None:
         query = query.offset(skip).limit(limit)
     return query.all()
@@ -129,6 +133,8 @@ def get_filtered_jobs_for_export(
     end_date: Optional[date] = None,
     company: Optional[str] = None,
     status: Optional[str] = None,
+    sort_by: Optional[str] = None,
+    sort_order: Optional[str] = "desc",
 ) -> List[Job]:
     """
     Returns filtered jobs for export (CSV / Excel).
@@ -148,7 +154,9 @@ def get_filtered_jobs_for_export(
     if status:
         query = query.filter(Job.status == status.strip().upper())
 
-    return query.order_by(Job.created_at.desc()).all()
+    from app.utils.sorting import apply_sorting
+    query = apply_sorting(query, Job, sort_by, sort_order, Job.created_at)
+    return query.all()
 
 
 # ─────────────────────────────────────────────────────────────

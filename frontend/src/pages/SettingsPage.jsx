@@ -3,6 +3,7 @@ import PageContainer from '../components/layout/PageContainer';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
+import SortBy from '../components/common/SortBy';
 import {
   Settings,
   Briefcase,
@@ -66,6 +67,8 @@ const SettingsPage = () => {
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sortField, setSortField] = useState('id');
+  const [sortOrder, setSortOrder] = useState('asc');
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
@@ -84,7 +87,10 @@ const SettingsPage = () => {
     setError(null);
     const api = getApiHelpers(activeTab);
     try {
-      const res = await api.fetch();
+      const params = {};
+      if (sortField) params.sort_by = sortField;
+      if (sortOrder) params.sort_order = sortOrder;
+      const res = await api.fetch(params);
       if (res.success) {
         setItems(res.data);
       } else {
@@ -103,7 +109,7 @@ const SettingsPage = () => {
     setEditingId(null);
     loadItems();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [activeTab, sortField, sortOrder]);
 
   // Show success alert temporarily
   const triggerSuccess = (msg) => {
@@ -291,9 +297,26 @@ const SettingsPage = () => {
               <Card className="overflow-hidden relative z-0">
                 <div className="p-5 border-b border-gray-50 flex items-center justify-between">
                   <h3 className="text-sm font-bold text-gray-800">Existing {currentApi.entityLabel}s</h3>
-                  <span className="text-xs font-bold text-gray-400 bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
-                    Total: {items.length}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <SortBy
+                      options={[
+                        { label: 'Name (A-Z)', value: 'name:asc' },
+                        { label: 'Name (Z-A)', value: 'name:desc' },
+                        { label: `${currentApi.entityLabel} ID Ascending`, value: 'id:asc' },
+                        { label: `${currentApi.entityLabel} ID Descending`, value: 'id:desc' },
+                      ]}
+                      sortField={sortField}
+                      sortOrder={sortOrder}
+                      onChange={(val) => {
+                        setSortField(val.sortField);
+                        setSortOrder(val.sortOrder);
+                      }}
+                      className="w-48"
+                    />
+                    <span className="text-xs font-bold text-gray-400 bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
+                      Total: {items.length}
+                    </span>
+                  </div>
                 </div>
 
                 {loading ? (

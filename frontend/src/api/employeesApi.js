@@ -151,7 +151,17 @@ export const uploadEmployeeFile = async (file) => {
 // 1. GET ALL
 export const fetchEmployees = async (params = {}) => {
   // params might contain { search: "John", status: "Active" }
-  const response = await api.get('/employees', { params });
+  const queryParams = { ...params };
+  if (params.sortField) {
+    queryParams.sort_by = params.sortField;
+    delete queryParams.sortField;
+  }
+  if (params.sortOrder) {
+    queryParams.sort_order = params.sortOrder;
+    delete queryParams.sortOrder;
+  }
+
+  const response = await api.get('/employees', { params: queryParams });
   
   return {
     ...response.data,

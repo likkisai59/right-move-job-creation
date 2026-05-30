@@ -47,11 +47,18 @@ def mark_employee_attendance(db: Session, employee_id: int, payload: AttendanceC
     db.refresh(new_record)
     return new_record
 
-def get_employee_attendance_history(db: Session, employee_id: int) -> List[Attendance]:
+def get_employee_attendance_history(
+    db: Session, 
+    employee_id: int,
+    sort_by: Optional[str] = None,
+    sort_order: Optional[str] = "desc"
+) -> List[Attendance]:
     """
     Fetch all attendance records for an employee.
     """
-    return db.query(Attendance).filter(Attendance.employee_id == employee_id).all()
+    query = db.query(Attendance).filter(Attendance.employee_id == employee_id)
+    from app.utils.sorting import apply_sorting
+    return apply_sorting(query, Attendance, sort_by, sort_order, Attendance.attendance_date).all()
 
 def get_employee_shift_records(db: Session, employee_id: int) -> List[Shift]:
     """

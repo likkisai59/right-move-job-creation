@@ -29,7 +29,9 @@ def get_all_organizations(
     status: Optional[str] = None, 
     search: Optional[str] = None,
     start_date: Optional[str] = None,
-    end_date: Optional[str] = None
+    end_date: Optional[str] = None,
+    sort_by: Optional[str] = None,
+    sort_order: Optional[str] = "desc"
 ) -> List[Organization]:
     # Part 5: Filter by is_active = 1
     query = db.query(Organization).filter(Organization.is_active == 1)
@@ -47,7 +49,10 @@ def get_all_organizations(
     if end_date:
         query = query.filter(Organization.contract_end_date <= end_date)
         
-    return query.order_by(Organization.organization_name.asc()).all()
+    from app.utils.sorting import apply_sorting
+    query = apply_sorting(query, Organization, sort_by, sort_order, Organization.organization_name)
+    
+    return query.all()
 
 
 def export_organizations_to_excel(organizations: List[Organization]) -> BytesIO:

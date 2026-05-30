@@ -62,6 +62,8 @@ export const fetchCandidates = async (params = {}) => {
     queryParams.business_unit = params.businessUnit;
   }
   if (params.noticePeriod) queryParams.notice_period = params.noticePeriod;
+  if (params.sortField) queryParams.sort_by = params.sortField;
+  if (params.sortOrder) queryParams.sort_order = params.sortOrder;
 
   const response = await api.get('/candidates', { params: queryParams });
   return { data: response.data.data.map(mapToFrontend) };

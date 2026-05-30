@@ -83,7 +83,7 @@ class JobRequirement(Base):
     max_experience = Column(Integer, nullable=True, default=0)
     location = Column(String(255), nullable=True)
     required_skills = Column(Text, nullable=True) # Stored as JSON string
-    number_of_open_positions = Column(Integer, nullable=False)
+    number_of_open_positions = Column('num_candidates', Integer, nullable=False)
 
     # Status of the requirement
     status = Column(

@@ -117,6 +117,8 @@ def get_all_candidates(
     current_location: Optional[str] = None,
     business_unit: Optional[str] = None,
     notice_period: Optional[str] = None,
+    sort_by: Optional[str] = None,
+    sort_order: Optional[str] = "desc",
     skip: int = 0,
     limit: Optional[int] = 1000,
 ) -> List[Candidate]:
@@ -148,7 +150,8 @@ def get_all_candidates(
     if business_unit and business_unit.upper() != "ALL":
         query = query.filter(Candidate.business_unit.ilike(business_unit.strip()))
 
-    query = query.order_by(Candidate.created_at.desc())
+    from app.utils.sorting import apply_sorting
+    query = apply_sorting(query, Candidate, sort_by, sort_order, Candidate.created_at)
     if limit is not None:
         query = query.offset(skip).limit(limit)
     return query.all()

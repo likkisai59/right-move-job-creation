@@ -63,10 +63,12 @@ def list_organizations(
     search: Optional[str] = Query(None),
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),
+    sort_by: Optional[str] = Query(None),
+    sort_order: Optional[str] = Query("desc"),
     db: Session = Depends(get_db)
 ):
     try:
-        orgs = get_all_organizations(db, status, search, start_date, end_date)
+        orgs = get_all_organizations(db, status, search, start_date, end_date, sort_by, sort_order)
         data = [OrganizationResponse.model_validate(o).model_dump(mode="json") for o in orgs]
         return JSONResponse(
             status_code=200,
@@ -81,10 +83,12 @@ def export_organizations(
     search: Optional[str] = Query(None),
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),
+    sort_by: Optional[str] = Query(None),
+    sort_order: Optional[str] = Query("desc"),
     db: Session = Depends(get_db)
 ):
     try:
-        orgs = get_all_organizations(db, status, search, start_date, end_date)
+        orgs = get_all_organizations(db, status, search, start_date, end_date, sort_by, sort_order)
         output = export_organizations_to_excel(orgs)
         
         filename = f"organizations_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"

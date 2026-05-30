@@ -4,6 +4,7 @@ import { Plus, Search, AlertTriangle, Download, Filter } from 'lucide-react';
 import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
+import SortBy from '../../components/common/SortBy';
 import OrganizationTable from '../../components/organizations/OrganizationTable';
 import { fetchOrganizations, deleteOrganization } from '../../api/organizationsApi';
 import api from '../../api/axios';
@@ -15,6 +16,17 @@ const OrganizationListPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [sortField, setSortField] = useState('');
+  const [sortOrder, setSortOrder] = useState('desc');
+
+  const SORT_OPTIONS = [
+    { label: 'Organization Name (A-Z)', value: 'organization_name:asc' },
+    { label: 'Organization Name (Z-A)', value: 'organization_name:desc' },
+    { label: 'Organization ID Ascending', value: 'organization_id:asc' },
+    { label: 'Organization ID Descending', value: 'organization_id:desc' },
+    { label: 'Created Date (Newest)', value: 'created_at:desc' },
+    { label: 'Created Date (Oldest)', value: 'created_at:asc' },
+  ];
 
   const loadOrganizations = async (search = '', start = '', end = '') => {
     setLoading(true);
@@ -22,7 +34,9 @@ const OrganizationListPage = () => {
       const response = await fetchOrganizations({ 
         search: search.trim(),
         start_date: start,
-        end_date: end
+        end_date: end,
+        sortField,
+        sortOrder
       });
       setOrganizations(response.data || []);
     } catch (error) {
@@ -58,7 +72,7 @@ const OrganizationListPage = () => {
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, startDate, endDate]);
+  }, [searchTerm, startDate, endDate, sortField, sortOrder]);
 
   const handleExport = async () => {
     try {
@@ -66,7 +80,9 @@ const OrganizationListPage = () => {
         params: {
           search: searchTerm.trim(),
           start_date: startDate,
-          end_date: endDate
+          end_date: endDate,
+          sort_by: sortField,
+          sort_order: sortOrder
         },
         responseType: 'blob'
       });
@@ -167,6 +183,19 @@ const OrganizationListPage = () => {
             />
           </div>
 
+          <div className="w-full md:w-56 mb-1">
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-1 mb-1.5">
+              Sort By
+            </label>
+            <SortBy
+              options={SORT_OPTIONS}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              onChange={(val) => { setSortField(val.sortField); setSortOrder(val.sortOrder); }}
+              className="w-full"
+            />
+          </div>
+
           <Button 
             variant="secondary" 
             size="md" 
@@ -174,6 +203,8 @@ const OrganizationListPage = () => {
               setSearchTerm('');
               setStartDate('');
               setEndDate('');
+              setSortField('');
+              setSortOrder('desc');
             }}
           >
             Clear
