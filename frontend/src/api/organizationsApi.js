@@ -20,6 +20,18 @@ export const createOrganization = async (data) => {
     return { data: response.data.data };
 };
 
+// ── POST /api/organizations/upload ───────────────────────────────────
+export const uploadOrganizationContract = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/organizations/upload', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
+    return response.data;
+};
+
 // ── PUT /api/organizations/{id} ──────────────────────────────────────
 export const updateOrganization = async (id, data) => {
     const response = await api.put(`/organizations/${id}`, data);

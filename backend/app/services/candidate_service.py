@@ -117,6 +117,8 @@ def get_all_candidates(
     current_location: Optional[str] = None,
     business_unit: Optional[str] = None,
     notice_period: Optional[str] = None,
+    skip: int = 0,
+    limit: Optional[int] = 1000,
 ) -> List[Candidate]:
     query = db.query(Candidate)
 
@@ -146,7 +148,10 @@ def get_all_candidates(
     if business_unit and business_unit.upper() != "ALL":
         query = query.filter(Candidate.business_unit.ilike(business_unit.strip()))
 
-    return query.order_by(Candidate.created_at.desc()).all()
+    query = query.order_by(Candidate.created_at.desc())
+    if limit is not None:
+        query = query.offset(skip).limit(limit)
+    return query.all()
 
 
 def get_candidate_by_id(db: Session, candidate_id: int) -> Optional[Candidate]:

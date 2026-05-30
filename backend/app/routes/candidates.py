@@ -4,7 +4,10 @@ import csv
 import io
 import json
 import openpyxl
+import logging
 from datetime import datetime, date
+
+logger = logging.getLogger(__name__)
 from fastapi import APIRouter, Depends, status, Query, File, UploadFile, Form
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
@@ -62,7 +65,8 @@ async def parse_resume_endpoint(file: UploadFile = File(...)):
         data = await parse_resume_content(file)
         return JSONResponse(status_code=200, content={"success": True, "data": data})
     except Exception as exc:
-        return JSONResponse(status_code=500, content={"success": False, "message": str(exc)})
+        logger.error(f"Error parsing resume: {exc}", exc_info=True)
+        return JSONResponse(status_code=500, content={"success": False, "message": "An internal error occurred while parsing the resume."})
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -174,9 +178,8 @@ async def add_candidate(
         return JSONResponse(status_code=400, content=error_response(message))
     except Exception as exc:
         db.rollback()
-        import traceback
-        traceback.print_exc()
-        return JSONResponse(status_code=500, content=error_response(str(exc)))
+        logger.error(f"Error creating candidate: {exc}", exc_info=True)
+        return JSONResponse(status_code=500, content=error_response("An internal server error occurred."))
 
 
 @router.put("/{candidate_id}", status_code=status.HTTP_200_OK)
@@ -288,9 +291,8 @@ async def edit_candidate(
         return JSONResponse(status_code=400, content=error_response(message))
     except Exception as exc:
         db.rollback()
-        import traceback
-        traceback.print_exc()
-        return JSONResponse(status_code=500, content=error_response(str(exc)))
+        logger.error(f"Error updating candidate: {exc}", exc_info=True)
+        return JSONResponse(status_code=500, content=error_response("An internal server error occurred."))
 
 
 @router.get("", status_code=status.HTTP_200_OK)
@@ -302,19 +304,20 @@ def list_candidates(
     current_location: Optional[str] = Query(None, description="Partial matching on current location"),
     business_unit: Optional[str] = Query(None, description="Filter by business unit"),
     notice_period: Optional[str] = Query(None, description="Filter by notice period"),
+    skip: int = Query(0, description="Pagination skip"),
+    limit: int = Query(1000, description="Pagination limit"),
     db: Session = Depends(get_db)
 ):
     try:
         candidates = get_all_candidates(
             db, search, candidate_code, skills, total_experience,
-            current_location, business_unit, notice_period
+            current_location, business_unit, notice_period, skip, limit
         )
         data = [CandidateResponse.model_validate(c).model_dump(mode="json") for c in candidates]
         return JSONResponse(status_code=200, content=success_response("Candidates fetched successfully", data))
     except Exception as exc:
-        import traceback
-        traceback.print_exc()
-        return JSONResponse(status_code=500, content=error_response(str(exc)))
+        logger.error(f"Error listing candidates: {exc}", exc_info=True)
+        return JSONResponse(status_code=500, content=error_response("An internal server error occurred while fetching candidates."))
 
 
 @router.get("/export", summary="Export Candidates")
@@ -429,7 +432,8 @@ def get_edit_history(candidate_id: int, db: Session = Depends(get_db)):
             })
         return JSONResponse(status_code=200, content=success_response("Edit history fetched", data))
     except Exception as exc:
-        return JSONResponse(status_code=500, content=error_response(str(exc)))
+        logger.error(f"Error fetching candidate history: {exc}", exc_info=True)
+        return JSONResponse(status_code=500, content=error_response("An internal server error occurred while fetching history."))
 
 
 @router.get("/{candidate_id}", status_code=status.HTTP_200_OK)
@@ -441,7 +445,8 @@ def get_candidate(candidate_id: int, db: Session = Depends(get_db)):
         data = CandidateResponse.model_validate(candidate).model_dump(mode="json")
         return JSONResponse(status_code=200, content=success_response("Candidate fetched successfully", data))
     except Exception as exc:
-        return JSONResponse(status_code=500, content=error_response(str(exc)))
+        logger.error(f"Error fetching candidate: {exc}", exc_info=True)
+        return JSONResponse(status_code=500, content=error_response("An internal server error occurred while fetching the candidate."))
 
 
 @router.delete("/{candidate_id}", status_code=status.HTTP_200_OK)
@@ -453,4 +458,5 @@ def remove_candidate(candidate_id: int, db: Session = Depends(get_db)):
         return JSONResponse(status_code=200, content=success_response("Candidate deleted successfully"))
     except Exception as exc:
         db.rollback()
-        return JSONResponse(status_code=500, content=error_response(str(exc)))
+        logger.error(f"Error deleting candidate: {exc}", exc_info=True)
+        return JSONResponse(status_code=500, content=error_response("An internal server error occurred while deleting the candidate."))

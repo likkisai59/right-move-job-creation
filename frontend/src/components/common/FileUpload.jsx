@@ -1,8 +1,8 @@
 import React, { useRef, useState, useCallback } from 'react';
-import { Upload, X, FileText, CheckCircle } from 'lucide-react';
+import { Upload, X, FileText, CheckCircle, Eye } from 'lucide-react';
 import { ALLOWED_RESUME_TYPES, MAX_RESUME_SIZE_MB } from '../../utils/constants';
 
-const FileUpload = ({ onFileSelect, accept, maxSizeMB = MAX_RESUME_SIZE_MB, value }) => {
+const FileUpload = ({ onFileSelect, accept, maxSizeMB = MAX_RESUME_SIZE_MB, value, title = "Drag & drop your file here", subtitle = "or click to browse" }) => {
   const inputRef = useRef(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [error, setError] = useState('');
@@ -114,14 +114,28 @@ const FileUpload = ({ onFileSelect, accept, maxSizeMB = MAX_RESUME_SIZE_MB, valu
                 {(value.size / 1024).toFixed(1)} KB
               </span>
             )}
-            <button
-              type="button"
-              onClick={handleRemove}
-              className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 mt-1"
-            >
-              <X size={12} />
-              Remove file
-            </button>
+            <div className="flex items-center gap-3 mt-1">
+              {value.url && (
+                <a
+                  href={value.url.startsWith('http') ? value.url : `${import.meta.env.VITE_API_BASE_URL ? import.meta.env.VITE_API_BASE_URL.replace('/api', '') : 'http://localhost:8000'}${value.url.startsWith('/') ? '' : '/'}${value.url}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-xs font-medium text-blue-500 hover:text-blue-700 bg-blue-50 px-2 py-1 rounded"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Eye size={12} />
+                  View/Download
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={handleRemove}
+                className="flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-700 bg-red-50 px-2 py-1 rounded"
+              >
+                <X size={12} />
+                Remove
+              </button>
+            </div>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-3 text-center">
@@ -138,10 +152,10 @@ const FileUpload = ({ onFileSelect, accept, maxSizeMB = MAX_RESUME_SIZE_MB, valu
             </div>
             <div>
               <p className="text-sm font-medium text-gray-700">
-                Drag & drop your resume here
+                {title}
               </p>
               <p className="text-xs text-gray-400 mt-1">
-                or click to browse · PDF, DOC, DOCX (Max {maxSizeMB}MB)
+                {subtitle} · PDF, DOC, DOCX (Max {maxSizeMB}MB)
               </p>
             </div>
           </div>

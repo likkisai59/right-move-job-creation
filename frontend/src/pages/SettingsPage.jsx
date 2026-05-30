@@ -13,11 +13,13 @@ import {
   Check,
   Shield,
   Sliders,
-  Activity
+  Activity,
+  LogOut
 } from 'lucide-react';
 import { fetchDesignations, createDesignation, updateDesignation } from '../api/designationsApi';
 import { fetchBusinessUnits, createBusinessUnit, updateBusinessUnit } from '../api/businessUnitsApi';
 import { fetchWorkModes, createWorkMode, updateWorkMode } from '../api/workModesApi';
+import { fetchExitTypes, createExitType, updateExitType } from '../api/exitTypesApi';
 
 const getApiHelpers = (tab) => {
   switch (tab) {
@@ -36,6 +38,14 @@ const getApiHelpers = (tab) => {
         update: updateWorkMode,
         entityLabel: 'Work Mode',
         placeholder: 'e.g. WFH, Office, Hybrid...'
+      };
+    case 'exit_types':
+      return {
+        fetch: fetchExitTypes,
+        create: createExitType,
+        update: updateExitType,
+        entityLabel: 'Exit Type',
+        placeholder: 'e.g. Resignation, Termination...'
       };
     case 'designations':
     default:
@@ -65,6 +75,7 @@ const SettingsPage = () => {
     { id: 'designations', label: 'Designations', icon: Briefcase, active: true },
     { id: 'business_units', label: 'Business Unit', icon: Sliders, active: true },
     { id: 'work_modes', label: 'Work Mode', icon: Activity, active: true },
+    { id: 'exit_types', label: 'Exit Type', icon: LogOut, active: true },
   ];
 
   // Fetch items for current active tab
@@ -91,6 +102,7 @@ const SettingsPage = () => {
     setNewItemName('');
     setEditingId(null);
     loadItems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   // Show success alert temporarily

@@ -120,7 +120,7 @@ export const fetchJobById = async (id) => {
 // ── POST /api/jobs ────────────────────────────────────────────
 export const createJob = async (formData) => {
   const payload = mapToBackend(formData);
-  console.log('Final Job Payload:', payload);
+
   try {
     const response = await api.post('/jobs', payload);
     return { data: mapToFrontend(response.data.data) };

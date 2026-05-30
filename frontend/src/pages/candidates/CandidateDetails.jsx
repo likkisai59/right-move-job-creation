@@ -9,10 +9,10 @@ import {
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
 
-const DetailItem = ({ icon: Icon, label, value, iconColor = "text-gray-600" }) => (
+const DetailItem = ({ icon: IconComponent, label, value, iconColor = "text-gray-600" }) => (
   <div className="flex items-center gap-4 group p-2 rounded-xl hover:bg-gray-50/50 transition-all duration-200">
     <div className={`w-11 h-11 rounded-xl bg-gray-50 flex items-center justify-center ${iconColor} shadow-sm group-hover:scale-110 transition-transform`}>
-      <Icon size={20} strokeWidth={2.5} />
+      <IconComponent size={20} strokeWidth={2.5} />
     </div>
     <div className="flex-1 min-w-0">
       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] mb-1">
@@ -144,7 +144,8 @@ const CandidateDetails = () => {
         try {
           const { data: histData } = await fetchCandidateHistory(id);
           setHistory(histData || []);
-        } catch (_) {
+        } catch (error) {
+          console.error('Failed to load candidate history:', error);
           setHistory([]);
         }
       } catch (error) {

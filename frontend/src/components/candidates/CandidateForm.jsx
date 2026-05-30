@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { Plus, Trash2, Lock, AlertTriangle, CheckCircle } from 'lucide-react';
 import Input from '../common/Input';
@@ -102,6 +102,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
   const [parseMessage, setParseMessage] = useState({ type: '', text: '' });
   const [parseConfidence, setParseConfidence] = useState(null);
   const publicForm = isPublicForm();
+  const personalDetailsRef = useRef(null);
 
   const totalExperience = watch('totalExperience');
   const noticePeriod = watch('noticePeriod');
@@ -373,7 +374,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
     }
 
     setIsParsing(true);
-    setParseMessage({ type: 'info', text: 'Parsing resume...' });
+    setParseMessage({ type: 'info', text: 'Parsing Resume... Auto-filling candidate details...' });
 
     try {
       const response = await parseResume(file);
@@ -487,13 +488,19 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
         } else if (totalExtracted < 5) {
           setParseMessage({
             type: 'warning',
-            text: `Some fields could not be extracted. Please review and fill remaining details manually.`,
+            text: 'Some fields could not be extracted. Please review manually.',
           });
         } else {
           setParseMessage({
             type: 'success',
-            text: `Resume parsed successfully! ${filled} field${filled !== 1 ? 's' : ''} auto-filled.`,
+            text: 'Resume parsed successfully',
           });
+        }
+        
+        if (filled > 0 && personalDetailsRef.current) {
+          setTimeout(() => {
+            personalDetailsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 500);
         }
       } else {
         throw new Error(response?.message || 'Parse response invalid');
@@ -516,8 +523,51 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} noValidate>
 
-      {/* ── SECTION 1: Personal Details ── */}
-      <SectionTitle>Personal Details</SectionTitle>
+      {/* ── SECTION 1: Resume Upload ── */}
+      <SectionTitle>Resume Upload</SectionTitle>
+      <p className="text-sm text-gray-500 mb-4 -mt-3">Upload resume to auto-fill candidate details</p>
+      <div className="mb-8">
+        <FileUpload 
+          onFileSelect={handleResumeUpload} 
+          value={resumeFile} 
+          title="Drag & drop your resume here"
+          subtitle="or click to browse"
+        />
+        
+        {/* Parsing Status Indication */}
+        {parseMessage.text && (
+          <div className={`mt-3 p-3 rounded-lg flex items-center justify-between gap-2 text-sm font-medium animate-fade-in ${
+            parseMessage.type === 'info'    ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+            parseMessage.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+            parseMessage.type === 'warning' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+            'bg-red-50 text-red-700 border border-red-100'
+          }`}>
+            <div className="flex items-center gap-2">
+              {parseMessage.type === 'info' && (
+                <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin shrink-0" />
+              )}
+              {parseMessage.type === 'success' && <CheckCircle size={16} className="shrink-0" />}
+              {parseMessage.type === 'warning' && <AlertTriangle size={16} className="shrink-0" />}
+              {parseMessage.type === 'error' && <AlertTriangle size={16} className="shrink-0" />}
+              {parseMessage.text}
+            </div>
+            {parseConfidence !== null && parseMessage.type !== 'info' && (
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                parseConfidence >= 70 ? 'bg-emerald-100 text-emerald-700' :
+                parseConfidence >= 40 ? 'bg-amber-100 text-amber-700' :
+                'bg-red-100 text-red-600'
+              }`}>
+                {parseConfidence}% accuracy
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── SECTION 2: Personal Details ── */}
+      <div ref={personalDetailsRef} className="scroll-mt-6">
+        <SectionTitle>Personal Details</SectionTitle>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
 
         {/* Candidate ID — Fully locked, system-generated */}
@@ -984,41 +1034,6 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
             />
           )}
         />
-      </div>
-
-      {/* ── SECTION 5: Resume Upload ── */}
-      <SectionTitle>Resume Upload</SectionTitle>
-      <div className="mb-8">
-        <FileUpload onFileSelect={handleResumeUpload} value={resumeFile} />
-        
-        {/* Parsing Status Indication */}
-        {parseMessage.text && (
-          <div className={`mt-3 p-3 rounded-lg flex items-center justify-between gap-2 text-sm font-medium animate-fade-in ${
-            parseMessage.type === 'info'    ? 'bg-blue-50 text-blue-700 border border-blue-100' :
-            parseMessage.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-            parseMessage.type === 'warning' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-            'bg-red-50 text-red-700 border border-red-100'
-          }`}>
-            <div className="flex items-center gap-2">
-              {parseMessage.type === 'info' && (
-                <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin shrink-0" />
-              )}
-              {parseMessage.type === 'success' && <CheckCircle size={16} className="shrink-0" />}
-              {parseMessage.type === 'warning' && <AlertTriangle size={16} className="shrink-0" />}
-              {parseMessage.type === 'error' && <AlertTriangle size={16} className="shrink-0" />}
-              {parseMessage.text}
-            </div>
-            {parseConfidence !== null && parseMessage.type !== 'info' && (
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${
-                parseConfidence >= 70 ? 'bg-emerald-100 text-emerald-700' :
-                parseConfidence >= 40 ? 'bg-amber-100 text-amber-700' :
-                'bg-red-100 text-red-600'
-              }`}>
-                {parseConfidence}% accuracy
-              </span>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Actions */}

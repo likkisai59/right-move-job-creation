@@ -7,6 +7,7 @@ class OrganizationCreate(BaseModel):
     status: str = Field(default="active")
     contract_signed_date: Optional[date] = None
     contract_end_date: Optional[date] = None
+    contract_document_url: Optional[str] = None
     contact_number: Optional[str] = Field(None, pattern=r'^\d*$')
     country_code: Optional[str] = Field(None)
     band: Optional[str] = None
@@ -42,6 +43,7 @@ class OrganizationUpdate(BaseModel):
     status: Optional[str] = None
     contract_signed_date: Optional[date] = None
     contract_end_date: Optional[date] = None
+    contract_document_url: Optional[str] = None
     contact_number: Optional[str] = Field(None, pattern=r'^\d*$')
     country_code: Optional[str] = Field(None)
     band: Optional[str] = None
@@ -64,6 +66,7 @@ class OrganizationResponse(BaseModel):
     status: Optional[str] = None
     contract_signed_date: Optional[date] = None
     contract_end_date: Optional[date] = None
+    contract_document_url: Optional[str] = None
     contact_number: Optional[str] = None
     country_code: Optional[str] = None
     is_active: Optional[int] = None

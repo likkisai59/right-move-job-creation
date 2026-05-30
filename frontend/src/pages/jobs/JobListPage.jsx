@@ -37,9 +37,19 @@ const JobListPage = () => {
     }
   };
 
+  const [debouncedFilters, setDebouncedFilters] = useState(filters);
+
   useEffect(() => {
-    loadJobs(filters);
+    const timer = setTimeout(() => {
+      setDebouncedFilters(filters);
+    }, 500);
+    return () => clearTimeout(timer);
   }, [filters]);
+
+  useEffect(() => {
+    loadJobs(debouncedFilters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedFilters]);
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);

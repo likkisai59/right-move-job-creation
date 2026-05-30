@@ -16,9 +16,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 import os
+import logging
 
 from app.core.config import settings
 from app.core.database import engine, Base
+
+logger = logging.getLogger(__name__)
 
 # Import models so SQLAlchemy knows about them before create_all()
 from app.models import job_requirement  # noqa: F401
@@ -33,6 +36,7 @@ from app.models import leave as leave_model  # noqa: F401
 from app.models import designation  # noqa: F401
 from app.models import business_unit  # noqa: F401
 from app.models import work_mode  # noqa: F401
+from app.models import exit_type  # noqa: F401
 
 # Import routers
 from app.routes import jobs
@@ -44,7 +48,7 @@ from app.routes import attendance
 from app.routes import designation as designation_router
 from app.routes import business_unit as business_unit_router
 from app.routes import work_mode as work_mode_router
-
+from app.routes import exit_type as exit_type_router
 
 # ── Lifespan: runs once on startup ────────────────────────────
 @asynccontextmanager
@@ -54,13 +58,14 @@ async def lifespan(app: FastAPI):
     In production, replace with Alembic migrations.
     """
     Base.metadata.create_all(bind=engine)
-    print(f"[*] Database tables ready - {settings.APP_NAME} started")
+    logger.info(f"[*] Database tables ready - {settings.APP_NAME} started")
     
     # Auto-seed default designations, business units, and work modes if empty
     from app.core.database import SessionLocal
     from app.models.designation import Designation
     from app.models.business_unit import BusinessUnit
     from app.models.work_mode import WorkMode
+    from app.models.exit_type import ExitType
     
     db = SessionLocal()
     try:
@@ -74,7 +79,7 @@ async def lifespan(app: FastAPI):
             for name in initial_names:
                 db.add(Designation(name=name, is_active=True))
             db.commit()
-            print("✓ Seeded 10 default designations to database")
+            logger.info("✓ Seeded 10 default designations to database")
 
         # Seed Business Units
         if db.query(BusinessUnit).count() == 0:
@@ -82,7 +87,7 @@ async def lifespan(app: FastAPI):
             for name in initial_bu:
                 db.add(BusinessUnit(name=name, is_active=True))
             db.commit()
-            print("✓ Seeded default business units to database")
+            logger.info("✓ Seeded default business units to database")
 
         # Seed Work Modes
         if db.query(WorkMode).count() == 0:
@@ -90,11 +95,19 @@ async def lifespan(app: FastAPI):
             for name in initial_wm:
                 db.add(WorkMode(name=name, is_active=True))
             db.commit()
-            print("✓ Seeded default work modes to database")
+            logger.info("✓ Seeded default work modes to database")
+            
+        # Seed Exit Types
+        if db.query(ExitType).count() == 0:
+            initial_et = ['Resignation', 'Termination', 'Absconding', 'Retirement', 'Other']
+            for name in initial_et:
+                db.add(ExitType(name=name, is_active=True))
+            db.commit()
+            logger.info("✓ Seeded default exit types to database")
             
     except Exception as e:
         db.rollback()
-        print(f"⚠️ Warning: Failed to seed default data: {e}")
+        logger.warning(f"⚠️ Warning: Failed to seed default data: {e}")
     finally:
         db.close()
         
@@ -132,6 +145,7 @@ app.include_router(attendance.router)
 app.include_router(designation_router.router)
 app.include_router(business_unit_router.router)
 app.include_router(work_mode_router.router)
+app.include_router(exit_type_router.router)
 
 # ── Static Files ──────────────────────────────────────────────
 # Ensure uploads directory exists

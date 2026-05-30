@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { Save, AlertTriangle, Building2, Calendar, Phone, Mail, Plus, Trash2 } from 'lucide-react';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import Select from '../common/Select';
-import { checkDuplicateOrganization } from '../../api/organizationsApi';
+import FileUpload from '../common/FileUpload';
+import { checkDuplicateOrganization, uploadOrganizationContract } from '../../api/organizationsApi';
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
@@ -26,6 +27,7 @@ const COUNTRY_CODES = [
 
 const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
   const [warning, setWarning] = useState(false);
+  const [uploadingContract, setUploadingContract] = useState(false);
 
   const {
     register,
@@ -48,6 +50,7 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
       poc_country_code: initialData.poc_country_code || '+91',
       poc_contact: initialData.poc_contact || '',
       poc_email_id: initialData.poc_email_id || '',
+      contract_document_url: initialData.contract_document_url || '',
     },
     mode: 'onChange'
   });
@@ -76,6 +79,7 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
         poc_country_code: initialData.poc_country_code || '+91',
         poc_contact: initialData.poc_contact || '',
         poc_email_id: initialData.poc_email_id || '',
+        contract_document_url: initialData.contract_document_url || '',
       });
     }
   }, [JSON.stringify(initialData), reset]);
@@ -102,6 +106,27 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
       }
     } catch (err) {
       console.error('Duplicate check failed', err);
+    }
+  };
+
+  const handleContractUpload = async (file, onChange) => {
+    if (!file) {
+      onChange('');
+      return;
+    }
+    try {
+      setUploadingContract(true);
+      clearErrors('contract_document_url');
+      const res = await uploadOrganizationContract(file);
+      if (res && res.data && res.data.file_url) {
+        onChange(res.data.file_url);
+      } else {
+        setError('contract_document_url', { type: 'manual', message: 'Upload failed' });
+      }
+    } catch (err) {
+      setError('contract_document_url', { type: 'manual', message: 'Upload failed' });
+    } finally {
+      setUploadingContract(false);
     }
   };
 
@@ -321,6 +346,26 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
                     return new Date(value) > new Date(signedDate) || 'End date must be after signed date';
                   }
                 })}
+              />
+              <Controller
+                name="contract_document_url"
+                control={control}
+                render={({ field }) => (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Upload Contract
+                    </label>
+                    <FileUpload
+                      value={field.value ? { name: field.value.split('/').pop(), url: field.value } : null}
+                      accept=".pdf,.doc,.docx"
+                      title="Drag & drop your contract document here"
+                      subtitle="or click to browse"
+                      onFileSelect={(file) => handleContractUpload(file, field.onChange)}
+                    />
+                    {uploadingContract && <p className="text-sm text-blue-500 mt-2 font-medium">Uploading contract document...</p>}
+                    {errors.contract_document_url && <p className="text-sm text-red-500 mt-2">{errors.contract_document_url.message}</p>}
+                  </div>
+                )}
               />
             </div>
           </div>

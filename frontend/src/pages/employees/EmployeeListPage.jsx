@@ -70,6 +70,7 @@ const EmployeeListPage = () => {
 
   useEffect(() => {
     loadEmployees();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch, filters.status, filters.designation, filters.bloodGroup, filters.minPackage, filters.maxPackage]);
 
   const handleExport = async () => {

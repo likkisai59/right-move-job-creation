@@ -54,9 +54,19 @@ const CandidateListPage = () => {
     }
   };
 
+  const [debouncedFilters, setDebouncedFilters] = useState(filters);
+
   useEffect(() => {
-    loadCandidates(filters);
+    const timer = setTimeout(() => {
+      setDebouncedFilters(filters);
+    }, 500);
+    return () => clearTimeout(timer);
   }, [filters]);
+
+  useEffect(() => {
+    loadCandidates(debouncedFilters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedFilters]);
 
   const handleExport = async (format) => {
     setExportOpen(false);

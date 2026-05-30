@@ -101,6 +101,7 @@ const AttendanceMarking = () => {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
+      console.error(err);
       alert("Failed to submit weekly attendance");
     } finally {
       setLoading(false);

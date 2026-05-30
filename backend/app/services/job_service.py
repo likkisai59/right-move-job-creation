@@ -79,6 +79,8 @@ def get_all_jobs(
     end_date: Optional[date] = None,
     status: Optional[str] = None,
     business_unit: Optional[str] = None,
+    skip: int = 0,
+    limit: Optional[int] = 1000,
 ) -> List[Job]:
     """
     Returns all jobs with their requirements, with optional filters.
@@ -111,7 +113,10 @@ def get_all_jobs(
     if business_unit and business_unit.upper() != "ALL":
         query = query.filter(Job.business_unit == business_unit.upper())
 
-    return query.order_by(Job.created_at.desc()).all()
+    query = query.order_by(Job.created_at.desc())
+    if limit is not None:
+        query = query.offset(skip).limit(limit)
+    return query.all()
 
 
 # ─────────────────────────────────────────────────────────────

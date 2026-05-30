@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, File, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -38,6 +38,24 @@ def add_organization(payload: OrganizationCreate, db: Session = Depends(get_db))
     except Exception as exc:
         db.rollback()
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=error_response(str(exc)))
+
+@router.post("/upload", status_code=status.HTTP_201_CREATED)
+def upload_contract_document(file: UploadFile = File(...)):
+    import os, shutil
+    try:
+        filename = f"{int(datetime.now().timestamp())}_{file.filename}"
+        os.makedirs("uploads", exist_ok=True)
+        filepath = os.path.join("uploads", filename)
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        file_url = f"/uploads/{filename}"
+        return JSONResponse(
+            status_code=201, 
+            content=success_response("Contract document uploaded successfully", {"file_url": file_url})
+        )
+    except Exception as exc:
+        return JSONResponse(status_code=500, content=error_response("Failed to upload document."))
 
 @router.get("", status_code=status.HTTP_200_OK)
 def list_organizations(

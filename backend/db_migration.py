@@ -47,6 +47,13 @@ def run_migration():
     safe_alter("ALTER TABLE candidates ADD COLUMN comments TEXT NULL AFTER source", "comments")
     safe_alter("ALTER TABLE candidates ADD COLUMN recruiter_name VARCHAR(255) NULL AFTER comments", "recruiter_name")
 
+    # Add missing organization columns
+    safe_alter("ALTER TABLE organizations ADD COLUMN band VARCHAR(255) NULL", "org_band")
+    safe_alter("ALTER TABLE organizations ADD COLUMN rate VARCHAR(255) NULL", "org_rate")
+    safe_alter("ALTER TABLE organizations ADD COLUMN poc_country_code VARCHAR(10) NULL", "org_poc_country_code")
+    safe_alter("ALTER TABLE organizations ADD COLUMN poc_contact VARCHAR(20) NULL", "org_poc_contact")
+    safe_alter("ALTER TABLE organizations ADD COLUMN poc_email_id VARCHAR(255) NULL", "org_poc_email_id")
+
     try:
         cursor.execute("UPDATE candidates SET business_unit = business_category WHERE business_unit IS NULL OR business_unit = ''")
         print("  [OK] Migrated business_category -> business_unit (" + str(cursor.rowcount) + " rows)")
