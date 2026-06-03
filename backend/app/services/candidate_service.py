@@ -3,8 +3,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from app.models.candidate import Candidate
 from app.models.candidate_edit_history import CandidateEditHistory
+from app.models.job_requirement import Job, JobRequirement
+from app.models.job_candidate import JobCandidateMapping
 from app.schemas.candidate import CandidateCreateRequest, CandidateUpdateRequest
 from typing import List, Optional
+import json
 
 
 # ── Fields to track in edit history ──────────────────────────────────────
@@ -117,6 +120,10 @@ def get_all_candidates(
     current_location: Optional[str] = None,
     business_unit: Optional[str] = None,
     notice_period: Optional[str] = None,
+    sort_by: Optional[str] = None,
+    sort_order: Optional[str] = "desc",
+    skip: int = 0,
+    limit: Optional[int] = 1000,
 ) -> List[Candidate]:
     query = db.query(Candidate)
 
@@ -146,7 +153,11 @@ def get_all_candidates(
     if business_unit and business_unit.upper() != "ALL":
         query = query.filter(Candidate.business_unit.ilike(business_unit.strip()))
 
-    return query.order_by(Candidate.created_at.desc()).all()
+    from app.utils.sorting import apply_sorting
+    query = apply_sorting(query, Candidate, sort_by, sort_order, Candidate.created_at)
+    if limit is not None:
+        query = query.offset(skip).limit(limit)
+    return query.all()
 
 
 def get_candidate_by_id(db: Session, candidate_id: int) -> Optional[Candidate]:
@@ -207,4 +218,115 @@ def check_candidate_exists(
         if email_match:
             results["email_exists"] = True
 
+    return results
+
+def match_jobs_for_candidate(db: Session, candidate_id: int) -> List[dict]:
+    from app.services.job_service import parse_skills, extract_experience_years
+    
+    candidate = get_candidate_by_id(db, candidate_id)
+    if not candidate:
+        return []
+
+    candidate_skills = parse_skills(candidate.skills)
+    try:
+        candidate_exp = float(extract_experience_years(candidate.relevant_experience_years or candidate.total_experience))
+    except:
+        candidate_exp = 0.0
+    candidate_location = candidate.current_location
+
+    active_jobs = db.query(Job).join(JobRequirement).filter(JobRequirement.status == "ACTIVE").all()
+    results = []
+
+    for job in active_jobs:
+        if not job.requirements:
+            continue
+            
+        requirement = job.requirements[0]
+        required_skills = parse_skills(requirement.required_skills)
+        if not required_skills:
+            required_skills = parse_skills(requirement.mandatory_skill)
+
+        min_exp = requirement.min_experience or 0
+        max_exp = requirement.max_experience or 100
+        job_location = requirement.location or job.company_name
+
+        matched_skills = set(required_skills) & set(candidate_skills)
+        missing_skills = set(required_skills) - set(candidate_skills)
+        
+        # Skill Match
+        skill_score = 0
+        if required_skills:
+            skill_score = (len(matched_skills) / len(required_skills)) * 50
+
+        # Experience Match
+        exp_score = 0
+        if min_exp <= candidate_exp <= max_exp:
+            exp_score = 20
+        elif (min_exp - 1) <= candidate_exp <= (max_exp + 1):
+            exp_score = 10
+
+        # Location Match
+        loc_score = 0
+        if job_location and candidate_location and job_location.lower() == candidate_location.lower():
+            loc_score = 10
+
+        # Keyword relevance
+        keyword_score = 0
+        job_keywords = set(requirement.job_title.lower().split())
+        candidate_text = (candidate.skills or "") + " " + (candidate.relevant_experience_by_skill or "")
+        candidate_text = candidate_text.lower()
+        matches = [kw for kw in job_keywords if kw in candidate_text and len(kw) > 2]
+        if job_keywords:
+            keyword_score = (len(matches) / len(job_keywords)) * 20
+            if keyword_score > 20: keyword_score = 20
+
+        total_score = skill_score + exp_score + loc_score + keyword_score
+
+        if total_score < 30:
+            continue
+            
+        mapping = db.query(JobCandidateMapping).filter(
+            JobCandidateMapping.job_id == job.id,
+            JobCandidateMapping.candidate_id == candidate.id
+        ).first()
+
+        matched_skills_json = json.dumps(list(matched_skills)) if matched_skills else None
+        missing_skills_json = json.dumps(list(missing_skills)) if missing_skills else None
+
+        if mapping:
+            mapping.match_score = total_score
+            mapping.matched_skills = matched_skills_json
+            mapping.missing_skills = missing_skills_json
+        else:
+            new_mapping = JobCandidateMapping(
+                job_id=job.id,
+                candidate_id=candidate.id,
+                match_score=total_score,
+                status="Matched",
+                matched_skills=matched_skills_json,
+                missing_skills=missing_skills_json
+            )
+            db.add(new_mapping)
+        
+        try:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"Committing mapping for candidate {candidate.id} and job {job.id} with status 'Matched'")
+            db.commit()
+            
+            results.append({
+                "job_id": job.id,
+                "job_title": requirement.job_title,
+                "company_name": job.company_name,
+                "match_score": round(total_score, 1),
+                "matched_skills": list(matched_skills),
+                "missing_skills": list(missing_skills)
+            })
+        except Exception as exc:
+            db.rollback()
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Enum validation or database error for candidate {candidate.id} on job {job.id}: {exc}")
+
+    results.sort(key=lambda x: x["match_score"], reverse=True)
     return results

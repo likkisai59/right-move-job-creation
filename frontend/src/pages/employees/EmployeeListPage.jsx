@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { UserPlus, Search, Filter, Download } from 'lucide-react';
 import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
+import SortBy from '../../components/common/SortBy';
 import EmployeeTable from '../../components/employees/EmployeeTable';
 import { EMPLOYEE_STATUS_OPTIONS, EMPLOYEE_BLOOD_GROUP_OPTIONS } from '../../utils/constants';
 import { fetchEmployees, deleteEmployee, exportEmployees } from '../../api/employeesApi';
@@ -22,7 +23,9 @@ const EmployeeListPage = () => {
     designation: 'ALL',
     bloodGroup: 'ALL',
     minPackage: '',
-    maxPackage: ''
+    maxPackage: '',
+    sortField: '',
+    sortOrder: 'desc'
   });
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
@@ -58,6 +61,8 @@ const EmployeeListPage = () => {
       if (filters.bloodGroup !== 'ALL') params.blood_group = filters.bloodGroup;
       if (filters.minPackage) params.min_package = filters.minPackage;
       if (filters.maxPackage) params.max_package = filters.maxPackage;
+      if (filters.sortField) params.sortField = filters.sortField;
+      if (filters.sortOrder) params.sortOrder = filters.sortOrder;
 
       const response = await fetchEmployees(params);
       setEmployees(response.data || []);
@@ -70,7 +75,8 @@ const EmployeeListPage = () => {
 
   useEffect(() => {
     loadEmployees();
-  }, [debouncedSearch, filters.status, filters.designation, filters.bloodGroup, filters.minPackage, filters.maxPackage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, filters.status, filters.designation, filters.bloodGroup, filters.minPackage, filters.maxPackage, filters.sortField, filters.sortOrder]);
 
   const handleExport = async () => {
     setExporting(true);
@@ -82,6 +88,8 @@ const EmployeeListPage = () => {
       if (filters.bloodGroup !== 'ALL') params.blood_group = filters.bloodGroup;
       if (filters.minPackage) params.min_package = filters.minPackage;
       if (filters.maxPackage) params.max_package = filters.maxPackage;
+      if (filters.sortField) params.sortField = filters.sortField;
+      if (filters.sortOrder) params.sortOrder = filters.sortOrder;
       
       await exportEmployees(params);
     } catch (err) {
@@ -197,9 +205,26 @@ const EmployeeListPage = () => {
             onChange={(e) => handleFilterChange('maxPackage', e.target.value)}
             className="h-10 w-24 px-3 text-sm bg-white border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-shadow"
           />
+
+          <SortBy
+            options={[
+              { label: 'Employee ID Ascending', value: 'employee_id:asc' },
+              { label: 'Employee ID Descending', value: 'employee_id:desc' },
+              { label: 'Full Name (A-Z)', value: 'first_name:asc' },
+              { label: 'Full Name (Z-A)', value: 'first_name:desc' },
+              { label: 'Created (Newest)', value: 'id:desc' },
+              { label: 'Created (Oldest)', value: 'id:asc' },
+            ]}
+            sortField={filters.sortField}
+            sortOrder={filters.sortOrder}
+            onChange={(val) => {
+              handleFilterChange('sortField', val.sortField);
+              handleFilterChange('sortOrder', val.sortOrder);
+            }}
+          />
           
-          {(filters.search || filters.status !== 'ALL' || filters.designation !== 'ALL' || filters.bloodGroup !== 'ALL' || filters.minPackage || filters.maxPackage) && (
-            <Button variant="ghost" size="sm" onClick={() => setFilters({search: '', status: 'ALL', designation: 'ALL', bloodGroup: 'ALL', minPackage: '', maxPackage: ''})}>
+          {(filters.search || filters.status !== 'ALL' || filters.designation !== 'ALL' || filters.bloodGroup !== 'ALL' || filters.minPackage || filters.maxPackage || filters.sortField) && (
+            <Button variant="ghost" size="sm" onClick={() => setFilters({search: '', status: 'ALL', designation: 'ALL', bloodGroup: 'ALL', minPackage: '', maxPackage: '', sortField: '', sortOrder: 'desc'})}>
               Clear
             </Button>
           )}

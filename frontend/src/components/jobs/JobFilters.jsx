@@ -2,6 +2,20 @@ import React from 'react';
 import { Search, Calendar } from 'lucide-react';
 import Input from '../common/Input';
 import Button from '../common/Button';
+import SortBy from '../common/SortBy';
+
+const SORT_OPTIONS = [
+  { label: 'Created Date (Newest)', value: 'created_at:desc' },
+  { label: 'Created Date (Oldest)', value: 'created_at:asc' },
+  { label: 'Ageing (High to Low)', value: 'requisition_open_date:asc' },
+  { label: 'Ageing (Low to High)', value: 'requisition_open_date:desc' },
+  { label: 'Company Name (A-Z)', value: 'company_name:asc' },
+  { label: 'Company Name (Z-A)', value: 'company_name:desc' },
+  { label: 'Job Code Ascending', value: 'job_code:asc' },
+  { label: 'Job Code Descending', value: 'job_code:desc' },
+  { label: 'Job ID Ascending', value: 'id:asc' },
+  { label: 'Job ID Descending', value: 'id:desc' },
+];
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Status' },
@@ -70,6 +84,14 @@ const JobFilters = ({ filters, onChange, onClear }) => {
           </option>
         ))}
       </select>
+
+      {/* Sort By Dropdown */}
+      <SortBy
+        options={SORT_OPTIONS}
+        sortField={filters.sortField}
+        sortOrder={filters.sortOrder}
+        onChange={({ sortField, sortOrder }) => onChange({ ...filters, sortField, sortOrder })}
+      />
 
       {/* Clear Button */}
       {hasFilters && (

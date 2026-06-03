@@ -4,6 +4,7 @@ import { Plus, Search, AlertTriangle, Download, Filter } from 'lucide-react';
 import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
+import SortBy from '../../components/common/SortBy';
 import OrganizationTable from '../../components/organizations/OrganizationTable';
 import { fetchOrganizations, deleteOrganization } from '../../api/organizationsApi';
 import api from '../../api/axios';
@@ -15,6 +16,17 @@ const OrganizationListPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [sortField, setSortField] = useState('');
+  const [sortOrder, setSortOrder] = useState('desc');
+
+  const SORT_OPTIONS = [
+    { label: 'Organization Name (A-Z)', value: 'organization_name:asc' },
+    { label: 'Organization Name (Z-A)', value: 'organization_name:desc' },
+    { label: 'Organization ID Ascending', value: 'organization_id:asc' },
+    { label: 'Organization ID Descending', value: 'organization_id:desc' },
+    { label: 'Created Date (Newest)', value: 'created_at:desc' },
+    { label: 'Created Date (Oldest)', value: 'created_at:asc' },
+  ];
 
   const loadOrganizations = async (search = '', start = '', end = '') => {
     setLoading(true);
@@ -22,7 +34,9 @@ const OrganizationListPage = () => {
       const response = await fetchOrganizations({ 
         search: search.trim(),
         start_date: start,
-        end_date: end
+        end_date: end,
+        sortField,
+        sortOrder
       });
       setOrganizations(response.data || []);
     } catch (error) {
@@ -58,16 +72,24 @@ const OrganizationListPage = () => {
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, startDate, endDate]);
+  }, [searchTerm, startDate, endDate, sortField, sortOrder]);
 
-  const handleExport = async () => {
+  const handleExport = async (specificIds = null) => {
     try {
+      const params = {
+        search: searchTerm.trim(),
+        start_date: startDate,
+        end_date: endDate,
+        sort_by: sortField,
+        sort_order: sortOrder
+      };
+      
+      if (specificIds && specificIds.length > 0) {
+        params.export_ids = specificIds.join(',');
+      }
+
       const response = await api.get('/organizations/export', {
-        params: {
-          search: searchTerm.trim(),
-          start_date: startDate,
-          end_date: endDate
-        },
+        params,
         responseType: 'blob'
       });
       
@@ -103,7 +125,7 @@ const OrganizationListPage = () => {
       subtitle={`${organizations.length} organization${organizations.length !== 1 ? 's' : ''} registered`}
       actions={
         <div className="flex items-center gap-3">
-          <Button variant="secondary" icon={Download} onClick={handleExport} disabled={organizations.length === 0}>
+          <Button variant="secondary" icon={Download} onClick={() => handleExport()} disabled={organizations.length === 0}>
             Export Excel
           </Button>
           <Button icon={Plus} onClick={() => navigate('/organizations/create')}>
@@ -121,11 +143,23 @@ const OrganizationListPage = () => {
               <AlertTriangle size={24} />
             </div>
             <div className="flex-1">
-              <h4 className="text-base font-bold text-slate-900">Contract Renewal Notice</h4>
-              <p className="text-sm text-slate-600 mt-1 leading-relaxed">
-                The following organizations have contracts reaching their termination date within the next <span className="font-bold text-indigo-600">30 days</span>. 
-                Please ensure necessary renewal documentation is processed to maintain service continuity.
-              </p>
+              <div className="flex justify-between items-start gap-4">
+                <div>
+                  <h4 className="text-base font-bold text-slate-900">Contract Renewal Notice</h4>
+                  <p className="text-sm text-slate-600 mt-1 leading-relaxed">
+                    The following organizations have contracts reaching their termination date within the next <span className="font-bold text-indigo-600">30 days</span>. 
+                    Please ensure necessary renewal documentation is processed to maintain service continuity.
+                  </p>
+                </div>
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  icon={Download} 
+                  onClick={() => handleExport(expiringOrgs.map(org => org.id))}
+                >
+                  Export Excel
+                </Button>
+              </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {expiringOrgs.map(org => (
                   <span key={org.id} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
@@ -167,6 +201,19 @@ const OrganizationListPage = () => {
             />
           </div>
 
+          <div className="w-full md:w-56 mb-1">
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-1 mb-1.5">
+              Sort By
+            </label>
+            <SortBy
+              options={SORT_OPTIONS}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              onChange={(val) => { setSortField(val.sortField); setSortOrder(val.sortOrder); }}
+              className="w-full"
+            />
+          </div>
+
           <Button 
             variant="secondary" 
             size="md" 
@@ -174,6 +221,8 @@ const OrganizationListPage = () => {
               setSearchTerm('');
               setStartDate('');
               setEndDate('');
+              setSortField('');
+              setSortOrder('desc');
             }}
           >
             Clear

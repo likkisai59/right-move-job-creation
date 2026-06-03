@@ -18,6 +18,47 @@ def generate_employee_id(db: Session) -> str:
     next_number = max_id + 1
     return f"EMP{next_number:04d}"
 
+def compute_employee_completion(employee: Employee):
+    """
+    Computes and sets the completion_percentage and profile_status for an employee.
+    Personal Details = 30%
+    Employment Details = 25%
+    Reporting Details = 20%
+    Bank Details = 15%
+    Asset & System Configuration = 10%
+    """
+    pct = 0
+    
+    # Personal Details (30%)
+    if all([employee.first_name, employee.last_name, employee.gender, employee.contact_number, employee.email]):
+        pct += 30
+
+    # Employment Details (25%)
+    if all([employee.designation, employee.date_of_joining]):
+        pct += 25
+
+    # Reporting Details (20%)
+    if all([employee.assigned_business_unit, employee.reporting_to, employee.work_mode, employee.compliance]):
+        pct += 20
+        
+    # Bank Details (15%)
+    if all([employee.bank_name, employee.bank_account_number, employee.bank_ifsc_code]):
+        pct += 15
+        
+    # Asset & System Config (10%)
+    if all([employee.system_assigned, employee.sim_card_assigned, employee.email_id_configured, employee.linkedin_configured, employee.google_sheet_configured, employee.whatsapp_business_configured]):
+        pct += 10
+        
+    employee.completion_percentage = pct
+    
+    # Set status
+    if pct == 100:
+        employee.profile_status = "Completed"
+    elif pct > 0:
+        employee.profile_status = "In Progress"
+    else:
+        employee.profile_status = "Draft"
+        
 # ─────────────────────────────────────────────────────────────
 # CREATE
 # ─────────────────────────────────────────────────────────────
@@ -86,6 +127,8 @@ def create_employee(db: Session, payload: EmployeeCreateRequest) -> Employee:
         whatsapp_business_configured=payload.whatsapp_business_configured
     )
     
+    compute_employee_completion(new_employee)
+    
     db.add(new_employee)
     db.commit()
     db.refresh(new_employee)
@@ -102,7 +145,9 @@ def get_all_employees(
     designation: Optional[str] = None,
     min_package: Optional[float] = None,
     max_package: Optional[float] = None,
-    blood_group: Optional[str] = None
+    blood_group: Optional[str] = None,
+    sort_by: Optional[str] = None,
+    sort_order: Optional[str] = "desc"
 ) -> List[Employee]:
     """
     Fetches all employees with optional search and filters.
@@ -135,8 +180,9 @@ def get_all_employees(
     if blood_group:
         query = query.filter(Employee.blood_group == blood_group)
 
-    # Sort newest first by primary key
-    return query.order_by(Employee.id.desc()).all()
+    from app.utils.sorting import apply_sorting
+    query = apply_sorting(query, Employee, sort_by, sort_order, Employee.id)
+    return query.all()
 
 import openpyxl
 from io import BytesIO
@@ -259,6 +305,8 @@ def update_employee(
     
     for key, value in update_data.items():
         setattr(employee, key, value)
+        
+    compute_employee_completion(employee)
 
     db.commit()
     db.refresh(employee)

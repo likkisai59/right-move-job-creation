@@ -5,71 +5,70 @@ from sqlalchemy.exc import SQLAlchemyError
 from typing import List, Optional
 
 from app.core.database import get_db
-from app.models.designation import Designation
-from app.models.employee import Employee
-from app.schemas.designation import DesignationCreate, DesignationUpdate, DesignationResponse
+from app.models.exit_type import ExitType
+from app.schemas.exit_type import ExitTypeCreate, ExitTypeUpdate, ExitTypeResponse
 from app.utils.response import success_response, error_response
 
-router = APIRouter(prefix="/api/designations", tags=["Designations"])
+router = APIRouter(prefix="/api/exit-types", tags=["Exit Types"])
 
-@router.get("", response_model=List[DesignationResponse])
-def get_designations(
+@router.get("", response_model=List[ExitTypeResponse])
+def get_exit_types(
     active_only: Optional[bool] = None, 
     sort_by: Optional[str] = None, 
     sort_order: Optional[str] = "asc", 
     db: Session = Depends(get_db)
 ):
     """
-    Get all designations.
+    Get all exit types.
     Optionally filter by active status.
     """
     try:
-        query = db.query(Designation)
+        query = db.query(ExitType)
         if active_only is not None:
-            query = query.filter(Designation.is_active == active_only)
+            query = query.filter(ExitType.is_active == active_only)
         
         from app.utils.sorting import apply_sorting
-        designations = apply_sorting(query, Designation, sort_by, sort_order, Designation.name).all()
+        exit_types = apply_sorting(query, ExitType, sort_by, sort_order, ExitType.name).all()
         
         # Serialize
-        data = [DesignationResponse.model_validate(d).model_dump() for d in designations]
+        data = [ExitTypeResponse.model_validate(d).model_dump() for d in exit_types]
         
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=success_response("Designations fetched successfully", data)
+            content=success_response("Exit types fetched successfully", data)
         )
     except Exception as e:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content=error_response(f"Failed to fetch designations: {str(e)}")
+            content=error_response(f"Failed to fetch exit types: {str(e)}")
         )
 
-@router.post("", response_model=DesignationResponse)
-def create_designation(payload: DesignationCreate, db: Session = Depends(get_db)):
+@router.post("", response_model=ExitTypeResponse)
+def create_exit_type(payload: ExitTypeCreate, db: Session = Depends(get_db)):
     """
-    Create a new designation.
+    Create a new exit type.
     """
     try:
         # Check if already exists (case-insensitive)
-        existing = db.query(Designation).filter(Designation.name.ilike(payload.name.strip())).first()
+        existing = db.query(ExitType).filter(ExitType.name.ilike(payload.name.strip())).first()
         if existing:
             return JSONResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                content=error_response("Designation with this name already exists")
+                content=error_response("Exit type with this name already exists")
             )
             
-        new_designation = Designation(
+        new_exit_type = ExitType(
             name=payload.name.strip(),
             is_active=True
         )
-        db.add(new_designation)
+        db.add(new_exit_type)
         db.commit()
-        db.refresh(new_designation)
+        db.refresh(new_exit_type)
         
-        data = DesignationResponse.model_validate(new_designation).model_dump()
+        data = ExitTypeResponse.model_validate(new_exit_type).model_dump()
         return JSONResponse(
             status_code=status.HTTP_201_CREATED,
-            content=success_response("Designation created successfully", data)
+            content=success_response("Exit type created successfully", data)
         )
     except SQLAlchemyError as e:
         db.rollback()
@@ -83,46 +82,42 @@ def create_designation(payload: DesignationCreate, db: Session = Depends(get_db)
             content=error_response(f"Server error: {str(e)}")
         )
 
-@router.put("/{designation_id}", response_model=DesignationResponse)
-def update_designation(designation_id: int, payload: DesignationUpdate, db: Session = Depends(get_db)):
+@router.put("/{exit_type_id}", response_model=ExitTypeResponse)
+def update_exit_type(exit_type_id: int, payload: ExitTypeUpdate, db: Session = Depends(get_db)):
     """
-    Update designation name or active status.
+    Update exit type name or active status.
     """
     try:
-        designation = db.query(Designation).filter(Designation.id == designation_id).first()
-        if not designation:
+        exit_type = db.query(ExitType).filter(ExitType.id == exit_type_id).first()
+        if not exit_type:
             return JSONResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
-                content=error_response("Designation not found")
+                content=error_response("Exit type not found")
             )
             
         if payload.name is not None:
             name_stripped = payload.name.strip()
             # Check unique if renaming
-            if name_stripped.lower() != designation.name.lower():
-                existing = db.query(Designation).filter(Designation.name.ilike(name_stripped)).first()
+            if name_stripped.lower() != exit_type.name.lower():
+                existing = db.query(ExitType).filter(ExitType.name.ilike(name_stripped)).first()
                 if existing:
                     return JSONResponse(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        content=error_response("Designation with this name already exists")
+                        content=error_response("Exit type with this name already exists")
                     )
                 
-                # Cascade rename to all existing employees assigned to this designation!
-                old_name = designation.name
-                db.query(Employee).filter(Employee.designation == old_name).update({Employee.designation: name_stripped})
-                
-            designation.name = name_stripped
+            exit_type.name = name_stripped
             
         if payload.is_active is not None:
-            designation.is_active = payload.is_active
+            exit_type.is_active = payload.is_active
             
         db.commit()
-        db.refresh(designation)
+        db.refresh(exit_type)
         
-        data = DesignationResponse.model_validate(designation).model_dump()
+        data = ExitTypeResponse.model_validate(exit_type).model_dump()
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=success_response("Designation updated successfully", data)
+            content=success_response("Exit type updated successfully", data)
         )
     except SQLAlchemyError as e:
         db.rollback()

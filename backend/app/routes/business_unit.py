@@ -15,7 +15,12 @@ from app.utils.response import success_response, error_response
 router = APIRouter(prefix="/api/business-units", tags=["Business Units"])
 
 @router.get("", response_model=List[BusinessUnitResponse])
-def get_business_units(active_only: Optional[bool] = None, db: Session = Depends(get_db)):
+def get_business_units(
+    active_only: Optional[bool] = None, 
+    sort_by: Optional[str] = None, 
+    sort_order: Optional[str] = "asc", 
+    db: Session = Depends(get_db)
+):
     """
     Get all business units.
     Optionally filter by active status.
@@ -25,7 +30,8 @@ def get_business_units(active_only: Optional[bool] = None, db: Session = Depends
         if active_only is not None:
             query = query.filter(BusinessUnit.is_active == active_only)
         
-        business_units = query.order_by(BusinessUnit.name.asc()).all()
+        from app.utils.sorting import apply_sorting
+        business_units = apply_sorting(query, BusinessUnit, sort_by, sort_order, BusinessUnit.name).all()
         
         # Serialize
         data = [BusinessUnitResponse.model_validate(b).model_dump() for b in business_units]

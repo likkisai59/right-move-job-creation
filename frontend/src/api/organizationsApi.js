@@ -2,7 +2,17 @@ import api from './axios';
 
 // ── GET /api/organizations ──────────────────────────────────────────
 export const fetchOrganizations = async (params = {}) => {
-    const response = await api.get('/organizations', { params });
+    const queryParams = { ...params };
+    if (params.sortField) {
+        queryParams.sort_by = params.sortField;
+        delete queryParams.sortField;
+    }
+    if (params.sortOrder) {
+        queryParams.sort_order = params.sortOrder;
+        delete queryParams.sortOrder;
+    }
+
+    const response = await api.get('/organizations', { params: queryParams });
     return {
         data: response.data.data // Wrapper is { success: true, message: "...", data: [...] }
     };
@@ -18,6 +28,18 @@ export const getOrganizationById = async (id) => {
 export const createOrganization = async (data) => {
     const response = await api.post('/organizations', data);
     return { data: response.data.data };
+};
+
+// ── POST /api/organizations/upload ───────────────────────────────────
+export const uploadOrganizationContract = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/organizations/upload', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
+    return response.data;
 };
 
 // ── PUT /api/organizations/{id} ──────────────────────────────────────

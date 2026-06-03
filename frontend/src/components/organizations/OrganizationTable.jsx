@@ -157,15 +157,9 @@ const OrganizationTable = ({ organizations = [], loading = false, onCreate, onDe
     );
   }
 
-  const sortedOrganizations = [...organizations].sort((a, b) => {
-    if (!a.organization_id) return 1;
-    if (!b.organization_id) return -1;
-    return a.organization_id.toString().localeCompare(b.organization_id.toString(), undefined, { numeric: true });
-  });
-
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-fade-in">
-      <Table columns={columns} data={sortedOrganizations} loading={loading} />
+      <Table columns={columns} data={organizations} loading={loading} />
     </div>
   );
 };

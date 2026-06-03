@@ -40,9 +40,15 @@ export const fetchDashboardStats = async (category = "All") => {
   }
 };
 
-export const fetchPipelineData = async () => {
-  // return api.get('/dashboard/pipeline');
-  return { data: mockPipeline };
+export const fetchPipelineData = async (category = "All") => {
+  try {
+    const params = category !== 'All' ? { business_unit: category } : {};
+    const response = await api.get('/candidates/analytics/pipeline', { params });
+    return { data: response.data.data };
+  } catch (error) {
+    console.error("Failed to fetch pipeline analytics:", error);
+    return { data: mockPipeline };
+  }
 };
 
 export const fetchRecentApplications = async () => {

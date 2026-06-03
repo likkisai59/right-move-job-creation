@@ -11,7 +11,7 @@ const CandidateListPage = () => {
   const navigate = useNavigate();
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ search: '', businessUnit: '', skills: '', currentLocation: '', noticePeriod: '' });
+  const [filters, setFilters] = useState({ search: '', businessUnit: '', skills: '', currentLocation: '', noticePeriod: '', sortField: '', sortOrder: 'desc' });
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const exportRef = React.useRef(null);
@@ -54,9 +54,19 @@ const CandidateListPage = () => {
     }
   };
 
+  const [debouncedFilters, setDebouncedFilters] = useState(filters);
+
   useEffect(() => {
-    loadCandidates(filters);
+    const timer = setTimeout(() => {
+      setDebouncedFilters(filters);
+    }, 500);
+    return () => clearTimeout(timer);
   }, [filters]);
+
+  useEffect(() => {
+    loadCandidates(debouncedFilters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedFilters]);
 
   const handleExport = async (format) => {
     setExportOpen(false);
@@ -68,6 +78,8 @@ const CandidateListPage = () => {
       if (filters.skills) params.append('skills', filters.skills);
       if (filters.currentLocation) params.append('current_location', filters.currentLocation);
       if (filters.noticePeriod) params.append('notice_period', filters.noticePeriod);
+      if (filters.sortField) params.append('sort_by', filters.sortField);
+      if (filters.sortOrder) params.append('sort_order', filters.sortOrder);
       params.append('format', format);
 
       const response = await fetch(
@@ -147,7 +159,7 @@ const CandidateListPage = () => {
           <CandidateFilters
             filters={filters}
             onChange={setFilters}
-            onClear={() => setFilters({ search: '', businessUnit: '', skills: '', currentLocation: '', noticePeriod: '' })}
+            onClear={() => setFilters({ search: '', businessUnit: '', skills: '', currentLocation: '', noticePeriod: '', sortField: '', sortOrder: 'desc' })}
           />
         </div>
 

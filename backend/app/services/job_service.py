@@ -79,6 +79,10 @@ def get_all_jobs(
     end_date: Optional[date] = None,
     status: Optional[str] = None,
     business_unit: Optional[str] = None,
+    sort_by: Optional[str] = None,
+    sort_order: Optional[str] = "desc",
+    skip: int = 0,
+    limit: Optional[int] = 1000,
 ) -> List[Job]:
     """
     Returns all jobs with their requirements, with optional filters.
@@ -106,12 +110,17 @@ def get_all_jobs(
         query = query.filter(Job.requisition_open_date <= end_date)
 
     if status:
-        query = query.filter(Job.status == status.upper())
+        query = query.join(JobRequirement).filter(JobRequirement.status == status.upper())
 
     if business_unit and business_unit.upper() != "ALL":
         query = query.filter(Job.business_unit == business_unit.upper())
 
-    return query.order_by(Job.created_at.desc()).all()
+    from app.utils.sorting import apply_sorting
+    query = apply_sorting(query, Job, sort_by, sort_order, Job.created_at)
+    
+    if limit is not None:
+        query = query.offset(skip).limit(limit)
+    return query.all()
 
 
 # ─────────────────────────────────────────────────────────────
@@ -124,6 +133,8 @@ def get_filtered_jobs_for_export(
     end_date: Optional[date] = None,
     company: Optional[str] = None,
     status: Optional[str] = None,
+    sort_by: Optional[str] = None,
+    sort_order: Optional[str] = "desc",
 ) -> List[Job]:
     """
     Returns filtered jobs for export (CSV / Excel).
@@ -141,9 +152,11 @@ def get_filtered_jobs_for_export(
         query = query.filter(Job.requisition_open_date <= end_date)
 
     if status:
-        query = query.filter(Job.status == status.strip().upper())
+        query = query.join(JobRequirement).filter(JobRequirement.status == status.strip().upper())
 
-    return query.order_by(Job.created_at.desc()).all()
+    from app.utils.sorting import apply_sorting
+    query = apply_sorting(query, Job, sort_by, sort_order, Job.created_at)
+    return query.all()
 
 
 # ─────────────────────────────────────────────────────────────
@@ -323,6 +336,8 @@ def get_matching_candidates(db: Session, job_id: int, strict: bool = True, requi
         # --- MANDATORY FILTERS ---
         # 1. Strict Skill Filtering (At least one skill must match)
         matched_skills = set(required_skills) & set(candidate_skills)
+        missing_skills = set(required_skills) - set(candidate_skills)
+        
         if strict and not matched_skills:
             continue
 
@@ -368,30 +383,47 @@ def get_matching_candidates(db: Session, job_id: int, strict: bool = True, requi
             JobCandidateMapping.candidate_id == candidate.id
         ).first()
         
+        import json
+        matched_skills_json = json.dumps(list(matched_skills)) if matched_skills else None
+        missing_skills_json = json.dumps(list(missing_skills)) if missing_skills else None
+
         # Update or Create Mapping in Store
         if mapping:
             mapping.match_score = total_score
+            mapping.matched_skills = matched_skills_json
+            mapping.missing_skills = missing_skills_json
         else:
             new_mapping = JobCandidateMapping(
                 job_id=job_id,
                 candidate_id=candidate.id,
                 match_score=total_score,
-                status="matched"
+                status="Matched",
+                matched_skills=matched_skills_json,
+                missing_skills=missing_skills_json
             )
             db.add(new_mapping)
         
-        db.commit()
+        try:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"Committing mapping for candidate {candidate.id} and job {job_id} with status 'Matched'")
+            db.commit()
+            
+            status = mapping.status if mapping else "Matched"
 
-        status = mapping.status if mapping else "matched"
-
-        results.append({
-            "candidate_id": candidate.id,
-            "name": f"{candidate.first_name} {candidate.last_name}",
-            "skills": candidate_skills,
-            "experience": candidate_exp,
-            "match_score": round(total_score, 1),
-            "status": status
-        })
+            results.append({
+                "candidate_id": candidate.id,
+                "name": f"{candidate.first_name} {candidate.last_name}",
+                "skills": candidate_skills,
+                "experience": candidate_exp,
+                "match_score": round(total_score, 1),
+                "status": status
+            })
+        except Exception as exc:
+            db.rollback()
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Enum validation or database error for candidate {candidate.id} on job {job_id}: {exc}")
 
     # Sort by Match % (Highest first)
     results.sort(key=lambda x: x["match_score"], reverse=True)

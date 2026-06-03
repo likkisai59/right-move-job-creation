@@ -16,8 +16,11 @@ import csv
 import io
 import os
 import shutil
+import logging
 from datetime import date
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 import openpyxl
 from fastapi import APIRouter, Depends, status, Query, File, UploadFile
@@ -89,25 +92,19 @@ def create_job(
 
     except SQLAlchemyError as db_error:
         db.rollback()
-        import traceback
-        print("❌ DB ERROR:", str(db_error))
-        traceback.print_exc()
+        logger.error(f"Database error while creating job requirement: {db_error}", exc_info=True)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=error_response(
                 message="Database error while creating job requirement",
-                errors=[{"field": "database", "message": str(db_error)}],
             ),
         )
     except Exception as exc:
-        import traceback
-        print("❌ POST /api/jobs ERROR:", str(exc))
-        traceback.print_exc()
+        logger.error(f"POST /api/jobs ERROR: {exc}", exc_info=True)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=error_response(
                 message="An unexpected error occurred",
-                errors=[{"field": "server", "message": str(exc)}],
             ),
         )
 
@@ -138,7 +135,8 @@ def upload_job_description(file: UploadFile = File(...)):
             content=success_response("File uploaded successfully", {"file_url": file_url})
         )
     except Exception as exc:
-        return JSONResponse(status_code=500, content=error_response(str(exc)))
+        logger.error(f"Error uploading job description: {exc}", exc_info=True)
+        return JSONResponse(status_code=500, content=error_response("Failed to upload job description."))
 
 
 # ── GET /api/jobs ─────────────────────────────────────────────
@@ -156,6 +154,10 @@ def list_jobs(
     end_date: Optional[date] = Query(None, description="Filter jobs up to this date (YYYY-MM-DD)"),
     status_filter: Optional[str] = Query(None, alias="status", description="Filter by status: ACTIVE, CLOSED, ON_HOLD"),
     business_unit: Optional[str] = Query(None, description="Filter by IT, ITSM, BPO"),
+    sort_by: Optional[str] = Query(None, description="Field to sort by"),
+    sort_order: Optional[str] = Query("desc", description="Sort order (asc or desc)"),
+    skip: int = Query(0, description="Pagination skip"),
+    limit: int = Query(1000, description="Pagination limit"),
     db: Session = Depends(get_db),
 ):
     """
@@ -170,7 +172,11 @@ def list_jobs(
             start_date=start_date,
             end_date=end_date,
             status=status_filter,
-            business_unit=business_unit
+            business_unit=business_unit,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            skip=skip,
+            limit=limit
         )
 
         # Convert list of ORM objects → list of JSON-safe dicts
@@ -188,13 +194,11 @@ def list_jobs(
             ),
         )
     except Exception as exc:
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Error fetching jobs: {exc}", exc_info=True)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=error_response(
                 message="An unexpected error occurred while fetching jobs",
-                errors=[{"field": "server", "message": str(exc)}],
             ),
         )
 
@@ -211,6 +215,8 @@ def export_jobs(
     end_date:   Optional[date] = Query(None, description="Filter to date (YYYY-MM-DD)"),
     company:    Optional[str]  = Query(None, description="Partial match on company name"),
     status_filter: Optional[str] = Query(None, alias="status", description="ACTIVE | CLOSED | ON_HOLD"),
+    sort_by: Optional[str] = Query(None, description="Field to sort by"),
+    sort_order: Optional[str] = Query("desc", description="Sort order (asc or desc)"),
     format:     str            = Query("csv",  description="csv or excel"),
     db: Session = Depends(get_db),
 ):
@@ -225,20 +231,28 @@ def export_jobs(
         end_date=end_date,
         company=company,
         status=status_filter,
+        sort_by=sort_by,
+        sort_order=sort_order,
     )
 
     # ── 2. Flatten ORM objects → list of plain dicts ────────────
     HEADERS = [
-        "Job Code", "Date", "Company Name", "Business Unit",
+        "Job Code", "Date", "Ageing (Days)", "Company Name", "Business Unit",
         "External SPOC", "External SPOC Email",
         "Job Title(s)", "Mandatory Skill", "Assigned To",
         "Total Candidates", "Status",
     ]
 
+    from datetime import date as dt_date
+    today = dt_date.today()
+
     rows = []
     for job in jobs_orm:
         titles = ", ".join(r.job_title for r in job.requirements) if job.requirements else "—"
         total  = sum(r.number_of_open_positions for r in job.requirements)
+        
+        # Calculate Ageing
+        ageing = max(0, (today - job.requisition_open_date).days) if job.requisition_open_date else 0
         
         # Since status and mandatory_skill are now at the requirement level, we can join them or take the first one
         skills = ", ".join(filter(None, set(r.mandatory_skill for r in job.requirements))) if job.requirements else "—"
@@ -247,6 +261,7 @@ def export_jobs(
         rows.append([
             job.job_code,
             str(job.requisition_open_date),
+            ageing,
             job.company_name,
             job.business_unit,
             job.external_spoc or "—",
@@ -336,11 +351,11 @@ def get_job(
             ),
         )
     except Exception as exc:
+        logger.error(f"Error fetching job by ID: {exc}", exc_info=True)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=error_response(
                 message="An unexpected error occurred",
-                errors=[{"field": "server", "message": str(exc)}],
             ),
         )
 
@@ -382,19 +397,19 @@ def update_job_endpoint(
 
     except SQLAlchemyError as db_error:
         db.rollback()
+        logger.error(f"Database error while updating job requirement: {db_error}", exc_info=True)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=error_response(
                 message="Database error while updating job requirement",
-                errors=[{"field": "database", "message": str(db_error)}],
             ),
         )
     except Exception as exc:
+        logger.error(f"Error updating job requirement: {exc}", exc_info=True)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=error_response(
                 message="An unexpected error occurred",
-                errors=[{"field": "server", "message": str(exc)}],
             ),
         )
 
@@ -418,9 +433,8 @@ def get_matches(job_id: int, strict: bool = Query(True), requirement_id: Optiona
             content=success_response("Matching candidates fetched", result)
         )
     except Exception as exc:
-        import traceback
-        traceback.print_exc()
-        return JSONResponse(status_code=500, content=error_response(str(exc)))
+        logger.error(f"Error getting matches: {exc}", exc_info=True)
+        return JSONResponse(status_code=500, content=error_response("Failed to get matches."))
 
 @router.post("/{job_id}/shortlist")
 def shortlist(job_id: int, payload: CandidateActionRequest, db: Session = Depends(get_db)):
@@ -436,7 +450,8 @@ def shortlist(job_id: int, payload: CandidateActionRequest, db: Session = Depend
             content=success_response("Candidate shortlisted successfully")
         )
     except Exception as exc:
-        return JSONResponse(status_code=500, content=error_response(str(exc)))
+        logger.error(f"Error shortlisting candidate: {exc}", exc_info=True)
+        return JSONResponse(status_code=500, content=error_response("Failed to shortlist candidate."))
 
 @router.post("/{job_id}/reject")
 def reject(job_id: int, payload: CandidateActionRequest, db: Session = Depends(get_db)):
@@ -452,7 +467,8 @@ def reject(job_id: int, payload: CandidateActionRequest, db: Session = Depends(g
             content=success_response("Candidate rejected successfully")
         )
     except Exception as exc:
-        return JSONResponse(status_code=500, content=error_response(str(exc)))
+        logger.error(f"Error rejecting candidate: {exc}", exc_info=True)
+        return JSONResponse(status_code=500, content=error_response("Failed to reject candidate."))
 
 @router.get("/{job_id}/shortlisted")
 def shortlisted(job_id: int, db: Session = Depends(get_db)):
@@ -466,4 +482,5 @@ def shortlisted(job_id: int, db: Session = Depends(get_db)):
             content=success_response("Shortlisted candidates fetched", result)
         )
     except Exception as exc:
-        return JSONResponse(status_code=500, content=error_response(str(exc)))
+        logger.error(f"Error fetching shortlisted candidates: {exc}", exc_info=True)
+        return JSONResponse(status_code=500, content=error_response("Failed to fetch shortlisted candidates."))

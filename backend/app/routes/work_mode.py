@@ -15,7 +15,12 @@ from app.utils.response import success_response, error_response
 router = APIRouter(prefix="/api/work-modes", tags=["Work Modes"])
 
 @router.get("", response_model=List[WorkModeResponse])
-def get_work_modes(active_only: Optional[bool] = None, db: Session = Depends(get_db)):
+def get_work_modes(
+    active_only: Optional[bool] = None, 
+    sort_by: Optional[str] = None, 
+    sort_order: Optional[str] = "asc", 
+    db: Session = Depends(get_db)
+):
     """
     Get all work modes.
     Optionally filter by active status.
@@ -25,7 +30,8 @@ def get_work_modes(active_only: Optional[bool] = None, db: Session = Depends(get
         if active_only is not None:
             query = query.filter(WorkMode.is_active == active_only)
         
-        work_modes = query.order_by(WorkMode.name.asc()).all()
+        from app.utils.sorting import apply_sorting
+        work_modes = apply_sorting(query, WorkMode, sort_by, sort_order, WorkMode.name).all()
         
         # Serialize
         data = [WorkModeResponse.model_validate(w).model_dump() for w in work_modes]

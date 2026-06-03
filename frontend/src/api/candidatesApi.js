@@ -7,6 +7,7 @@ const mapToFrontend = (dbRecord) => {
   return {
     id: dbRecord.id,
     candidateCode: dbRecord.candidate_code,
+    profileStatus: dbRecord.profile_status || 'Active',
     // Personal Details
     firstName: dbRecord.first_name,
     lastName: dbRecord.last_name,
@@ -62,6 +63,8 @@ export const fetchCandidates = async (params = {}) => {
     queryParams.business_unit = params.businessUnit;
   }
   if (params.noticePeriod) queryParams.notice_period = params.noticePeriod;
+  if (params.sortField) queryParams.sort_by = params.sortField;
+  if (params.sortOrder) queryParams.sort_order = params.sortOrder;
 
   const response = await api.get('/candidates', { params: queryParams });
   return { data: response.data.data.map(mapToFrontend) };
@@ -86,6 +89,7 @@ export const createCandidate = async (candidateData) => {
   // Personal Details
   formData.append('first_name', candidateData.firstName);
   formData.append('last_name', candidateData.lastName);
+  if (candidateData.profileStatus) formData.append('profile_status', candidateData.profileStatus);
   formData.append('email_address', candidateData.email);
   formData.append('phone_number', candidateData.phone);
   formData.append('country_code', candidateData.countryCode || '+91');
@@ -144,6 +148,7 @@ export const updateCandidate = async (id, candidateData) => {
 
   appendIfPresent('first_name', candidateData.firstName);
   appendIfPresent('last_name', candidateData.lastName);
+  appendIfPresent('profile_status', candidateData.profileStatus);
   appendIfPresent('email_address', candidateData.email);
   appendIfPresent('alternative_email', candidateData.alternativeEmail);
   appendIfPresent('phone_number', candidateData.phone);
@@ -213,4 +218,22 @@ export const parseResume = async (file) => {
     timeout: 60000, // 60s – AI parsing can take time
   });
   return response.data;
+};
+
+// ── GET /api/candidates/{id}/selection-details ───────────────
+export const fetchSelectionDetails = async (id) => {
+  const response = await api.get(`/candidates/${id}/selection-details`);
+  return { data: response.data.data };
+};
+
+// ── PUT /api/candidates/{id}/selection-details/{mappingId} ───
+export const updateSelectionDetails = async (candidateId, mappingId, payload) => {
+  const response = await api.put(`/candidates/${candidateId}/selection-details/${mappingId}`, payload);
+  return { data: response.data };
+};
+
+// ── POST /api/candidates/{id}/match-jobs ─────────────────────
+export const matchCandidateJobs = async (candidateId) => {
+  const response = await api.post(`/candidates/${candidateId}/match-jobs`);
+  return { data: response.data.data };
 };

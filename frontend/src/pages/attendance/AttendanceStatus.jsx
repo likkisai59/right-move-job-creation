@@ -19,7 +19,6 @@ const AttendanceStatus = () => {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
-  const employee = JSON.parse(localStorage.getItem('employee_data') || '{}');
 
   // Dummy data for personal history - in real app fetch from /api/attendance/history/{id}
   const attendanceData = {

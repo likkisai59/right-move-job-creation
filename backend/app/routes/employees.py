@@ -85,6 +85,8 @@ def export_employees(
     min_package: Optional[float] = Query(None, description="Minimum package"),
     max_package: Optional[float] = Query(None, description="Maximum package"),
     blood_group: Optional[str] = Query(None, description="Filter by blood group"),
+    sort_by: Optional[str] = Query(None, description="Field to sort by"),
+    sort_order: Optional[str] = Query("desc", description="Sort order (asc or desc)"),
     db: Session = Depends(get_db)
 ):
     """
@@ -94,7 +96,8 @@ def export_employees(
     try:
         employees = employee_service.get_all_employees(
             db, search=search, status=status, designation=designation, 
-            min_package=min_package, max_package=max_package, blood_group=blood_group
+            min_package=min_package, max_package=max_package, blood_group=blood_group,
+            sort_by=sort_by, sort_order=sort_order
         )
         output = employee_service.export_employees_to_excel(employees)
         
@@ -121,6 +124,8 @@ def list_employees(
     min_package: Optional[float] = Query(None, description="Minimum package"),
     max_package: Optional[float] = Query(None, description="Maximum package"),
     blood_group: Optional[str] = Query(None, description="Filter by blood group"),
+    sort_by: Optional[str] = Query(None, description="Field to sort by"),
+    sort_order: Optional[str] = Query("desc", description="Sort order (asc or desc)"),
     db: Session = Depends(get_db)
 ):
     """
@@ -130,7 +135,8 @@ def list_employees(
     try:
         employees = employee_service.get_all_employees(
             db, search=search, status=status, designation=designation, 
-            min_package=min_package, max_package=max_package, blood_group=blood_group
+            min_package=min_package, max_package=max_package, blood_group=blood_group,
+            sort_by=sort_by, sort_order=sort_order
         )
         
         # Format the data before sending it back
@@ -151,6 +157,8 @@ def list_employees(
                 "date_of_joining": str(emp.date_of_joining) if emp.date_of_joining else None,
                 "package": emp.package,
                 "status": emp.status,
+                "profile_status": emp.profile_status,
+                "completion_percentage": emp.completion_percentage,
                 "last_working_date": str(emp.last_working_date) if emp.last_working_date else None,
                 
                 # New fields
@@ -222,6 +230,8 @@ def get_employee(employee_id: int, db: Session = Depends(get_db)):
             "date_of_joining": str(employee.date_of_joining) if employee.date_of_joining else None,
             "package": employee.package,
             "status": employee.status,
+            "profile_status": employee.profile_status,
+            "completion_percentage": employee.completion_percentage,
             "last_working_date": str(employee.last_working_date) if employee.last_working_date else None,
             
             # New fields

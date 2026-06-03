@@ -47,11 +47,16 @@ def mark_attendance(employee_id: int, payload: AttendanceCreate, db: Session = D
     return attendance_service.mark_employee_attendance(db, employee_id, payload)
 
 @router.get("/history/{employee_id}", response_model=List[AttendanceResponse])
-def get_attendance_history(employee_id: int, db: Session = Depends(get_db)):
+def get_attendance_history(
+    employee_id: int, 
+    sort_by: str = None, 
+    sort_order: str = "desc", 
+    db: Session = Depends(get_db)
+):
     """
     Get weekly/monthly attendance history.
     """
-    return attendance_service.get_employee_attendance_history(db, employee_id)
+    return attendance_service.get_employee_attendance_history(db, employee_id, sort_by, sort_order)
 
 # ── Leave Management ─────────────────────────────────────────
 @router.post("/leave/apply", response_model=LeaveResponse)

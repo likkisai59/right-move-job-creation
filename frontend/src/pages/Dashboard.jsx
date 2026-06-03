@@ -23,7 +23,7 @@ const Dashboard = () => {
       try {
         const [statsRes, pipelineRes, appsRes] = await Promise.all([
           fetchDashboardStats(category),
-          fetchPipelineData(),
+          fetchPipelineData(category),
           fetchRecentApplications(),
         ]);
         setStats(statsRes.data);

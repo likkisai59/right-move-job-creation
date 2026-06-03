@@ -16,8 +16,11 @@ export const markAttendance = async (employeeId, data) => {
   return response.data;
 };
 
-export const getAttendanceHistory = async (employeeId) => {
-  const response = await axios.get(`/attendance/history/${employeeId}`);
+export const getAttendanceHistory = async (employeeId, sortField, sortOrder) => {
+  const params = {};
+  if (sortField) params.sort_by = sortField;
+  if (sortOrder) params.sort_order = sortOrder;
+  const response = await axios.get(`/attendance/history/${employeeId}`, { params });
   return response.data;
 };
 
