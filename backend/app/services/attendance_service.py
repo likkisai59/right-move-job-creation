@@ -2,7 +2,6 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from app.models.employee import Employee
 from app.models.attendance import Attendance
-from app.models.shift import Shift
 from app.models.leave import Leave
 from app.schemas.attendance import AttendanceCreate, LeaveCreate
 
@@ -52,13 +51,6 @@ def get_employee_attendance_history(db: Session, employee_id: int) -> List[Atten
     Fetch all attendance records for an employee.
     """
     return db.query(Attendance).filter(Attendance.employee_id == employee_id).all()
-
-def get_employee_shift_records(db: Session, employee_id: int) -> List[Shift]:
-    """
-    Fetch shift records for an employee.
-    ```
-    """
-    return db.query(Shift).filter(Shift.employee_id == employee_id).all()
 
 def create_leave_request(db: Session, payload: LeaveCreate) -> Leave:
     """

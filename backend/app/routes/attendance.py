@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.schemas.attendance import (
     EmployeeLoginRequest, 
     AttendanceCreate, AttendanceResponse,
-    ShiftResponse, LeaveCreate, LeaveResponse
+    LeaveCreate, LeaveResponse
 )
 from app.services import attendance_service
 from app.utils.response import success_response
@@ -52,14 +52,6 @@ def get_attendance_history(employee_id: int, db: Session = Depends(get_db)):
     Get weekly/monthly attendance history.
     """
     return attendance_service.get_employee_attendance_history(db, employee_id)
-
-# ── Shift Management ─────────────────────────────────────────
-@router.get("/shift/{employee_id}", response_model=List[ShiftResponse])
-def get_employee_shift(employee_id: int, db: Session = Depends(get_db)):
-    """
-    Retrieve shift assignments.
-    """
-    return attendance_service.get_employee_shift_records(db, employee_id)
 
 # ── Leave Management ─────────────────────────────────────────
 @router.post("/leave/apply", response_model=LeaveResponse)

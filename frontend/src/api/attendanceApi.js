@@ -21,13 +21,6 @@ export const getAttendanceHistory = async (employeeId) => {
   return response.data;
 };
 
-/**
- * Shift management
- */
-export const getEmployeeShift = async (employeeId) => {
-  const response = await axios.get(`/attendance/shift/${employeeId}`);
-  return response.data;
-};
 
 /**
  * Leave management

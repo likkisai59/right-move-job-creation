@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import {
-  LogOut, CalendarCheck, Clock,
+  LogOut, CalendarCheck,
   ClipboardList, PieChart, UserCircle, ArrowLeft
 } from 'lucide-react';
 
@@ -17,7 +17,6 @@ const AttendancePortalLayout = () => {
 
   const navItems = [
     { name: 'Attendance Marking', path: '/attendance/portal/mark', icon: CalendarCheck },
-    { name: 'Shift Management', path: '/attendance/portal/shifts', icon: Clock },
     { name: 'Leave Management', path: '/attendance/portal/leaves', icon: ClipboardList },
     { name: 'Attendance Status', path: '/attendance/portal/status', icon: PieChart },
   ];

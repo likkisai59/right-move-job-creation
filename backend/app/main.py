@@ -28,7 +28,6 @@ from app.models import organization  # noqa: F401
 from app.models import job_candidate  # noqa: F401
 from app.models import employee  # noqa: F401
 from app.models import attendance as attendance_model  # noqa: F401
-from app.models import shift as shift_model  # noqa: F401
 from app.models import leave as leave_model  # noqa: F401
 from app.models import designation  # noqa: F401
 from app.models import business_unit  # noqa: F401

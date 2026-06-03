@@ -23,22 +23,6 @@ class AttendanceResponse(AttendanceBase):
     class Config:
         orm_mode = True
 
-# ── Shift ─────────────────────────────────────────────────────
-class ShiftBase(BaseModel):
-    shift_name: str
-    start_time: time
-    end_time: time
-    weekly_off: str
-
-class ShiftCreate(ShiftBase):
-    employee_id: int
-
-class ShiftResponse(ShiftBase):
-    id: int
-    employee_id: int
-    class Config:
-        orm_mode = True
-
 # ── Leave ─────────────────────────────────────────────────────
 class LeaveBase(BaseModel):
     leave_type: str

@@ -26,7 +26,6 @@ import { isAuthenticated } from '../api/authApi';
 import AttendanceLoginPage from '../pages/attendance/AttendanceLoginPage';
 import AttendancePortalLayout from '../components/attendance/AttendancePortalLayout';
 import AttendanceMarking from '../pages/attendance/AttendanceMarking';
-import ShiftManagement from '../pages/attendance/ShiftManagement';
 import LeaveManagement from '../pages/attendance/LeaveManagement';
 import AttendanceStatus from '../pages/attendance/AttendanceStatus';
 
@@ -70,7 +69,6 @@ const AppRoutes = () => {
       >
         <Route index element={<Navigate to="mark" replace />} />
         <Route path="mark" element={<AttendanceMarking />} />
-        <Route path="shifts" element={<ShiftManagement />} />
         <Route path="leaves" element={<LeaveManagement />} />
         <Route path="status" element={<AttendanceStatus />} />
       </Route>
