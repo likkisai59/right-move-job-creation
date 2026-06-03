@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
+import SelectionDetailsTab from '../../components/candidates/SelectionDetailsTab';
 
 const DetailItem = ({ icon: IconComponent, label, value, iconColor = "text-gray-600" }) => (
   <div className="flex items-center gap-4 group p-2 rounded-xl hover:bg-gray-50/50 transition-all duration-200">
@@ -73,9 +74,9 @@ const EditHistorySection = ({ history }) => {
                   <p className="text-[11px] text-gray-400">
                     {entry.updated_at
                       ? new Date(entry.updated_at).toLocaleString('en-IN', {
-                          day: '2-digit', month: 'short', year: 'numeric',
-                          hour: '2-digit', minute: '2-digit'
-                        })
+                        day: '2-digit', month: 'short', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                      })
                       : '—'}
                     &nbsp;·&nbsp;
                     <span className="text-indigo-500 font-semibold">
@@ -133,6 +134,7 @@ const CandidateDetails = () => {
   const [candidate, setCandidate] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('candidate'); // 'candidate' or 'selection'
 
   useEffect(() => {
     const loadCandidate = async () => {
@@ -211,12 +213,42 @@ const CandidateDetails = () => {
               {candidate.source && (
                 <Badge color="blue" label={`Source: ${candidate.source}`} className="font-bold py-1 px-3" />
               )}
+              {candidate.profileStatus && (
+                <Badge color={candidate.profileStatus === 'Archived' ? 'gray' : candidate.profileStatus === 'Draft' ? 'amber' : 'emerald'} label={`Status: ${candidate.profileStatus}`} className="font-bold py-1 px-3" />
+              )}
             </div>
           </div>
         </div>
       </div>
+      
+      {/* TABS Navigation */}
+      <div className="flex items-center gap-4 border-b border-gray-200 mt-6 mb-8 px-2">
+        <button 
+          onClick={() => setActiveTab('candidate')}
+          className={`pb-4 px-2 text-sm font-black tracking-wider uppercase transition-colors relative ${
+            activeTab === 'candidate' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-700'
+          }`}
+        >
+          Candidate Details
+          {activeTab === 'candidate' && (
+            <span className="absolute bottom-0 left-0 w-full h-1 bg-blue-600 rounded-t-full"></span>
+          )}
+        </button>
+        <button 
+          onClick={() => setActiveTab('selection')}
+          className={`pb-4 px-2 text-sm font-black tracking-wider uppercase transition-colors relative ${
+            activeTab === 'selection' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-700'
+          }`}
+        >
+          Selection Details
+          {activeTab === 'selection' && (
+            <span className="absolute bottom-0 left-0 w-full h-1 bg-blue-600 rounded-t-full"></span>
+          )}
+        </button>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-8 items-start">
+      {activeTab === 'candidate' ? (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-8 items-start">
         {/* Left Column: Personal Details + Resume (4/12) */}
         <div className="lg:col-span-4 space-y-6">
           {/* Personal Details Card */}
@@ -397,6 +429,11 @@ const CandidateDetails = () => {
           </div>
         </div>
       </div>
+      ) : (
+        <div className="pb-8">
+          <SelectionDetailsTab candidateId={candidate.id} />
+        </div>
+      )}
     </div>
   );
 };

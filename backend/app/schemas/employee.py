@@ -13,19 +13,21 @@ class EmployeeBase(BaseModel):
     """
     Base properties shared across different employee schemas.
     """
-    first_name: str
-    last_name: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
     blood_group: Optional[str] = None
-    gender: str
+    gender: Optional[str] = None
     country_code: Optional[str] = None
     contact_number: Optional[str] = None
     email: Optional[str] = None
     permanent_address: Optional[str] = None
     current_address: Optional[str] = None
-    designation: str
-    date_of_joining: date
+    designation: Optional[str] = None
+    date_of_joining: Optional[date] = None
     package: Optional[float] = None
     status: EmployeeStatus = EmployeeStatus.ACTIVE
+    profile_status: Optional[str] = "Draft"
+    completion_percentage: Optional[int] = 0
     last_working_date: Optional[date] = None
 
     # New fields
@@ -49,24 +51,24 @@ class EmployeeBase(BaseModel):
     last_company_name: Optional[str] = None
 
     # Bank Details
-    bank_name: str
-    bank_account_number: str
-    bank_ifsc_code: str
+    bank_name: Optional[str] = None
+    bank_account_number: Optional[str] = None
+    bank_ifsc_code: Optional[str] = None
 
     # Reporting & Compliance Details
-    assigned_business_unit: str
-    reporting_to: str
-    work_mode: str
-    ctc: float
-    compliance: str
+    assigned_business_unit: Optional[str] = None
+    reporting_to: Optional[str] = None
+    work_mode: Optional[str] = None
+    ctc: Optional[float] = None
+    compliance: Optional[str] = None
 
     # Asset & System Configuration Details
-    system_assigned: str
-    sim_card_assigned: str
-    email_id_configured: str
-    linkedin_configured: str
-    google_sheet_configured: str
-    whatsapp_business_configured: str
+    system_assigned: Optional[str] = None
+    sim_card_assigned: Optional[str] = None
+    email_id_configured: Optional[str] = None
+    linkedin_configured: Optional[str] = None
+    google_sheet_configured: Optional[str] = None
+    whatsapp_business_configured: Optional[str] = None
 
 
 class EmployeeCreateRequest(EmployeeBase):

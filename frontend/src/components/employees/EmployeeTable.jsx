@@ -73,6 +73,39 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
       },
     },
     {
+      key: 'profileStatus',
+      header: 'Profile Status',
+      render: (val) => {
+        let colors = 'bg-gray-100 text-gray-700';
+        if (val === 'Draft') colors = 'bg-gray-100 text-gray-600 border border-gray-200';
+        else if (val === 'In Progress') colors = 'bg-amber-50 text-amber-600 border border-amber-200';
+        else if (val === 'Completed') colors = 'bg-emerald-50 text-emerald-600 border border-emerald-200';
+        
+        return (
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${colors}`}>
+            {val || 'Draft'}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'completionPercentage',
+      header: 'Completion',
+      render: (val) => (
+        <div className="flex flex-col gap-1 w-24">
+          <div className="flex justify-between items-center text-xs font-semibold text-gray-600">
+            <span>{val || 0}%</span>
+          </div>
+          <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+            <div 
+              className={`h-full rounded-full transition-all ${val === 100 ? 'bg-emerald-500' : val > 0 ? 'bg-amber-500' : 'bg-gray-300'}`} 
+              style={{ width: `${val || 0}%` }}
+            />
+          </div>
+        </div>
+      ),
+    },
+    {
       key: 'actions',
       header: 'Actions',
       render: (_, row) => (

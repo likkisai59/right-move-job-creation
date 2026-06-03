@@ -16,10 +16,10 @@ class Employee(Base):
     employee_id = Column(String(50), unique=True, nullable=False, index=True)
 
     # Personal details
-    first_name= Column(String(255), nullable=False)
-    last_name= Column(String(255), nullable=False)
+    first_name= Column(String(255), nullable=True)
+    last_name= Column(String(255), nullable=True)
     blood_group= Column(String(10), nullable=True)
-    gender= Column(Enum('Male','Female','Other',name='gender'), nullable=False)
+    gender= Column(Enum('Male','Female','Other',name='gender'), nullable=True)
     country_code= Column(String(10), nullable=True)
     contact_number= Column(String(255), nullable=True)
     email= Column(String(255), nullable=True) 
@@ -27,12 +27,16 @@ class Employee(Base):
     current_address= Column(String(255), nullable=True) 
     
     # Job details
-    designation= Column(String(255), nullable=False)
-    date_of_joining= Column(Date, nullable=False)
+    designation= Column(String(255), nullable=True)
+    date_of_joining= Column(Date, nullable=True)
     package= Column(Float, nullable=True)        # Annual package (numeric)
 
     # Status: Active or Inactive
     status= Column(Enum('Active', 'Inactive', name='employee_status'), nullable=False, default="Active")
+
+    # Draft / Profile Status tracking
+    profile_status= Column(Enum('Draft', 'In Progress', 'Completed', name='employee_profile_status'), nullable=False, default="Draft")
+    completion_percentage = Column(Integer, nullable=False, default=0)
 
     # Only filled when employee leaves — nullable by default
     last_working_date= Column(Date, nullable=True)
@@ -65,21 +69,21 @@ class Employee(Base):
     last_company_name= Column(String(255), nullable=True)
 
     # Bank Details
-    bank_name= Column(String(255), nullable=False)
-    bank_account_number= Column(String(255), nullable=False)
-    bank_ifsc_code= Column(String(100), nullable=False)
+    bank_name= Column(String(255), nullable=True)
+    bank_account_number= Column(String(255), nullable=True)
+    bank_ifsc_code= Column(String(100), nullable=True)
 
     # Reporting & Compliance Details
-    assigned_business_unit = Column(String(255), nullable=False)
-    reporting_to = Column(String(255), nullable=False)
-    work_mode = Column(String(255), nullable=False)
-    ctc = Column(Float, nullable=False)
-    compliance = Column(String(255), nullable=False)
+    assigned_business_unit = Column(String(255), nullable=True)
+    reporting_to = Column(String(255), nullable=True)
+    work_mode = Column(String(255), nullable=True)
+    ctc = Column(Float, nullable=True)
+    compliance = Column(String(255), nullable=True)
 
     # Asset & System Configuration Details
-    system_assigned = Column(String(50), nullable=False)
-    sim_card_assigned = Column(String(50), nullable=False)
-    email_id_configured = Column(String(50), nullable=False)
-    linkedin_configured = Column(String(50), nullable=False)
-    google_sheet_configured = Column(String(50), nullable=False)
-    whatsapp_business_configured = Column(String(50), nullable=False)
+    system_assigned = Column(String(50), nullable=True)
+    sim_card_assigned = Column(String(50), nullable=True)
+    email_id_configured = Column(String(50), nullable=True)
+    linkedin_configured = Column(String(50), nullable=True)
+    google_sheet_configured = Column(String(50), nullable=True)
+    whatsapp_business_configured = Column(String(50), nullable=True)

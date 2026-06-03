@@ -74,16 +74,22 @@ const OrganizationListPage = () => {
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm, startDate, endDate, sortField, sortOrder]);
 
-  const handleExport = async () => {
+  const handleExport = async (specificIds = null) => {
     try {
+      const params = {
+        search: searchTerm.trim(),
+        start_date: startDate,
+        end_date: endDate,
+        sort_by: sortField,
+        sort_order: sortOrder
+      };
+      
+      if (specificIds && specificIds.length > 0) {
+        params.export_ids = specificIds.join(',');
+      }
+
       const response = await api.get('/organizations/export', {
-        params: {
-          search: searchTerm.trim(),
-          start_date: startDate,
-          end_date: endDate,
-          sort_by: sortField,
-          sort_order: sortOrder
-        },
+        params,
         responseType: 'blob'
       });
       
@@ -119,7 +125,7 @@ const OrganizationListPage = () => {
       subtitle={`${organizations.length} organization${organizations.length !== 1 ? 's' : ''} registered`}
       actions={
         <div className="flex items-center gap-3">
-          <Button variant="secondary" icon={Download} onClick={handleExport} disabled={organizations.length === 0}>
+          <Button variant="secondary" icon={Download} onClick={() => handleExport()} disabled={organizations.length === 0}>
             Export Excel
           </Button>
           <Button icon={Plus} onClick={() => navigate('/organizations/create')}>
@@ -137,11 +143,23 @@ const OrganizationListPage = () => {
               <AlertTriangle size={24} />
             </div>
             <div className="flex-1">
-              <h4 className="text-base font-bold text-slate-900">Contract Renewal Notice</h4>
-              <p className="text-sm text-slate-600 mt-1 leading-relaxed">
-                The following organizations have contracts reaching their termination date within the next <span className="font-bold text-indigo-600">30 days</span>. 
-                Please ensure necessary renewal documentation is processed to maintain service continuity.
-              </p>
+              <div className="flex justify-between items-start gap-4">
+                <div>
+                  <h4 className="text-base font-bold text-slate-900">Contract Renewal Notice</h4>
+                  <p className="text-sm text-slate-600 mt-1 leading-relaxed">
+                    The following organizations have contracts reaching their termination date within the next <span className="font-bold text-indigo-600">30 days</span>. 
+                    Please ensure necessary renewal documentation is processed to maintain service continuity.
+                  </p>
+                </div>
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  icon={Download} 
+                  onClick={() => handleExport(expiringOrgs.map(org => org.id))}
+                >
+                  Export Excel
+                </Button>
+              </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {expiringOrgs.map(org => (
                   <span key={org.id} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">

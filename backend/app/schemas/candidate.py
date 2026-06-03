@@ -22,6 +22,7 @@ class CandidateCreateRequest(BaseModel):
     alternative_contact_number: Optional[str] = None
     current_location: Optional[str] = None
     highest_qualification: Optional[str] = None
+    profile_status: Optional[str] = "Active"
 
     # ── Employee Details ──────────────────────────────────
     business_unit: str = Field(default="IT", description="Options: IT, ITES, BPO, Lateral, FLP, F&A")
@@ -144,6 +145,7 @@ class CandidateUpdateRequest(BaseModel):
     alternative_contact_number: Optional[str] = None
     current_location: Optional[str] = None
     highest_qualification: Optional[str] = None
+    profile_status: Optional[str] = None
     # Employee Details
     business_unit: Optional[str] = None
     current_last_company: Optional[str] = None
@@ -186,6 +188,7 @@ class EditHistoryItem(BaseModel):
 class CandidateResponse(BaseModel):
     id: int
     candidate_code: str
+    profile_status: str
 
     # Personal Details
     first_name: str

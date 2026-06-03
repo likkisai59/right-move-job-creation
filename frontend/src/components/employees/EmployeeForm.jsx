@@ -153,6 +153,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     reset,
     watch,
     control,
+    getValues,
     formState: { errors }
   } = useForm({
     defaultValues: {
@@ -827,12 +828,24 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
           Cancel
         </Button>
         <Button
+          type="button"
+          variant="secondary"
+          className="border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+          onClick={() => {
+            const data = getValues();
+            onSubmit(data);
+          }}
+          disabled={isSubmitting}
+        >
+          Save as Draft
+        </Button>
+        <Button
           type="submit"
           variant="primary"
           loading={isSubmitting}
           disabled={isSubmitting}
         >
-          {isEditing ? 'Save Changes' : 'Save Employee'}
+          {isEditing ? 'Save Changes' : 'Mark as Completed'}
         </Button>
       </div>
 

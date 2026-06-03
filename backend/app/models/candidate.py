@@ -10,6 +10,7 @@ class Candidate(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     candidate_code = Column(String(50), unique=True, nullable=False, index=True)
+    profile_status = Column(String(50), nullable=False, default="Active") # Draft, Active, Archived
 
     # ── Personal Details ───────────────────────────────────
     first_name = Column(String(255), nullable=False)

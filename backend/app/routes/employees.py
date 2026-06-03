@@ -157,6 +157,8 @@ def list_employees(
                 "date_of_joining": str(emp.date_of_joining) if emp.date_of_joining else None,
                 "package": emp.package,
                 "status": emp.status,
+                "profile_status": emp.profile_status,
+                "completion_percentage": emp.completion_percentage,
                 "last_working_date": str(emp.last_working_date) if emp.last_working_date else None,
                 
                 # New fields
@@ -228,6 +230,8 @@ def get_employee(employee_id: int, db: Session = Depends(get_db)):
             "date_of_joining": str(employee.date_of_joining) if employee.date_of_joining else None,
             "package": employee.package,
             "status": employee.status,
+            "profile_status": employee.profile_status,
+            "completion_percentage": employee.completion_percentage,
             "last_working_date": str(employee.last_working_date) if employee.last_working_date else None,
             
             # New fields

@@ -10,12 +10,17 @@ from datetime import datetime, date
 logger = logging.getLogger(__name__)
 from fastapi import APIRouter, Depends, status, Query, File, UploadFile, Form
 from fastapi.responses import JSONResponse, StreamingResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
 from typing import Optional
+from fastapi import Header, HTTPException
 
 from pydantic import ValidationError
+from sqlalchemy import func
 from app.core.database import get_db
+from app.models.job_candidate import JobCandidateMapping
+from app.models.job_requirement import Job, JobRequirement
+from app.schemas.job_candidate import SelectionDetailsResponse, SelectionDetailsUpdate
 from app.schemas.candidate import CandidateCreateRequest, CandidateUpdateRequest, CandidateResponse
 from app.services.candidate_service import (
     create_candidate,
@@ -26,6 +31,7 @@ from app.services.candidate_service import (
     delete_candidate,
     check_candidate_exists,
     get_candidate_edit_history,
+    match_jobs_for_candidate,
 )
 from app.utils.response import success_response, error_response
 
@@ -101,6 +107,7 @@ async def add_candidate(
     comments: Optional[str] = Form(None),
     recruiter_name: Optional[str] = Form(None),
     # ── Misc ─────────────────────────────────────────────
+    profile_status: Optional[str] = Form("Active"),
     mapped_job_id: Optional[int] = Form(None),
     file: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
@@ -135,6 +142,7 @@ async def add_candidate(
             alternative_contact_number=alternative_contact_number or None,
             current_location=current_location,
             highest_qualification=highest_qualification,
+            profile_status=profile_status,
             business_unit=business_unit,
             current_last_company=current_last_company,
             current_designation=current_designation,
@@ -216,6 +224,7 @@ async def edit_candidate(
     recruiter_name: Optional[str] = Form(None),
     updated_by: Optional[str] = Form(None),
     # ── Misc ─────────────────────────────────────────────
+    profile_status: Optional[str] = Form(None),
     mapped_job_id: Optional[int] = Form(None),
     file: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
@@ -251,6 +260,7 @@ async def edit_candidate(
             "phone_number": phone_number, "country_code": country_code,
             "alternative_contact_number": alternative_contact_number,
             "current_location": current_location, "highest_qualification": highest_qualification,
+            "profile_status": profile_status,
             "business_unit": business_unit, "current_last_company": current_last_company,
             "current_designation": current_designation, "total_experience": total_experience,
             "relevant_experience_years": relevant_experience_years,
@@ -417,6 +427,76 @@ def export_candidates(
     )
 
 
+@router.get("/analytics/pipeline", status_code=status.HTTP_200_OK)
+def get_pipeline_analytics(
+    business_unit: Optional[str] = Query(None, description="Filter by business unit"),
+    db: Session = Depends(get_db)
+):
+    try:
+        from app.models.candidate import Candidate
+        
+        cand_query = db.query(Candidate)
+        if business_unit and business_unit.upper() != "ALL":
+            cand_query = cand_query.filter(Candidate.business_unit.ilike(business_unit.strip()))
+        total_candidates = cand_query.count()
+        
+        map_query = db.query(JobCandidateMapping)
+        if business_unit and business_unit.upper() != "ALL":
+            map_query = map_query.join(Candidate).filter(Candidate.business_unit.ilike(business_unit.strip()))
+        mappings = map_query.all()
+        
+        applied = total_candidates
+        matched = 0
+        shortlisted = 0
+        interviewed = 0
+        selected = 0
+        joined = 0
+        
+        # Count highest status for each candidate
+        candidate_status_map = {}
+        for m in mappings:
+            c_id = m.candidate_id
+            st = (m.status or "").lower()
+            j_st = (m.joining_status or "").lower()
+            
+            # Joining overrides
+            if j_st == "joined":
+                val = 6
+            elif st == "selected":
+                val = 5
+            elif "interview" in st:
+                val = 4
+            elif st == "shortlisted":
+                val = 3
+            elif st == "matched":
+                val = 2
+            else:
+                val = 1
+                
+            if c_id not in candidate_status_map or candidate_status_map[c_id] < val:
+                candidate_status_map[c_id] = val
+                
+        for val in candidate_status_map.values():
+            if val >= 2: matched += 1
+            if val >= 3: shortlisted += 1
+            if val >= 4: interviewed += 1
+            if val >= 5: selected += 1
+            if val >= 6: joined += 1
+            
+        data = [
+            {"stage": "Total", "count": applied, "percentage": 100},
+            {"stage": "Matched", "count": matched, "percentage": int((matched/applied)*100) if applied else 0},
+            {"stage": "Shortlisted", "count": shortlisted, "percentage": int((shortlisted/applied)*100) if applied else 0},
+            {"stage": "Interviewed", "count": interviewed, "percentage": int((interviewed/applied)*100) if applied else 0},
+            {"stage": "Selected", "count": selected, "percentage": int((selected/applied)*100) if applied else 0},
+            {"stage": "Joined", "count": joined, "percentage": int((joined/applied)*100) if applied else 0},
+        ]
+        
+        return JSONResponse(status_code=200, content=success_response("Pipeline analytics fetched", data))
+    except Exception as exc:
+        logger.error(f"Error fetching pipeline analytics: {exc}", exc_info=True)
+        return JSONResponse(status_code=500, content=error_response("Failed to fetch pipeline analytics."))
+
 @router.get("/{candidate_id}/history", status_code=status.HTTP_200_OK)
 def get_edit_history(candidate_id: int, db: Session = Depends(get_db)):
     try:
@@ -465,3 +545,142 @@ def remove_candidate(candidate_id: int, db: Session = Depends(get_db)):
         db.rollback()
         logger.error(f"Error deleting candidate: {exc}", exc_info=True)
         return JSONResponse(status_code=500, content=error_response("An internal server error occurred while deleting the candidate."))
+
+
+@router.post("/{candidate_id}/match-jobs", status_code=status.HTTP_200_OK)
+def match_candidate_jobs(candidate_id: int, db: Session = Depends(get_db)):
+    try:
+        results = match_jobs_for_candidate(db, candidate_id)
+        return JSONResponse(status_code=200, content=success_response("Successfully matched jobs for candidate", results))
+    except Exception as exc:
+        logger.error(f"Error matching jobs for candidate: {exc}", exc_info=True)
+        return JSONResponse(status_code=500, content=error_response("An internal server error occurred while matching jobs."))
+
+
+def get_current_user(authorization: Optional[str] = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        # In a real app, this would be 401. For mock auth, default to Recruiter if token is missing
+        return {"role": "Recruiter", "id": 999}
+    
+    token = authorization.split(" ")[1]
+    if "admin" in token.lower():
+        return {"role": "Admin", "id": 1}
+    elif "tl" in token.lower():
+        return {"role": "Team Lead", "id": 2}
+    else:
+        return {"role": "Recruiter", "id": 3}
+
+@router.get("/{candidate_id}/selection-details", status_code=status.HTTP_200_OK)
+def get_selection_details(candidate_id: int, db: Session = Depends(get_db)):
+    try:
+        # Optimized query to fix N+1 issue
+        results = db.query(JobCandidateMapping, Job, JobRequirement).join(
+            Job, JobCandidateMapping.job_id == Job.id
+        ).join(
+            JobRequirement, JobCandidateMapping.job_id == JobRequirement.job_id
+        ).filter(
+            JobCandidateMapping.candidate_id == candidate_id
+        ).all()
+        
+        result = []
+        for mapping, job, job_req in results:
+            data = SelectionDetailsResponse.model_validate(mapping).model_dump(mode="json")
+            data["organization_name"] = job.company_name if job else None
+            data["job_title"] = job_req.job_title if job_req else None
+            data["job_description"] = job_req.job_description if job_req else None
+            data["business_unit"] = job.business_unit if job else None
+            data["hiring_manager"] = job.assigned_to if job else None
+            result.append(data)
+            
+        return JSONResponse(status_code=200, content=success_response("Selection details fetched", result))
+    except Exception as exc:
+        logger.error(f"Error fetching selection details: {exc}", exc_info=True)
+        return JSONResponse(status_code=500, content=error_response("An internal server error occurred while fetching selection details."))
+
+@router.put("/{candidate_id}/selection-details/{mapping_id}", status_code=status.HTTP_200_OK)
+def update_selection_details(
+    candidate_id: int, 
+    mapping_id: int, 
+    payload: SelectionDetailsUpdate, 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    try:
+        mapping = db.query(JobCandidateMapping).filter(
+            JobCandidateMapping.id == mapping_id,
+            JobCandidateMapping.candidate_id == candidate_id
+        ).first()
+        
+        if not mapping:
+            return JSONResponse(status_code=404, content=error_response("Selection details not found"))
+            
+        update_data = payload.model_dump(exclude_unset=True)
+        
+        # Priority 1: Security Validation
+        role = current_user.get("role", "")
+        
+        if "rate_card" in update_data and update_data["rate_card"] != mapping.rate_card:
+            if role.lower() != "admin":
+                return JSONResponse(status_code=403, content=error_response("Forbidden: Only Admin can update Rate Card"))
+            
+        if "incentive" in update_data and update_data["incentive"] != mapping.incentive:
+            if role.lower() not in ["admin", "team lead", "tl"]:
+                return JSONResponse(status_code=403, content=error_response("Forbidden: Only Admin or Team Lead can update Incentive"))
+            
+        # Priority 4: Pipeline State Validation
+        VALID_TRANSITIONS = {
+            "Applied": ["Matched", "Rejected", "Hold"],
+            "Matched": ["Shortlisted", "Rejected", "Hold"],
+            "Shortlisted": ["Interview Scheduled", "Rejected", "Hold"],
+            "Interview Scheduled": ["Interview Completed", "Rejected", "Hold"],
+            "Interview Completed": ["Selected", "Rejected", "Hold"],
+            "Selected": ["Joined", "Rejected", "Hold"],
+            "Joined": [],
+            "Rejected": ["Hold"], # Or allow restart
+            "Hold": ["Applied", "Matched", "Shortlisted", "Interview Scheduled", "Interview Completed", "Selected", "Rejected"],
+            "in_review": []
+        }
+        
+        new_status_enum = update_data.get("status")
+        if new_status_enum:
+            new_status = new_status_enum.value if hasattr(new_status_enum, 'value') else new_status_enum
+            current_status = mapping.status
+            if new_status != current_status:
+                allowed_next = VALID_TRANSITIONS.get(current_status, [])
+                if new_status not in allowed_next:
+                    return JSONResponse(
+                        status_code=400, 
+                        content=error_response(f"Invalid status transition from {current_status} to {new_status}")
+                    )
+                mapping.last_status_changed_at = func.now()
+                mapping.last_status_changed_by = current_user.get("id")
+
+        # Priority 6: Business Validation (Joining Date against Mapping Date)
+        new_joining_date = update_data.get("joining_date")
+        if new_joining_date:
+            if isinstance(new_joining_date, date):
+                if new_joining_date < mapping.created_at.date():
+                    return JSONResponse(
+                        status_code=400,
+                        content=error_response("Joining Date cannot be before the candidate was mapped to this job")
+                    )
+
+        logger.info(f"Updating JobCandidateMapping {mapping_id} for candidate {candidate_id} with values: {update_data}")
+        
+        for key, value in update_data.items():
+            # Extract enum values if applicable
+            if hasattr(value, 'value'):
+                setattr(mapping, key, value.value)
+            else:
+                setattr(mapping, key, value)
+            
+        # Priority 5: Audit Trail
+        mapping.updated_by = current_user.get("id")
+            
+        db.commit()
+        db.refresh(mapping)
+        return JSONResponse(status_code=200, content=success_response("Selection details updated successfully", {}))
+    except Exception as exc:
+        db.rollback()
+        logger.error(f"Error updating selection details: {exc}", exc_info=True)
+        return JSONResponse(status_code=500, content=error_response("An internal server error occurred while updating selection details."))

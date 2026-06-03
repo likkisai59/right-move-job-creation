@@ -23,6 +23,8 @@ const mapToFrontend = (data) => {
     dateOfJoining: data.date_of_joining,
     package: data.package,
     status: data.status,
+    profileStatus: data.profile_status || 'Draft',
+    completionPercentage: data.completion_percentage || 0,
     lastWorkingDate: data.last_working_date,
     
     // New fields
@@ -83,13 +85,13 @@ const mapToBackend = (data) => {
     permanent_address: data.permanentAddress,
     current_address: data.currentAddress,
     designation: data.designation,
-    date_of_joining: data.dateOfJoining,
+    date_of_joining: data.dateOfJoining || null,
     package: data.package ? parseFloat(data.package) : null, // Ensure package is a number
     status: data.status,
     last_working_date: data.lastWorkingDate || null,         // Convert empty strings to null
     
     // New fields
-    date_of_birth: data.dateOfBirth,
+    date_of_birth: data.dateOfBirth || null,
     contact_number_office: data.contactNumberOffice,
     emergency_contact_number: data.emergencyContactNumber,
     aadhar_number: data.aadharNumber,

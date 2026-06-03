@@ -85,10 +85,14 @@ def export_organizations(
     end_date: Optional[str] = Query(None),
     sort_by: Optional[str] = Query(None),
     sort_order: Optional[str] = Query("desc"),
+    export_ids: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
     try:
         orgs = get_all_organizations(db, status, search, start_date, end_date, sort_by, sort_order)
+        if export_ids:
+            id_list = [int(i) for i in export_ids.split(",")]
+            orgs = [o for o in orgs if o.id in id_list]
         output = export_organizations_to_excel(orgs)
         
         filename = f"organizations_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"

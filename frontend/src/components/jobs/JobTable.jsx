@@ -31,6 +31,22 @@ const JobTable = ({ jobs = [], loading = false, onEdit }) => {
       render: (val) => formatDate(val),
     },
     {
+      key: 'ageing',
+      header: 'Ageing',
+      render: (_, row) => {
+        if (!row.date) return '—';
+        const openDate = new Date(row.date);
+        const today = new Date();
+        const diffTime = today.getTime() - openDate.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        return (
+          <span className="font-medium text-gray-900">
+            {Math.max(0, diffDays)} Days
+          </span>
+        );
+      }
+    },
+    {
       key: 'companyName',
       header: 'Company name',
       minWidth: '160px',

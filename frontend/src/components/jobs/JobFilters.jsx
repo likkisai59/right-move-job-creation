@@ -7,6 +7,8 @@ import SortBy from '../common/SortBy';
 const SORT_OPTIONS = [
   { label: 'Created Date (Newest)', value: 'created_at:desc' },
   { label: 'Created Date (Oldest)', value: 'created_at:asc' },
+  { label: 'Ageing (High to Low)', value: 'requisition_open_date:asc' },
+  { label: 'Ageing (Low to High)', value: 'requisition_open_date:desc' },
   { label: 'Company Name (A-Z)', value: 'company_name:asc' },
   { label: 'Company Name (Z-A)', value: 'company_name:desc' },
   { label: 'Job Code Ascending', value: 'job_code:asc' },

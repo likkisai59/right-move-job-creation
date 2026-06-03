@@ -39,7 +39,7 @@ const DEFAULT_FORM_VALUES = {
   currentLocation: '',
   highestQualification: '',
   // Employee Details
-  businessUnit: 'IT',
+  businessUnit: '',
   currentCompany: '',
   currentDesignation: '',
   totalExperience: '',
@@ -733,6 +733,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
         {/* Business Unit */}
         <Select
           label="Business Unit"
+          placeholder="Select Business Unit"
           required
           options={businessUnits}
           error={errors.businessUnit?.message}

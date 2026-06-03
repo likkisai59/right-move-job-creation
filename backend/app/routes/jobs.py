@@ -237,16 +237,22 @@ def export_jobs(
 
     # ── 2. Flatten ORM objects → list of plain dicts ────────────
     HEADERS = [
-        "Job Code", "Date", "Company Name", "Business Unit",
+        "Job Code", "Date", "Ageing (Days)", "Company Name", "Business Unit",
         "External SPOC", "External SPOC Email",
         "Job Title(s)", "Mandatory Skill", "Assigned To",
         "Total Candidates", "Status",
     ]
 
+    from datetime import date as dt_date
+    today = dt_date.today()
+
     rows = []
     for job in jobs_orm:
         titles = ", ".join(r.job_title for r in job.requirements) if job.requirements else "—"
         total  = sum(r.number_of_open_positions for r in job.requirements)
+        
+        # Calculate Ageing
+        ageing = max(0, (today - job.requisition_open_date).days) if job.requisition_open_date else 0
         
         # Since status and mandatory_skill are now at the requirement level, we can join them or take the first one
         skills = ", ".join(filter(None, set(r.mandatory_skill for r in job.requirements))) if job.requirements else "—"
@@ -255,6 +261,7 @@ def export_jobs(
         rows.append([
             job.job_code,
             str(job.requisition_open_date),
+            ageing,
             job.company_name,
             job.business_unit,
             job.external_spoc or "—",
