@@ -6,7 +6,8 @@ from app.core.database import get_db
 from app.schemas.attendance import (
     EmployeeLoginRequest, 
     AttendanceCreate, AttendanceResponse,
-    LeaveCreate, LeaveResponse
+    LeaveCreate, LeaveResponse,
+    LeaveActionRequest, TeamLeaveResponse, TeamMemberAttendanceResponse
 )
 from app.services import attendance_service
 from app.utils.response import success_response
@@ -72,3 +73,32 @@ def get_leave_history(employee_id: int, db: Session = Depends(get_db)):
     Retrieve leave application history.
     """
     return attendance_service.get_employee_leave_history(db, employee_id)
+
+# ── Approvals & Team Management ───────────────────────────────
+@router.get("/approvals/leaves", response_model=List[TeamLeaveResponse])
+def get_leaves_for_approval(manager_name: str, db: Session = Depends(get_db)):
+    """
+    Fetch leave requests of employees who report to the given manager.
+    """
+    return attendance_service.get_leaves_for_approval(db, manager_name)
+
+@router.post("/approvals/leaves/{leave_id}/action", response_model=LeaveResponse)
+def action_leave_request(leave_id: int, payload: LeaveActionRequest, db: Session = Depends(get_db)):
+    """
+    Approve or reject a leave request.
+    """
+    leave = attendance_service.action_leave_request(db, leave_id, payload.status, payload.manager_name)
+    if not leave:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Leave request not found"
+        )
+    return leave
+
+@router.get("/approvals/team-attendance", response_model=List[TeamMemberAttendanceResponse])
+def get_team_attendance(manager_name: str, db: Session = Depends(get_db)):
+    """
+    Fetch recent attendance records for team members reporting to the manager.
+    """
+    return attendance_service.get_team_attendance(db, manager_name)
+

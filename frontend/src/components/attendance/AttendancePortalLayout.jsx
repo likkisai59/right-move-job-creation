@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import {
   LogOut, CalendarCheck,
-  ClipboardList, PieChart, UserCircle, ArrowLeft
+  ClipboardList, PieChart, UserCircle, ArrowLeft, CheckSquare
 } from 'lucide-react';
 
 const AttendancePortalLayout = () => {
@@ -15,11 +15,22 @@ const AttendancePortalLayout = () => {
     navigate('/attendance-login');
   };
 
+  const isManager = (designation) => {
+    if (!designation) return false;
+    const normalized = designation.toLowerCase().trim().replace(/[\s\.-]+/g, '');
+    return ['teamlead', 'assistantmanager', 'asstmanager', 'manager', 'seniormanager', 'srmanager', 'director'].includes(normalized);
+  };
+
   const navItems = [
     { name: 'Attendance Marking', path: '/attendance/portal/mark', icon: CalendarCheck },
     { name: 'Leave Management', path: '/attendance/portal/leaves', icon: ClipboardList },
     { name: 'Attendance Status', path: '/attendance/portal/status', icon: PieChart },
   ];
+
+  if (isManager(employee.designation)) {
+    navItems.push({ name: 'Manage Approvals', path: '/attendance/portal/approvals', icon: CheckSquare });
+  }
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

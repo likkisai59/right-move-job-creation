@@ -37,3 +37,25 @@ export const getLeaveHistory = async (employeeId) => {
   const response = await axios.get(`/attendance/leave/history/${employeeId}`);
   return response.data;
 };
+
+/**
+ * Approvals and Team Management
+ */
+export const getPendingLeaves = async (managerName) => {
+  const response = await axios.get(`/attendance/approvals/leaves?manager_name=${encodeURIComponent(managerName)}`);
+  return response.data;
+};
+
+export const updateLeaveStatus = async (leaveId, status, managerName) => {
+  const response = await axios.post(`/attendance/approvals/leaves/${leaveId}/action`, {
+    status,
+    manager_name: managerName
+  });
+  return response.data;
+};
+
+export const getTeamAttendance = async (managerName) => {
+  const response = await axios.get(`/attendance/approvals/team-attendance?manager_name=${encodeURIComponent(managerName)}`);
+  return response.data;
+};
+

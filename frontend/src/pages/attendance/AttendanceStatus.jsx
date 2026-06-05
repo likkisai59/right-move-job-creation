@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
+import { getAttendanceHistory } from '../../api/attendanceApi';
 
 const MONTHS = [
   'January','February','March','April','May','June',
@@ -19,11 +20,29 @@ const AttendanceStatus = () => {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Dummy data for personal history - in real app fetch from /api/attendance/history/{id}
-  const attendanceData = {
-    1: 'P', 2: 'P', 3: 'P', 4: 'WO', 5: 'WO', 6: 'P', 7: 'L', 8: 'P', 9: 'P', 10: 'P'
-  };
+  const employee = JSON.parse(localStorage.getItem('employee_data') || '{}');
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!employee.id) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const data = await getAttendanceHistory(employee.id);
+        setAttendanceRecords(data || []);
+      } catch (err) {
+        console.error("Error fetching attendance history:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHistory();
+  }, [employee.id]);
 
   const totalDays = new Date(year, month + 1, 0).getDate();
   const firstDay = new Date(year, month, 1).getDay();
@@ -42,6 +61,22 @@ const AttendanceStatus = () => {
   for (let i = 0; i < firstDay; i++) days.push(null);
   // Actual days
   for (let d = 1; d <= totalDays; d++) days.push(d);
+
+  // Map to speed up lookup by date key (YYYY-MM-DD)
+  const recordsMap = {};
+  attendanceRecords.forEach(rec => {
+    if (rec.attendance_date) {
+      recordsMap[rec.attendance_date] = rec;
+    }
+  });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-8 h-8 border-4 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -82,12 +117,33 @@ const AttendanceStatus = () => {
             const isWeekend = date.getDay() === 0 || date.getDay() === 6;
             const isFuture = date > now;
             
-            let status = 'P'; // default
-            if (isWeekend) status = 'WO';
-            else if (isFuture) status = 'FT';
-            else status = attendanceData[day] || 'P';
+            const dayStr = String(day).padStart(2, '0');
+            const monthStr = String(month + 1).padStart(2, '0');
+            const dateKey = `${year}-${monthStr}-${dayStr}`;
+            const record = recordsMap[dateKey];
 
+            let fhStatus = '';
+            let shStatus = '';
+            let hasRecord = false;
+            let status = 'P';
+
+            if (isFuture) {
+              status = 'FT';
+            } else if (record) {
+              hasRecord = true;
+              fhStatus = record.first_half_status;
+              shStatus = record.second_half_status;
+            } else if (isWeekend) {
+              status = 'WO';
+            } else {
+              status = 'A';
+            }
+
+            const hasDifferentStatuses = hasRecord && fhStatus !== shStatus;
             const config = STATUS_CONFIG[status];
+            const fhConfig = STATUS_CONFIG[fhStatus] || STATUS_CONFIG['P'];
+            const shConfig = STATUS_CONFIG[shStatus] || STATUS_CONFIG['P'];
+            const displayConfig = hasRecord ? fhConfig : config;
 
             return (
               <div 
@@ -99,8 +155,21 @@ const AttendanceStatus = () => {
                 </span>
 
                 {!isFuture && (
-                  <div className={`mt-auto px-2 py-1 rounded-lg border text-[10px] font-bold text-center ${config.bg} ${config.text} ${config.border}`}>
-                    {config.label}
+                  <div className="space-y-1 mt-auto">
+                    {hasDifferentStatuses ? (
+                      <div className="grid grid-cols-1 gap-1">
+                        <div className={`px-1.5 py-0.5 rounded border text-[9px] font-bold text-center leading-tight ${fhConfig.bg} ${fhConfig.text} ${fhConfig.border}`}>
+                          FH: {fhConfig.label}
+                        </div>
+                        <div className={`px-1.5 py-0.5 rounded border text-[9px] font-bold text-center leading-tight ${shConfig.bg} ${shConfig.text} ${shConfig.border}`}>
+                          SH: {shConfig.label}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={`px-2 py-1 rounded-lg border text-[10px] font-bold text-center ${displayConfig.bg} ${displayConfig.text} ${displayConfig.border}`}>
+                        {displayConfig.label}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

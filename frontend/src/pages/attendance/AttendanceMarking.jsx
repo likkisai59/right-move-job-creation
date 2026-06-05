@@ -15,6 +15,7 @@ const AttendanceMarking = () => {
   const [weekData, setWeekData] = useState({}); // { '2024-05-10': 'P', ... }
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
   // ── Status Options ──
@@ -58,6 +59,13 @@ const AttendanceMarking = () => {
           };
         });
         setWeekData(dataMap);
+
+        // Check if all weekDays are already present in the history dataMap
+        const alreadySubmitted = weekDays.every(day => {
+          const dateStr = day.toISOString().split('T')[0];
+          return dataMap[dateStr] && dataMap[dateStr].first_half && dataMap[dateStr].second_half;
+        });
+        setIsSubmitted(alreadySubmitted);
       } catch (err) {
         console.error("Error fetching attendance history:", err);
       } finally {
@@ -68,6 +76,7 @@ const AttendanceMarking = () => {
   }, [employee.id]);
 
   const handleStatusChange = (dateStr, half, status) => {
+    if (isSubmitted) return;
     setWeekData(prev => {
       const current = prev[dateStr] || { first_half: '', second_half: '' };
       return {
@@ -99,6 +108,7 @@ const AttendanceMarking = () => {
         }
       }
       setSuccess(true);
+      setIsSubmitted(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       console.error(err);
@@ -154,6 +164,18 @@ const AttendanceMarking = () => {
         </div>
 
         {/* Weekly Grid */}
+        {isSubmitted && (
+          <div className="mx-8 mt-6 p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-3 animate-slide-up">
+            <CheckCircle2 className="text-emerald-600 animate-bounce" size={20} />
+            <div>
+              <p className="text-sm font-bold text-emerald-900">Submitted successfully</p>
+              <p className="text-xs text-emerald-700 mt-0.5">
+                Your attendance for this week has been recorded and locked.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="p-0 overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -186,19 +208,24 @@ const AttendanceMarking = () => {
                         {STATUSES.map(s => {
                           const isSelected = dayData.first_half === s.id;
                           return (
-                            <label key={s.id} className="relative inline-flex items-center justify-center cursor-pointer group">
+                            <label 
+                              key={s.id} 
+                              className={`relative inline-flex items-center justify-center group ${isSubmitted ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                            >
                               <input 
                                 type="radio" 
                                 name={`first-half-${dateStr}`}
                                 checked={isSelected}
-                                onChange={() => handleStatusChange(dateStr, 'first_half', s.id)}
+                                onChange={() => !isSubmitted && handleStatusChange(dateStr, 'first_half', s.id)}
                                 className="peer sr-only"
+                                disabled={isSubmitted}
                               />
                               <div className={`
                                 w-9 h-9 rounded-xl border-2 flex items-center justify-center font-bold text-xs transition-all
                                 ${isSelected 
                                   ? 'bg-blue-600 border-blue-600 text-white shadow-md' 
                                   : 'border-gray-100 text-gray-400 bg-white hover:border-gray-200 hover:text-gray-600'}
+                                ${isSubmitted ? 'opacity-50' : ''}
                               `}>
                                 {s.label}
                               </div>
@@ -207,26 +234,31 @@ const AttendanceMarking = () => {
                         })}
                       </div>
                     </td>
-
+                    
                     {/* Second Half */}
                     <td className="px-8 py-5 text-center">
                       <div className="flex items-center justify-center gap-2">
                         {STATUSES.map(s => {
                           const isSelected = dayData.second_half === s.id;
                           return (
-                            <label key={s.id} className="relative inline-flex items-center justify-center cursor-pointer group">
+                            <label 
+                              key={s.id} 
+                              className={`relative inline-flex items-center justify-center group ${isSubmitted ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                            >
                               <input 
                                 type="radio" 
                                 name={`second-half-${dateStr}`}
                                 checked={isSelected}
-                                onChange={() => handleStatusChange(dateStr, 'second_half', s.id)}
+                                onChange={() => !isSubmitted && handleStatusChange(dateStr, 'second_half', s.id)}
                                 className="peer sr-only"
+                                disabled={isSubmitted}
                               />
                               <div className={`
                                 w-9 h-9 rounded-xl border-2 flex items-center justify-center font-bold text-xs transition-all
                                 ${isSelected 
                                   ? 'bg-blue-600 border-blue-600 text-white shadow-md' 
                                   : 'border-gray-100 text-gray-400 bg-white hover:border-gray-200 hover:text-gray-600'}
+                                ${isSubmitted ? 'opacity-50' : ''}
                               `}>
                                 {s.label}
                               </div>
@@ -246,17 +278,17 @@ const AttendanceMarking = () => {
         <div className="p-8 bg-gray-50/50 border-t border-gray-50 flex justify-end gap-6">
           <button
             onClick={handleSubmit}
-            disabled={loading || !isEndOfWeek}
+            disabled={loading || !isEndOfWeek || isSubmitted}
             className={`
               px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all flex items-center gap-3
-              ${isEndOfWeek 
+              ${isEndOfWeek && !isSubmitted
                 ? 'bg-gray-900 text-white shadow-xl hover:bg-black active:scale-95' 
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'}
             `}
           >
             {loading ? (
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : success ? (
+            ) : isSubmitted ? (
               <>
                 <CheckCircle2 size={16} />
                 Submitted
@@ -272,7 +304,7 @@ const AttendanceMarking = () => {
       </div>
 
       {/* Warning if not Sunday */}
-      {!isEndOfWeek && (
+      {!isEndOfWeek && !isSubmitted && (
         <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex items-start gap-3">
           <AlertCircle className="text-blue-600 mt-0.5" size={18} />
           <div>

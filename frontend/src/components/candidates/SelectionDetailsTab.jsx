@@ -29,7 +29,7 @@ const SelectionDetailsTab = ({ candidateId }) => {
   const [sortOption, setSortOption] = useState('highest_match');
 
   const currentUser = getCurrentUser() || { role: 'Administrator' };
-  const isAdmin = currentUser.role === 'Administrator' || currentUser.role === 'Admin';
+  const isAdmin = currentUser.role === 'Administrator' || currentUser.role === 'Admin' || currentUser.role === 'Director';
   const isTL = currentUser.role === 'Team Lead' || currentUser.role === 'TL';
 
   useEffect(() => {

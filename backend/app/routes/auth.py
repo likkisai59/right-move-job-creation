@@ -38,7 +38,7 @@ def login(payload: EmployeeLoginRequest, db: Session = Depends(get_db)):
         is_admin = False
         if target_employee.designation:
             desig_lower = target_employee.designation.strip().lower()
-            if "admin" in desig_lower or "administrator" in desig_lower:
+            if "admin" in desig_lower or "administrator" in desig_lower or "director" in desig_lower:
                 is_admin = True
 
         if is_admin:

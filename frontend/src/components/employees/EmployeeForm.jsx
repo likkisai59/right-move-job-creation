@@ -156,7 +156,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   // Access check: Admin vs HR
   const currentUser = getCurrentUser();
   const userRoleOrDesignation = (currentUser?.role || '').toLowerCase();
-  const isUserAdmin = userRoleOrDesignation === 'admin' || userRoleOrDesignation.includes('admin');
+  const isUserAdmin = userRoleOrDesignation === 'admin' || userRoleOrDesignation.includes('admin') || userRoleOrDesignation.includes('director');
 
   // Restrictions logic
   const isHrDisabled = isUserAdmin;

@@ -28,6 +28,7 @@ import AttendancePortalLayout from '../components/attendance/AttendancePortalLay
 import AttendanceMarking from '../pages/attendance/AttendanceMarking';
 import LeaveManagement from '../pages/attendance/LeaveManagement';
 import AttendanceStatus from '../pages/attendance/AttendanceStatus';
+import ManageApprovals from '../pages/attendance/ManageApprovals';
 
 // ── Protected Route Component ────────────────────────────────
 const ProtectedRoute = ({ children }) => {
@@ -42,6 +43,19 @@ const EmployeeProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('employee_token');
   if (!token) {
     return <Navigate to="/attendance-login" replace />;
+  }
+  return children;
+};
+
+// ── Manager Protected Route ──────────────────────────────────
+const ManagerProtectedRoute = ({ children }) => {
+  const employee = JSON.parse(localStorage.getItem('employee_data') || '{}');
+  const designation = employee.designation || '';
+  const normalized = designation.toLowerCase().trim().replace(/[\s\.-]+/g, '');
+  const isManager = ['teamlead', 'assistantmanager', 'asstmanager', 'manager', 'seniormanager', 'srmanager', 'director'].includes(normalized);
+
+  if (!isManager) {
+    return <Navigate to="/attendance/portal/mark" replace />;
   }
   return children;
 };
@@ -71,6 +85,14 @@ const AppRoutes = () => {
         <Route path="mark" element={<AttendanceMarking />} />
         <Route path="leaves" element={<LeaveManagement />} />
         <Route path="status" element={<AttendanceStatus />} />
+        <Route
+          path="approvals"
+          element={
+            <ManagerProtectedRoute>
+              <ManageApprovals />
+            </ManagerProtectedRoute>
+          }
+        />
       </Route>
 
       {/* Admin Dashboard & CRM Routes */}
