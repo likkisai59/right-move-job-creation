@@ -25,11 +25,18 @@ const mapToFrontend = (data) => {
     status: data.status,
     profileStatus: data.profile_status || 'Draft',
     completionPercentage: data.completion_percentage || 0,
+    profileStatusHr: data.profile_status_hr || 'Draft',
+    completionPercentageHr: data.completion_percentage_hr || 0,
+    profileStatusAdmin: data.profile_status_admin || 'Draft',
+    completionPercentageAdmin: data.completion_percentage_admin || 0,
+    employeePassword: data.employee_password,
     lastWorkingDate: data.last_working_date,
-    
+
     // New fields
     dateOfBirth: data.date_of_birth,
+    countrycodeOfficeContact: data.countrycode_office_contact || '+91',
     contactNumberOffice: data.contact_number_office,
+    countrycodeEmergencyContact: data.countrycode_emergency_contact || '+91',
     emergencyContactNumber: data.emergency_contact_number,
     aadharNumber: data.aadhar_number,
     aadharUrl: data.aadhar_url,
@@ -42,7 +49,7 @@ const mapToFrontend = (data) => {
     permanentAddressProofUrl: data.permanent_address_proof_url,
     photoUrl: data.photo_url,
     medicalCondition: data.medical_condition,
-    
+
     // Bank Details
     bankName: data.bank_name,
     bankAccountNumber: data.bank_account_number,
@@ -74,64 +81,80 @@ const mapToFrontend = (data) => {
 // Transforms frontend camelCase to backend snake_case
 const mapToBackend = (data) => {
   if (!data) return null;
-  return {
-    first_name: data.firstName,
-    last_name: data.lastName,
-    blood_group: data.bloodGroup,
-    gender: data.gender,
-    country_code: data.countryCode,
-    contact_number: data.contactNumber,
-    email: data.email,
-    permanent_address: data.permanentAddress,
-    current_address: data.currentAddress,
-    designation: data.designation,
-    date_of_joining: data.dateOfJoining || null,
-    package: data.package ? parseFloat(data.package) : null, // Ensure package is a number
-    status: data.status,
-    last_working_date: data.lastWorkingDate || null,         // Convert empty strings to null
-    
-    // New fields
-    date_of_birth: data.dateOfBirth || null,
-    contact_number_office: data.contactNumberOffice,
-    emergency_contact_number: data.emergencyContactNumber,
-    aadhar_number: data.aadharNumber,
-    aadhar_url: data.aadharUrl,
-    pan_number: data.panNumber,
-    pan_url: data.panUrl,
-    marksheet_10th_url: data.marksheet10thUrl,
-    marksheet_12th_url: data.marksheet12thUrl,
-    marksheet_graduation_url: data.marksheetGraduationUrl,
-    present_address_proof_url: data.presentAddressProofUrl,
-    permanent_address_proof_url: data.permanentAddressProofUrl,
-    photo_url: data.photoUrl,
-    medical_condition: data.medicalCondition || null,
-
-    // Bank Details
-    bank_name: data.bankName,
-    bank_account_number: data.bankAccountNumber,
-    bank_ifsc_code: data.bankIfscCode,
-
-    // Document & Other fields
-    resume_url: data.resumeUrl,
-    salary_slips_url: data.salarySlipsUrl,
-    offer_letter_url: data.offerLetterUrl,
-    last_company_name: data.lastCompanyName,
-
-    // Reporting & Compliance Details
-    assigned_business_unit: data.assignedBusinessUnit,
-    reporting_to: data.reportingTo,
-    work_mode: data.workMode,
-    ctc: data.ctc ? parseFloat(data.ctc) : null,
-    compliance: data.compliance,
-
-    // Asset & System Configuration Details
-    system_assigned: data.systemAssigned,
-    sim_card_assigned: data.simCardAssigned,
-    email_id_configured: data.emailIdConfigured,
-    linkedin_configured: data.linkedinConfigured,
-    google_sheet_configured: data.googleSheetConfigured,
-    whatsapp_business_configured: data.whatsappBusinessConfigured,
+  const result = {};
+  
+  const mapping = {
+    firstName: 'first_name',
+    lastName: 'last_name',
+    bloodGroup: 'blood_group',
+    gender: 'gender',
+    countryCode: 'country_code',
+    contactNumber: 'contact_number',
+    email: 'email',
+    permanentAddress: 'permanent_address',
+    currentAddress: 'current_address',
+    designation: 'designation',
+    dateOfJoining: 'date_of_joining',
+    package: 'package',
+    status: 'status',
+    profileStatusHr: 'profile_status_hr',
+    completionPercentageHr: 'completion_percentage_hr',
+    profileStatusAdmin: 'profile_status_admin',
+    completionPercentageAdmin: 'completion_percentage_admin',
+    employeePassword: 'employee_password',
+    lastWorkingDate: 'last_working_date',
+    dateOfBirth: 'date_of_birth',
+    countrycodeOfficeContact: 'countrycode_office_contact',
+    contactNumberOffice: 'contact_number_office',
+    countrycodeEmergencyContact: 'countrycode_emergency_contact',
+    emergencyContactNumber: 'emergency_contact_number',
+    aadharNumber: 'aadhar_number',
+    aadharUrl: 'aadhar_url',
+    panNumber: 'pan_number',
+    panUrl: 'pan_url',
+    marksheet10thUrl: 'marksheet_10th_url',
+    marksheet12thUrl: 'marksheet_12th_url',
+    marksheetGraduationUrl: 'marksheet_graduation_url',
+    presentAddressProofUrl: 'present_address_proof_url',
+    permanentAddressProofUrl: 'permanent_address_proof_url',
+    photoUrl: 'photo_url',
+    medicalCondition: 'medical_condition',
+    bankName: 'bank_name',
+    bankAccountNumber: 'bank_account_number',
+    bankIfscCode: 'bank_ifsc_code',
+    resumeUrl: 'resume_url',
+    salarySlipsUrl: 'salary_slips_url',
+    offerLetterUrl: 'offer_letter_url',
+    lastCompanyName: 'last_company_name',
+    assignedBusinessUnit: 'assigned_business_unit',
+    reportingTo: 'reporting_to',
+    workMode: 'work_mode',
+    ctc: 'ctc',
+    compliance: 'compliance',
+    systemAssigned: 'system_assigned',
+    simCardAssigned: 'sim_card_assigned',
+    emailIdConfigured: 'email_id_configured',
+    linkedinConfigured: 'linkedin_configured',
+    googleSheetConfigured: 'google_sheet_configured',
+    whatsappBusinessConfigured: 'whatsapp_business_configured'
   };
+
+  Object.entries(mapping).forEach(([frontKey, backKey]) => {
+    if (data[frontKey] !== undefined) {
+      let val = data[frontKey];
+      // Special conversions
+      if (frontKey === 'package' || frontKey === 'ctc') {
+        val = (val !== null && val !== '') ? parseFloat(val) : null;
+      } else if (frontKey === 'dateOfJoining' || frontKey === 'lastWorkingDate' || frontKey === 'dateOfBirth') {
+        val = val || null;
+      } else if (frontKey === 'medicalCondition') {
+        val = val || null;
+      }
+      result[backKey] = val;
+    }
+  });
+
+  return result;
 };
 
 // upload file helper
@@ -164,7 +187,7 @@ export const fetchEmployees = async (params = {}) => {
   }
 
   const response = await api.get('/employees', { params: queryParams });
-  
+
   return {
     ...response.data,
     data: response.data.data.map(mapToFrontend) // Translate the whole list
@@ -202,16 +225,16 @@ export const deleteEmployee = async (id) => {
 
 // 6. EXPORT
 export const exportEmployees = async (params = {}) => {
-  const response = await api.get('/employees/export', { 
+  const response = await api.get('/employees/export', {
     params,
     responseType: 'blob' // Important for downloading files
   });
-  
+
   // Create a download link and trigger it
   const url = window.URL.createObjectURL(new Blob([response.data]));
   const link = document.createElement('a');
   link.href = url;
-  
+
   // Extract filename from headers if possible, otherwise use a default
   const contentDisposition = response.headers['content-disposition'];
   let filename = 'employees_export.xlsx';
@@ -221,7 +244,7 @@ export const exportEmployees = async (params = {}) => {
       filename = filenameMatch[1];
     }
   }
-  
+
   link.setAttribute('download', filename);
   document.body.appendChild(link);
   link.click();

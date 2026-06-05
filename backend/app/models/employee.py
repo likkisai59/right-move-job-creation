@@ -38,6 +38,14 @@ class Employee(Base):
     profile_status= Column(Enum('Draft', 'In Progress', 'Completed', name='employee_profile_status'), nullable=False, default="Draft")
     completion_percentage = Column(Integer, nullable=False, default=0)
 
+    # HR completion tracking
+    profile_status_hr = Column(Enum('Draft', 'In Progress', 'Completed', name='employee_profile_status_hr'), nullable=False, default="Draft")
+    completion_percentage_hr = Column(Integer, nullable=False, default=0)
+
+    # ADMIN completion tracking
+    profile_status_admin = Column(Enum('Draft', 'In Progress', 'Completed', name='employee_profile_status_admin'), nullable=False, default="Draft")
+    completion_percentage_admin = Column(Integer, nullable=False, default=0)
+
     # Only filled when employee leaves — nullable by default
     last_working_date= Column(Date, nullable=True)
 
@@ -47,7 +55,9 @@ class Employee(Base):
 
     # Additional Personal & Verification details
     date_of_birth= Column(Date, nullable=True)
+    countrycode_office_contact= Column(String(10), nullable=True)
     contact_number_office= Column(String(255), nullable=True)
+    countrycode_emergency_contact= Column(String(10), nullable=True)
     emergency_contact_number= Column(String(255), nullable=True)
     aadhar_number= Column(String(255), nullable=True)
     aadhar_url= Column(String(255), nullable=True)
@@ -86,3 +96,6 @@ class Employee(Base):
     linkedin_configured = Column(String(50), nullable=True)
     google_sheet_configured = Column(String(50), nullable=True)
     whatsapp_business_configured = Column(String(50), nullable=True)
+
+    # Generated login credentials
+    employee_password = Column(String(255), nullable=True)

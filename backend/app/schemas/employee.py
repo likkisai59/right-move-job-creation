@@ -28,11 +28,17 @@ class EmployeeBase(BaseModel):
     status: EmployeeStatus = EmployeeStatus.ACTIVE
     profile_status: Optional[str] = "Draft"
     completion_percentage: Optional[int] = 0
+    profile_status_hr: Optional[str] = "Draft"
+    completion_percentage_hr: Optional[int] = 0
+    profile_status_admin: Optional[str] = "Draft"
+    completion_percentage_admin: Optional[int] = 0
     last_working_date: Optional[date] = None
 
     # New fields
     date_of_birth: Optional[date] = None
+    countrycode_office_contact: Optional[str] = None
     contact_number_office: Optional[str] = None
+    countrycode_emergency_contact: Optional[str] = None
     emergency_contact_number: Optional[str] = None
     aadhar_number: Optional[str] = None
     aadhar_url: Optional[str] = None
@@ -69,6 +75,7 @@ class EmployeeBase(BaseModel):
     linkedin_configured: Optional[str] = None
     google_sheet_configured: Optional[str] = None
     whatsapp_business_configured: Optional[str] = None
+    employee_password: Optional[str] = None
 
 
 class EmployeeCreateRequest(EmployeeBase):
@@ -98,11 +105,17 @@ class EmployeeUpdateRequest(BaseModel):
     date_of_joining: Optional[date] = None
     package: Optional[float] = None
     status: Optional[EmployeeStatus] = None
+    profile_status_hr: Optional[str] = None
+    completion_percentage_hr: Optional[int] = None
+    profile_status_admin: Optional[str] = None
+    completion_percentage_admin: Optional[int] = None
     last_working_date: Optional[date] = None
 
     # New fields
     date_of_birth: Optional[date] = None
+    countrycode_office_contact: Optional[str] = None
     contact_number_office: Optional[str] = None
+    countrycode_emergency_contact: Optional[str] = None
     emergency_contact_number: Optional[str] = None
     aadhar_number: Optional[str] = None
     aadhar_url: Optional[str] = None
@@ -139,6 +152,7 @@ class EmployeeUpdateRequest(BaseModel):
     linkedin_configured: Optional[str] = None
     google_sheet_configured: Optional[str] = None
     whatsapp_business_configured: Optional[str] = None
+    employee_password: Optional[str] = None
 
 
 class EmployeeResponse(EmployeeBase):

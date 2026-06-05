@@ -21,43 +21,113 @@ def generate_employee_id(db: Session) -> str:
 def compute_employee_completion(employee: Employee):
     """
     Computes and sets the completion_percentage and profile_status for an employee.
-    Personal Details = 30%
-    Employment Details = 25%
-    Reporting Details = 20%
-    Bank Details = 15%
-    Asset & System Configuration = 10%
+    Calculates HR completion and Admin completion separately by counting individual fields.
     """
-    pct = 0
+    # Helper to check if a value is non-empty
+    def is_filled(val):
+        return val is not None and str(val).strip() != ""
+
+    # 1. HR Details Fields (38 fields, plus 1 if Inactive)
+    hr_fields = [
+        employee.first_name,
+        employee.last_name,
+        employee.gender,
+        employee.blood_group,
+        employee.date_of_birth,
+        employee.email,
+        employee.contact_number,
+        employee.contact_number_office,
+        employee.emergency_contact_number,
+        employee.medical_condition,
+        employee.current_address,
+        employee.present_address_proof_url,
+        employee.permanent_address,
+        employee.permanent_address_proof_url,
+        employee.aadhar_number,
+        employee.aadhar_url,
+        employee.pan_number,
+        employee.pan_url,
+        employee.marksheet_10th_url,
+        employee.marksheet_12th_url,
+        employee.marksheet_graduation_url,
+        employee.photo_url,
+        employee.package,
+        employee.date_of_joining,
+        employee.status,
+        employee.last_company_name,
+        employee.resume_url,
+        employee.salary_slips_url,
+        employee.offer_letter_url,
+        employee.designation,
+        employee.assigned_business_unit,
+        employee.reporting_to,
+        employee.work_mode,
+        employee.ctc,
+        employee.compliance,
+        employee.bank_name,
+        employee.bank_account_number,
+        employee.bank_ifsc_code
+    ]
+    if employee.status == 'Inactive':
+        hr_fields.append(employee.last_working_date)
+
+    total_hr = len(hr_fields)
+    filled_hr = sum(1 for val in hr_fields if is_filled(val))
+    hr_pct = int((filled_hr / total_hr) * 100) if total_hr > 0 else 0
     
-    # Personal Details (30%)
-    if all([employee.first_name, employee.last_name, employee.gender, employee.contact_number, employee.email]):
-        pct += 30
+    employee.completion_percentage_hr = hr_pct
+    
+    if hr_pct == 100:
+        employee.profile_status_hr = "Completed"
+    elif hr_pct > 0:
+        employee.profile_status_hr = "In Progress"
+    else:
+        employee.profile_status_hr = "Draft"
 
-    # Employment Details (25%)
-    if all([employee.designation, employee.date_of_joining]):
-        pct += 25
+    # 2. ADMIN Details Fields (6 fields)
+    admin_fields = [
+        employee.system_assigned, 
+        employee.sim_card_assigned, 
+        employee.email_id_configured, 
+        employee.linkedin_configured, 
+        employee.google_sheet_configured, 
+        employee.whatsapp_business_configured
+    ]
+    total_admin = len(admin_fields)
+    filled_admin = sum(1 for val in admin_fields if is_filled(val))
+    admin_pct = int((filled_admin / total_admin) * 100) if total_admin > 0 else 0
+    
+    employee.completion_percentage_admin = admin_pct
+    
+    if admin_pct == 100:
+        employee.profile_status_admin = "Completed"
+    elif admin_pct > 0:
+        employee.profile_status_admin = "In Progress"
+    else:
+        employee.profile_status_admin = "Draft"
 
-    # Reporting Details (20%)
-    if all([employee.assigned_business_unit, employee.reporting_to, employee.work_mode, employee.compliance]):
-        pct += 20
-        
-    # Bank Details (15%)
-    if all([employee.bank_name, employee.bank_account_number, employee.bank_ifsc_code]):
-        pct += 15
-        
-    # Asset & System Config (10%)
-    if all([employee.system_assigned, employee.sim_card_assigned, employee.email_id_configured, employee.linkedin_configured, employee.google_sheet_configured, employee.whatsapp_business_configured]):
-        pct += 10
-        
+    # 3. Overall Completion Percentage (weighted average: 90% HR + 10% Admin)
+    pct = int(hr_pct * 0.9 + admin_pct * 0.1)
     employee.completion_percentage = pct
     
-    # Set status
     if pct == 100:
         employee.profile_status = "Completed"
     elif pct > 0:
         employee.profile_status = "In Progress"
     else:
         employee.profile_status = "Draft"
+
+    # Generate password if both sections are 100% complete
+    if employee.completion_percentage_hr == 100 and employee.completion_percentage_admin == 100:
+        import re
+        # Extract digits from employee_id (e.g. EMP0001 -> 0001)
+        digits = "".join(re.findall(r"\d+", employee.employee_id or ""))
+        first_char = employee.first_name[0] if employee.first_name else ""
+        last_name = employee.last_name or ""
+        # Format: first_char + last_name + "@" + digits
+        employee.employee_password = f"{first_char}{last_name}@{digits}"
+    else:
+        employee.employee_password = None
         
 # ─────────────────────────────────────────────────────────────
 # CREATE
@@ -88,7 +158,9 @@ def create_employee(db: Session, payload: EmployeeCreateRequest) -> Employee:
         
         # New fields
         date_of_birth=payload.date_of_birth,
+        countrycode_office_contact=payload.countrycode_office_contact,
         contact_number_office=payload.contact_number_office,
+        countrycode_emergency_contact=payload.countrycode_emergency_contact,
         emergency_contact_number=payload.emergency_contact_number,
         aadhar_number=payload.aadhar_number,
         aadhar_url=payload.aadhar_url,
@@ -124,7 +196,8 @@ def create_employee(db: Session, payload: EmployeeCreateRequest) -> Employee:
         email_id_configured=payload.email_id_configured,
         linkedin_configured=payload.linkedin_configured,
         google_sheet_configured=payload.google_sheet_configured,
-        whatsapp_business_configured=payload.whatsapp_business_configured
+        whatsapp_business_configured=payload.whatsapp_business_configured,
+        employee_password=payload.employee_password
     )
     
     compute_employee_completion(new_employee)
@@ -197,13 +270,14 @@ def export_employees_to_excel(employees: List[Employee]) -> BytesIO:
         "ID", "Employee ID", "First Name", "Last Name",
         "Blood Group", "Gender", "Country Code", "Contact Number (Personal)", "Email",
         "Permanent Address", "Current Address (Present)", "Designation", "Date of Joining",
-        "Package (LPA)", "Status", "Last Working Date", "Date of Birth", "Contact Number (Office)",
-        "Emergency Contact", "Aadhar Number", "Aadhar URL", "PAN Number", "PAN URL",
+        "Package (LPA)", "Status", "Last Working Date", "Date of Birth", "Office Country Code", "Contact Number (Office)",
+        "Emergency Country Code", "Emergency Contact", "Aadhar Number", "Aadhar URL", "PAN Number", "PAN URL",
         "10th Marksheet", "12th Marksheet", "Graduation Marksheet", "Present Address Proof",
         "Permanent Address Proof", "Photo", "Medical Condition",
         "Resume", "Salary Slips (Last 3)", "Last Offer Letter", "Last Company Name",
         "Assigned Business Unit", "Reporting To", "Work Mode", "CTC", "Compliance",
-        "System Assigned", "SIM Card Assigned", "Email ID Configured", "LinkedIn Configured", "Google Sheet Configured", "Whatsapp Business Configuration"
+        "System Assigned", "SIM Card Assigned", "Email ID Configured", "LinkedIn Configured", "Google Sheet Configured", "Whatsapp Business Configuration",
+        "HR Profile Status", "HR Completion %", "Admin Profile Status", "Admin Completion %", "Employee Password"
     ]
     ws.append(headers)
 
@@ -232,7 +306,9 @@ def export_employees_to_excel(employees: List[Employee]) -> BytesIO:
             emp.status,
             emp.last_working_date.strftime("%Y-%m-%d") if emp.last_working_date else "",
             emp.date_of_birth.strftime("%Y-%m-%d") if emp.date_of_birth else "",
+            emp.countrycode_office_contact or "",
             emp.contact_number_office or "",
+            emp.countrycode_emergency_contact or "",
             emp.emergency_contact_number or "",
             emp.aadhar_number or "",
             emp.aadhar_url or "",
@@ -259,7 +335,12 @@ def export_employees_to_excel(employees: List[Employee]) -> BytesIO:
             emp.email_id_configured or "",
             emp.linkedin_configured or "",
             emp.google_sheet_configured or "",
-            emp.whatsapp_business_configured or ""
+            emp.whatsapp_business_configured or "",
+            emp.profile_status_hr or "Draft",
+            emp.completion_percentage_hr or 0,
+            emp.profile_status_admin or "Draft",
+            emp.completion_percentage_admin or 0,
+            emp.employee_password or ""
         ])
 
     # Adjust column widths

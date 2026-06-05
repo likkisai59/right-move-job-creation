@@ -188,7 +188,7 @@ class EditHistoryItem(BaseModel):
 class CandidateResponse(BaseModel):
     id: int
     candidate_code: str
-    profile_status: str
+    profile_status: Optional[str] = None
 
     # Personal Details
     first_name: str

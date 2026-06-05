@@ -11,9 +11,91 @@ from app.core.database import get_db
 from app.utils.response import success_response, error_response
 from app.schemas.employee import EmployeeCreateRequest, EmployeeUpdateRequest
 from app.services import employee_service
+from app.models.employee import Employee
 
 # Define the router prefix for all endpoints in this file
 router = APIRouter(prefix="/api/employees", tags=["Employees"])
+
+# ─────────────────────────────────────────────────────────────
+# SERIALIZE EMPLOYEE HELPER
+# ─────────────────────────────────────────────────────────────
+
+def serialize_employee(emp: Employee) -> dict:
+    """
+    Helper function to serialize an Employee model to a dict,
+    ensuring all database fields are correctly serialized and sent to the frontend.
+    """
+    if not emp:
+        return {}
+    return {
+        "id": emp.id,
+        "employee_id": emp.employee_id,
+        "first_name": emp.first_name,
+        "last_name": emp.last_name,
+        "blood_group": emp.blood_group,
+        "gender": emp.gender,
+        "country_code": emp.country_code,
+        "contact_number": emp.contact_number,
+        "email": emp.email,
+        "permanent_address": emp.permanent_address,
+        "current_address": emp.current_address,
+        "designation": emp.designation,
+        "date_of_joining": str(emp.date_of_joining) if emp.date_of_joining else None,
+        "package": emp.package,
+        "status": emp.status,
+        "profile_status": emp.profile_status,
+        "completion_percentage": emp.completion_percentage,
+        "profile_status_hr": emp.profile_status_hr,
+        "completion_percentage_hr": emp.completion_percentage_hr,
+        "profile_status_admin": emp.profile_status_admin,
+        "completion_percentage_admin": emp.completion_percentage_admin,
+        "employee_password": emp.employee_password,
+        "last_working_date": str(emp.last_working_date) if emp.last_working_date else None,
+        
+        # Additional fields
+        "date_of_birth": str(emp.date_of_birth) if emp.date_of_birth else None,
+        "countrycode_office_contact": emp.countrycode_office_contact,
+        "contact_number_office": emp.contact_number_office,
+        "countrycode_emergency_contact": emp.countrycode_emergency_contact,
+        "emergency_contact_number": emp.emergency_contact_number,
+        "aadhar_number": emp.aadhar_number,
+        "aadhar_url": emp.aadhar_url,
+        "pan_number": emp.pan_number,
+        "pan_url": emp.pan_url,
+        "marksheet_10th_url": emp.marksheet_10th_url,
+        "marksheet_12th_url": emp.marksheet_12th_url,
+        "marksheet_graduation_url": emp.marksheet_graduation_url,
+        "present_address_proof_url": emp.present_address_proof_url,
+        "permanent_address_proof_url": emp.permanent_address_proof_url,
+        "photo_url": emp.photo_url,
+        "medical_condition": emp.medical_condition,
+        
+        # Document & Experience fields
+        "resume_url": emp.resume_url,
+        "salary_slips_url": emp.salary_slips_url,
+        "offer_letter_url": emp.offer_letter_url,
+        "last_company_name": emp.last_company_name,
+        
+        # Bank Details
+        "bank_name": emp.bank_name,
+        "bank_account_number": emp.bank_account_number,
+        "bank_ifsc_code": emp.bank_ifsc_code,
+        
+        # Reporting & Compliance Details
+        "assigned_business_unit": emp.assigned_business_unit,
+        "reporting_to": emp.reporting_to,
+        "work_mode": emp.work_mode,
+        "ctc": emp.ctc,
+        "compliance": emp.compliance,
+        
+        # Asset & System Configuration Details
+        "system_assigned": emp.system_assigned,
+        "sim_card_assigned": emp.sim_card_assigned,
+        "email_id_configured": emp.email_id_configured,
+        "linkedin_configured": emp.linkedin_configured,
+        "google_sheet_configured": emp.google_sheet_configured,
+        "whatsapp_business_configured": emp.whatsapp_business_configured,
+    }
 
 # ─────────────────────────────────────────────────────────────
 # FILE UPLOAD
@@ -139,57 +221,21 @@ def list_employees(
             sort_by=sort_by, sort_order=sort_order
         )
         
-        # Format the data before sending it back
-        data = [
-            {
-                "id": emp.id,
-                "employee_id": emp.employee_id,
-                "first_name": emp.first_name,
-                "last_name": emp.last_name,
-                "blood_group": emp.blood_group,
-                "gender": emp.gender,
-                "country_code": emp.country_code,
-                "contact_number": emp.contact_number,
-                "email": emp.email,
-                "permanent_address": emp.permanent_address,
-                "current_address": emp.current_address,
-                "designation": emp.designation,
-                "date_of_joining": str(emp.date_of_joining) if emp.date_of_joining else None,
-                "package": emp.package,
-                "status": emp.status,
-                "profile_status": emp.profile_status,
-                "completion_percentage": emp.completion_percentage,
-                "last_working_date": str(emp.last_working_date) if emp.last_working_date else None,
-                
-                # New fields
-                "date_of_birth": str(emp.date_of_birth) if emp.date_of_birth else None,
-                "contact_number_office": emp.contact_number_office,
-                "emergency_contact_number": emp.emergency_contact_number,
-                "aadhar_number": emp.aadhar_number,
-                "aadhar_url": emp.aadhar_url,
-                "pan_number": emp.pan_number,
-                "pan_url": emp.pan_url,
-                "marksheet_10th_url": emp.marksheet_10th_url,
-                "marksheet_12th_url": emp.marksheet_12th_url,
-                "marksheet_graduation_url": emp.marksheet_graduation_url,
-                "present_address_proof_url": emp.present_address_proof_url,
-                "permanent_address_proof_url": emp.permanent_address_proof_url,
-                "photo_url": emp.photo_url,
-                "medical_condition": emp.medical_condition,
-                "assigned_business_unit": emp.assigned_business_unit,
-                "reporting_to": emp.reporting_to,
-                "work_mode": emp.work_mode,
-                "ctc": emp.ctc,
-                "compliance": emp.compliance,
-                "system_assigned": emp.system_assigned,
-                "sim_card_assigned": emp.sim_card_assigned,
-                "email_id_configured": emp.email_id_configured,
-                "linkedin_configured": emp.linkedin_configured,
-                "google_sheet_configured": emp.google_sheet_configured,
-                "whatsapp_business_configured": emp.whatsapp_business_configured,
-            }
-            for emp in employees
-        ]
+        # Auto-heal missing passwords for 100% completed profiles
+        from app.services.employee_service import compute_employee_completion
+        updated_any = False
+        for emp in employees:
+            if (emp.completion_percentage_hr == 100 and 
+                emp.completion_percentage_admin == 100 and 
+                not emp.employee_password):
+                compute_employee_completion(emp)
+                updated_any = True
+        if updated_any:
+            db.commit()
+            for emp in employees:
+                db.refresh(emp)
+        
+        data = [serialize_employee(emp) for emp in employees]
         
         return JSONResponse(
             status_code=200,
@@ -214,53 +260,16 @@ def get_employee(employee_id: int, db: Session = Depends(get_db)):
         if not employee:
             return JSONResponse(status_code=404, content=error_response("Employee not found"))
             
-        data = {
-            "id": employee.id,
-            "employee_id": employee.employee_id,
-            "first_name": employee.first_name,
-            "last_name": employee.last_name,
-            "blood_group": employee.blood_group,
-            "gender": employee.gender,
-            "country_code": employee.country_code,
-            "contact_number": employee.contact_number,
-            "email": employee.email,
-            "permanent_address": employee.permanent_address,
-            "current_address": employee.current_address,
-            "designation": employee.designation,
-            "date_of_joining": str(employee.date_of_joining) if employee.date_of_joining else None,
-            "package": employee.package,
-            "status": employee.status,
-            "profile_status": employee.profile_status,
-            "completion_percentage": employee.completion_percentage,
-            "last_working_date": str(employee.last_working_date) if employee.last_working_date else None,
+        # Auto-heal password if missing
+        if (employee.completion_percentage_hr == 100 and 
+            employee.completion_percentage_admin == 100 and 
+            not employee.employee_password):
+            from app.services.employee_service import compute_employee_completion
+            compute_employee_completion(employee)
+            db.commit()
+            db.refresh(employee)
             
-            # New fields
-            "date_of_birth": str(employee.date_of_birth) if employee.date_of_birth else None,
-            "contact_number_office": employee.contact_number_office,
-            "emergency_contact_number": employee.emergency_contact_number,
-            "aadhar_number": employee.aadhar_number,
-            "aadhar_url": employee.aadhar_url,
-            "pan_number": employee.pan_number,
-            "pan_url": employee.pan_url,
-            "marksheet_10th_url": employee.marksheet_10th_url,
-            "marksheet_12th_url": employee.marksheet_12th_url,
-            "marksheet_graduation_url": employee.marksheet_graduation_url,
-            "present_address_proof_url": employee.present_address_proof_url,
-            "permanent_address_proof_url": employee.permanent_address_proof_url,
-            "photo_url": employee.photo_url,
-            "medical_condition": employee.medical_condition,
-            "assigned_business_unit": employee.assigned_business_unit,
-            "reporting_to": employee.reporting_to,
-            "work_mode": employee.work_mode,
-            "ctc": employee.ctc,
-            "compliance": employee.compliance,
-            "system_assigned": employee.system_assigned,
-            "sim_card_assigned": employee.sim_card_assigned,
-            "email_id_configured": employee.email_id_configured,
-            "linkedin_configured": employee.linkedin_configured,
-            "google_sheet_configured": employee.google_sheet_configured,
-            "whatsapp_business_configured": employee.whatsapp_business_configured,
-        }
+        data = serialize_employee(employee)
         
         return JSONResponse(
             status_code=200,
