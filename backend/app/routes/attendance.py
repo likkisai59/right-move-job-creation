@@ -7,7 +7,8 @@ from app.schemas.attendance import (
     EmployeeLoginRequest, 
     AttendanceCreate, AttendanceResponse,
     LeaveCreate, LeaveResponse,
-    LeaveActionRequest, TeamLeaveResponse, TeamMemberAttendanceResponse
+    LeaveActionRequest, TeamLeaveResponse, TeamMemberAttendanceResponse,
+    DesignationLeaveUpdateItem, LeaveConfigResponse
 )
 from app.services import attendance_service
 from app.utils.response import success_response
@@ -101,4 +102,33 @@ def get_team_attendance(manager_name: str, db: Session = Depends(get_db)):
     Fetch recent attendance records for team members reporting to the manager.
     """
     return attendance_service.get_team_attendance(db, manager_name)
+
+@router.get("/leave/config/{employee_id}", response_model=LeaveConfigResponse)
+def get_leave_config(employee_id: int, db: Session = Depends(get_db)):
+    """
+    Fetch leave config (leaves count and holidays list) for employee's designation.
+    """
+    config = attendance_service.get_leave_config(db, employee_id)
+    if not config:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Employee not found"
+        )
+    return config
+
+@router.post("/approvals/config")
+def save_designation_config(payload: List[DesignationLeaveUpdateItem], db: Session = Depends(get_db)):
+    """
+    Save leave limits and holiday lists for multiple designations.
+    """
+    config_list = [item.model_dump() for item in payload]
+    try:
+        success = attendance_service.save_designation_config(db, config_list)
+        return success_response("Configurations saved successfully", {"success": success})
+    except ValueError as val_err:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(val_err)
+        )
+
 

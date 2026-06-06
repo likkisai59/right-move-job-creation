@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { ClipboardList, Plus, Clock, CheckCircle2, XCircle, Calendar, ShieldAlert } from 'lucide-react';
-import { applyLeave, getLeaveHistory } from '../../api/attendanceApi';
+import { applyLeave, getLeaveHistory, getLeaveConfig } from '../../api/attendanceApi';
 
 const LeaveManagement = () => {
   const [showForm, setShowForm] = useState(false);
   const [leaves, setLeaves] = useState([]);
+  const [annualQuota, setAnnualQuota] = useState(30);
+  const [holidays, setHolidays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -18,23 +20,30 @@ const LeaveManagement = () => {
   const employee = JSON.parse(localStorage.getItem('employee_data') || '{}');
   const employeeId = employee.id;
 
-  const fetchLeaves = async () => {
+  const fetchLeavesAndConfig = async () => {
     if (!employeeId) return;
     setLoading(true);
     setError('');
     try {
-      const data = await getLeaveHistory(employeeId);
-      setLeaves(data || []);
+      const [historyData, configData] = await Promise.all([
+        getLeaveHistory(employeeId),
+        getLeaveConfig(employeeId)
+      ]);
+      setLeaves(historyData || []);
+      if (configData) {
+        setAnnualQuota(configData.leaves ?? 30);
+        setHolidays(configData.holidays || []);
+      }
     } catch (err) {
       console.error(err);
-      setError('Failed to fetch leave history. Please refresh the page.');
+      setError('Failed to fetch leave details. Please refresh the page.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchLeaves();
+    fetchLeavesAndConfig();
   }, [employeeId]);
 
   const handleSubmit = async (e) => {
@@ -68,8 +77,8 @@ const LeaveManagement = () => {
       setEndDate('');
       setReason('');
       
-      // Refresh leave history
-      fetchLeaves();
+      // Refresh details
+      fetchLeavesAndConfig();
 
       // Clear success banner after 4s
       setTimeout(() => {
@@ -95,7 +104,6 @@ const LeaveManagement = () => {
   }, 0);
 
   const pendingLeavesCount = leaves.filter(l => l.status === 'Pending').length;
-  const annualQuota = 30;
   const availableBalance = Math.max(0, annualQuota - totalApprovedDays);
 
   const statusColors = {
@@ -218,6 +226,12 @@ const LeaveManagement = () => {
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
+              <ClipboardList size={18} className="text-blue-600" />
+              Leave Applications History
+            </h3>
+          </div>
           {leaves.length === 0 ? (
             <div className="p-10 text-center text-gray-400 text-sm font-medium">
               No leave history records found.
@@ -260,6 +274,51 @@ const LeaveManagement = () => {
           )}
         </div>
       )}
+
+      {/* Holiday Calendar */}
+      {!loading && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
+              <Calendar size={18} className="text-blue-600" />
+              Holiday Calendar
+            </h3>
+            <span className="text-[10px] text-gray-400 font-medium">Designation specific calendar</span>
+          </div>
+          
+          {holidays.length === 0 ? (
+            <div className="p-8 text-center text-gray-400 text-xs font-semibold">
+              No holidays configured for your designation.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-widest">
+                    <th className="px-6 py-3">Holiday Name</th>
+                    <th className="px-6 py-3 text-right">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {holidays.map((h, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <p className="font-bold text-gray-700 text-sm">{h.name}</p>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <p className="text-xs font-bold text-gray-500">
+                          {new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
     </div>
   );
 };

@@ -1,26 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ClipboardList, CheckCircle2, XCircle, Calendar, 
-  User, Clock, AlertCircle, Check, X, ShieldAlert 
+  User, Clock, ShieldAlert, Check, X, Settings, Plus, Trash2 
 } from 'lucide-react';
-import { getPendingLeaves, updateLeaveStatus, getTeamAttendance } from '../../api/attendanceApi';
+import { getPendingLeaves, updateLeaveStatus, getTeamAttendance, saveApprovalsConfig } from '../../api/attendanceApi';
+import { fetchDesignations } from '../../api/designationsApi';
 
 const ManageApprovals = () => {
-  const [activeTab, setActiveTab] = useState('leaves'); // 'leaves' or 'attendance'
+  const [activeTab, setActiveTab] = useState('leaves'); // 'leaves', 'attendance', 'config'
   const [leaves, setLeaves] = useState([]);
   const [teamAttendance, setTeamAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  // Portal config states
+  const [configDesignations, setConfigDesignations] = useState([]);
+  const [leavesMap, setLeavesMap] = useState({});
+  const [holidaysMap, setHolidaysMap] = useState({});
+  const [expandedDesgId, setExpandedDesgId] = useState(null);
+  const [configSubmitting, setConfigSubmitting] = useState(false);
+
   const employee = JSON.parse(localStorage.getItem('employee_data') || '{}');
   const managerName = employee.name || '';
+  const isDirector = employee.name && (
+    employee.name.trim().toLowerCase() === 'sunmeet singh' ||
+    (employee.designation && employee.designation.trim().toLowerCase() === 'director')
+  );
 
   // Get Monday to Friday dates for the current week
   const getWeekDays = () => {
     const today = new Date();
     const currentDay = today.getDay(); // 0 (Sun) to 6 (Sat)
-    // Distance to Monday: if Sunday, go back 6 days, otherwise go to Monday
     const distance = currentDay === 0 ? -6 : 1 - currentDay;
     const monday = new Date(today);
     monday.setDate(today.getDate() + distance);
@@ -55,9 +66,82 @@ const ManageApprovals = () => {
     }
   };
 
+  const loadConfigDesignations = async () => {
+    try {
+      const res = await fetchDesignations({ active_only: true }); // Fetch ONLY active designations
+      if (res.success) {
+        setConfigDesignations(res.data || []);
+        
+        // Populate maps
+        const lMap = {};
+        const hMap = {};
+        res.data.forEach(d => {
+          lMap[d.id] = d.leaves ?? 30;
+          hMap[d.id] = d.holidays || [];
+        });
+        setLeavesMap(lMap);
+        setHolidaysMap(hMap);
+      }
+    } catch (err) {
+      console.error('Failed to load designations for config:', err);
+      setError('Failed to load designations list.');
+    }
+  };
+
   useEffect(() => {
     loadData();
-  }, [managerName]);
+    if (isDirector) {
+      loadConfigDesignations();
+    }
+  }, [managerName, isDirector]);
+
+  // Add a holiday locally to a specific designation map
+  const handleAddHoliday = (desgId, name, date) => {
+    const currentHolidays = holidaysMap[desgId] || [];
+    const updated = [...currentHolidays, { name, date }];
+    setHolidaysMap({
+      ...holidaysMap,
+      [desgId]: updated
+    });
+  };
+
+  // Delete holiday locally from specific designation map
+  const handleDeleteHoliday = (desgId, idx) => {
+    const currentHolidays = holidaysMap[desgId] || [];
+    const updated = currentHolidays.filter((_, i) => i !== idx);
+    setHolidaysMap({
+      ...holidaysMap,
+      [desgId]: updated
+    });
+  };
+
+  // Save all leaves and holidays configurations to the database
+  const handleSaveConfig = async () => {
+    setConfigSubmitting(true);
+    setError('');
+    setSuccessMsg('');
+    try {
+      const payload = configDesignations.map(d => ({
+        id: d.id,
+        leaves: (leavesMap[d.id] === '' || leavesMap[d.id] === undefined) ? 30 : Number(leavesMap[d.id]),
+        holidays: holidaysMap[d.id] || []
+      }));
+      await saveApprovalsConfig(payload);
+      setSuccessMsg('All designation configurations saved successfully!');
+      
+      // Reload configurations from database
+      await loadConfigDesignations();
+
+      setTimeout(() => {
+        setSuccessMsg('');
+      }, 4000);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to save configurations. Please check values and try again.');
+    } finally {
+      setConfigSubmitting(false);
+    }
+  };
 
   const handleAction = async (leaveId, action) => {
     setError('');
@@ -65,10 +149,8 @@ const ManageApprovals = () => {
     try {
       await updateLeaveStatus(leaveId, action, managerName);
       setSuccessMsg(`Leave request has been successfully ${action.toLowerCase()}.`);
-      // Reload lists
       loadData();
       
-      // Clear success message after 4s
       setTimeout(() => {
         setSuccessMsg('');
       }, 4000);
@@ -78,7 +160,6 @@ const ManageApprovals = () => {
     }
   };
 
-  // Helper to format Date range nicely
   const formatDateRange = (start, end) => {
     const s = new Date(start);
     const e = new Date(end);
@@ -90,7 +171,6 @@ const ManageApprovals = () => {
     return `${s.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${e.toLocaleDateString('en-US', options)}`;
   };
 
-  // Calculate total number of days
   const calculateDays = (start, end) => {
     const s = new Date(start);
     const e = new Date(end);
@@ -98,9 +178,7 @@ const ManageApprovals = () => {
     return Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1;
   };
 
-  // Render daily status badge for team attendance grid
   const renderDailyStatus = (emp, dateObj) => {
-    // Format dateObj to match YYYY-MM-DD
     const yyyy = dateObj.getFullYear();
     const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
     const dd = String(dateObj.getDate()).padStart(2, '0');
@@ -146,7 +224,6 @@ const ManageApprovals = () => {
       );
     }
 
-    // Default or WO (Week Off) / Absent (A)
     const isAbsent = fh === 'A' || sh === 'A';
     return (
       <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border uppercase ${
@@ -169,7 +246,7 @@ const ManageApprovals = () => {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       
-      {/* ── BANNERS ── */}
+      {/* Banners */}
       {successMsg && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl flex items-center gap-3 animate-slide-down shadow-sm">
           <CheckCircle2 className="text-emerald-500 shrink-0" size={20} />
@@ -184,7 +261,7 @@ const ManageApprovals = () => {
         </div>
       )}
 
-      {/* ── HEADER & SUB-TABS ── */}
+      {/* Header & Sub-tabs */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 pb-2">
         <div className="space-y-1">
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -192,7 +269,7 @@ const ManageApprovals = () => {
             Manage Approvals
           </h2>
           <p className="text-xs text-gray-400 font-medium">
-            Review and resolve leave applications and monitor team attendance markings.
+            Review leave requests, team attendance, and configure leave policies.
           </p>
         </div>
 
@@ -218,17 +295,30 @@ const ManageApprovals = () => {
           >
             Team Attendance
           </button>
+          {isDirector && (
+            <button
+              onClick={() => setActiveTab('config')}
+              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'config'
+                  ? 'bg-white text-gray-800 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-800'
+              }`}
+            >
+              <Settings size={14} />
+              Portal Configurations
+            </button>
+          )}
         </div>
       </div>
 
-      {loading ? (
+      {loading && activeTab !== 'config' ? (
         <div className="bg-white p-12 rounded-2xl border border-gray-100 flex flex-col items-center justify-center gap-3 shadow-sm min-h-[300px]">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
           <span className="text-sm font-bold text-gray-500">Loading details...</span>
         </div>
       ) : (
         <>
-          {/* ── LEAVE APPROVALS TAB ── */}
+          {/* LEAVE APPROVALS TAB */}
           {activeTab === 'leaves' && (
             <div className="space-y-8 animate-fade-in">
               
@@ -376,7 +466,7 @@ const ManageApprovals = () => {
             </div>
           )}
 
-          {/* ── TEAM ATTENDANCE TAB ── */}
+          {/* TEAM ATTENDANCE TAB */}
           {activeTab === 'attendance' && (
             <div className="space-y-4 animate-fade-in">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -442,6 +532,172 @@ const ManageApprovals = () => {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* PORTAL CONFIGURATIONS TAB */}
+          {activeTab === 'config' && isDirector && (
+            <div className="bg-white p-6 md:p-8 rounded-2xl border border-gray-100 shadow-sm space-y-6 animate-fade-in">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                <div>
+                  <h3 className="text-lg font-black text-gray-800 flex items-center gap-2">
+                    <Settings size={22} className="text-blue-600 animate-spin-slow" />
+                    Designation-based Policies
+                  </h3>
+                  <p className="text-xs text-gray-400 font-medium">Configure annual leave quotas and holiday calendars for each designation.</p>
+                </div>
+              </div>
+              
+              <div className="border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-widest">
+                      <th className="px-6 py-4">Designation</th>
+                      <th className="px-6 py-4 w-[200px]">Annual Leaves (Days)</th>
+                      <th className="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {configDesignations.map(d => {
+                      const isExpanded = expandedDesgId === d.id;
+                      const currentHolidays = holidaysMap[d.id] || [];
+                      
+                      return (
+                        <React.Fragment key={d.id}>
+                          <tr className="hover:bg-gray-50/30 transition-colors">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="font-bold text-gray-800 text-sm">{d.name}</span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={leavesMap[d.id] !== undefined ? leavesMap[d.id] : ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setLeavesMap({
+                                    ...leavesMap,
+                                    [d.id]: val === '' ? '' : Math.max(0, parseInt(val) || 0)
+                                  });
+                                }}
+                                className="w-[120px] p-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-bold text-gray-700 text-center text-sm"
+                              />
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <button
+                                onClick={() => setExpandedDesgId(isExpanded ? null : d.id)}
+                                className={`px-4 py-2 text-xs font-bold rounded-xl border transition-all ${
+                                  isExpanded 
+                                    ? 'bg-blue-50 text-blue-600 border-blue-100'
+                                    : 'bg-gray-50 text-gray-500 hover:text-gray-800 border-gray-200'
+                                }`}
+                              >
+                                {isExpanded ? 'Hide Holidays' : `Manage Holidays (${currentHolidays.length})`}
+                              </button>
+                            </td>
+                          </tr>
+                          
+                          {isExpanded && (
+                            <tr>
+                              <td colSpan="3" className="bg-gray-50/50 p-6 space-y-4">
+                                <div className="max-w-2xl space-y-4">
+                                  <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wide">
+                                    Holidays for {d.name} ({currentHolidays.length})
+                                  </h4>
+                                  
+                                  {/* Add Holiday Form Inline */}
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div className="md:col-span-2">
+                                      <input
+                                        type="text"
+                                        id={`holiday-name-${d.id}`}
+                                        placeholder="Holiday Name (e.g. Diwali)"
+                                        className="w-full p-2.5 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 text-xs font-semibold text-gray-700"
+                                      />
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <input
+                                        type="date"
+                                        id={`holiday-date-${d.id}`}
+                                        className="p-2.5 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 text-xs font-semibold text-gray-700 flex-1"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const nameEl = document.getElementById(`holiday-name-${d.id}`);
+                                          const dateEl = document.getElementById(`holiday-date-${d.id}`);
+                                          if (nameEl && dateEl && nameEl.value.trim() && dateEl.value) {
+                                            handleAddHoliday(d.id, nameEl.value.trim(), dateEl.value);
+                                            nameEl.value = '';
+                                            dateEl.value = '';
+                                          }
+                                        }}
+                                        className="px-4 py-2 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-900 transition-all text-xs"
+                                      >
+                                        Add
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {/* Holidays Table list */}
+                                  {currentHolidays.length === 0 ? (
+                                    <div className="p-3 text-center text-gray-400 text-xs font-medium bg-white rounded-xl border border-dashed border-gray-200">
+                                      No holidays configured for {d.name}.
+                                    </div>
+                                  ) : (
+                                    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                                      <table className="w-full text-left border-collapse text-xs">
+                                        <thead>
+                                          <tr className="bg-gray-50 border-b border-gray-100 text-gray-400 font-bold uppercase tracking-wider text-[10px]">
+                                            <th className="px-4 py-2">Holiday Name</th>
+                                            <th className="px-4 py-2">Date</th>
+                                            <th className="px-4 py-2 text-right">Action</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-50">
+                                          {currentHolidays.map((h, index) => (
+                                            <tr key={index}>
+                                              <td className="px-4 py-2 font-semibold text-gray-700">{h.name}</td>
+                                              <td className="px-4 py-2 font-medium text-gray-500">
+                                                {new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                              </td>
+                                              <td className="px-4 py-2 text-right">
+                                                <button
+                                                  onClick={() => handleDeleteHoliday(d.id, index)}
+                                                  className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-lg transition-colors"
+                                                >
+                                                  <Trash2 size={14} />
+                                                </button>
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Submit Button */}
+              <div className="border-t border-gray-100 pt-6 flex justify-end">
+                <button
+                  onClick={handleSaveConfig}
+                  disabled={configSubmitting}
+                  className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all text-xs flex items-center gap-1.5 shadow-lg shadow-blue-500/20 disabled:bg-blue-400 disabled:shadow-none"
+                >
+                  <Check size={16} />
+                  {configSubmitting ? 'Saving All Configurations...' : 'Save All Configurations'}
+                </button>
+              </div>
             </div>
           )}
         </>

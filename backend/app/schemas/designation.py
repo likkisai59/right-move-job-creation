@@ -1,5 +1,6 @@
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel, Field, field_validator
+from typing import Optional, List
+import json
 
 class DesignationCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
@@ -12,7 +13,20 @@ class DesignationResponse(BaseModel):
     id: int
     name: str
     is_active: bool
+    leaves: Optional[int] = 30
+    holidays: Optional[List[dict]] = None
+
+    @field_validator("holidays", mode="before")
+    @classmethod
+    def parse_holidays_json(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
 
     model_config = {
         "from_attributes": True
     }
+

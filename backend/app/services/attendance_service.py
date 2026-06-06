@@ -179,3 +179,68 @@ def get_team_attendance(db: Session, manager_name: str) -> List[dict]:
         })
     return result
 
+def get_leave_config(db: Session, employee_id: int) -> Optional[dict]:
+    """
+    Fetch the leaves limit and holidays list configured for the employee's designation.
+    """
+    import json
+    from app.models.designation import Designation
+    
+    emp = db.query(Employee).filter(Employee.id == employee_id).first()
+    if not emp:
+        return None
+        
+    leaves_limit = 30
+    holidays_list = []
+    
+    if emp.designation:
+        try:
+            desg = db.query(Designation).filter(Designation.name == emp.designation).first()
+            if desg:
+                leaves_limit = desg.leaves if desg.leaves is not None else 30
+                if desg.holidays:
+                    try:
+                        holidays_list = json.loads(desg.holidays)
+                    except Exception:
+                        pass
+        except Exception as e:
+            if "Unknown column" in str(e) and ("leaves" in str(e) or "holidays" in str(e)):
+                leaves_limit = 30
+                holidays_list = []
+            else:
+                raise e
+                    
+    return {
+        "leaves": leaves_limit,
+        "holidays": holidays_list
+    }
+
+def save_designation_config(db: Session, config_data: List[dict]) -> bool:
+    """
+    Save leave and holiday configuration for multiple designations.
+    """
+    import json
+    from app.models.designation import Designation
+    
+    try:
+        for item in config_data:
+            desg_id = item.get("id")
+            leaves_val = item.get("leaves")
+            holidays_val = item.get("holidays")
+            
+            desg = db.query(Designation).filter(Designation.id == desg_id).first()
+            if desg:
+                if leaves_val is not None:
+                    desg.leaves = leaves_val
+                if holidays_val is not None:
+                    desg.holidays = json.dumps(holidays_val)
+                    
+        db.commit()
+        return True
+    except Exception as e:
+        db.rollback()
+        if "Unknown column" in str(e) and ("leaves" in str(e) or "holidays" in str(e)):
+            raise ValueError("Database columns 'leaves' and 'holidays' are not created yet. Please run the SQL alter table commands manually in your database.")
+        raise e
+
+

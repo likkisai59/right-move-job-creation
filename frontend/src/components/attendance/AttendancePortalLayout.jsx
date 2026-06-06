@@ -15,8 +15,11 @@ const AttendancePortalLayout = () => {
     navigate('/attendance-login');
   };
 
-  const isManager = (designation) => {
-    if (!designation) return false;
+  const isManager = (emp) => {
+    if (!emp) return false;
+    const nameNormalized = (emp.name || '').toLowerCase().trim();
+    if (nameNormalized === 'sunmeet singh') return true;
+    const designation = emp.designation || '';
     const normalized = designation.toLowerCase().trim().replace(/[\s\.-]+/g, '');
     return ['teamlead', 'assistantmanager', 'asstmanager', 'manager', 'seniormanager', 'srmanager', 'director'].includes(normalized);
   };
@@ -27,7 +30,7 @@ const AttendancePortalLayout = () => {
     { name: 'Attendance Status', path: '/attendance/portal/status', icon: PieChart },
   ];
 
-  if (isManager(employee.designation)) {
+  if (isManager(employee)) {
     navItems.push({ name: 'Manage Approvals', path: '/attendance/portal/approvals', icon: CheckSquare });
   }
 

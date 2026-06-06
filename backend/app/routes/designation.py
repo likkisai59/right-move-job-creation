@@ -39,6 +39,34 @@ def get_designations(
             content=success_response("Designations fetched successfully", data)
         )
     except Exception as e:
+        # Fallback if the database has not been altered yet
+        if "Unknown column" in str(e) and ("leaves" in str(e) or "holidays" in str(e)):
+            from sqlalchemy import text
+            sql = "SELECT id, name, is_active FROM designations"
+            if active_only is not None:
+                sql += f" WHERE is_active = {1 if active_only else 0}"
+            sql += f" ORDER BY name {'ASC' if sort_order == 'asc' else 'DESC'}"
+            
+            try:
+                result = db.execute(text(sql))
+                data = []
+                for row in result:
+                    data.append({
+                        "id": row[0],
+                        "name": row[1],
+                        "is_active": bool(row[2]),
+                        "leaves": 30,
+                        "holidays": []
+                    })
+                return JSONResponse(
+                    status_code=status.HTTP_200_OK,
+                    content=success_response("Designations fetched successfully (fallback)", data)
+                )
+            except Exception as fallback_err:
+                return JSONResponse(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    content=error_response(f"Failed to fetch designations (fallback): {str(fallback_err)}")
+                )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=error_response(f"Failed to fetch designations: {str(e)}")

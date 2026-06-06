@@ -59,3 +59,14 @@ export const getTeamAttendance = async (managerName) => {
   return response.data;
 };
 
+export const getLeaveConfig = async (employeeId) => {
+  const response = await axios.get(`/attendance/leave/config/${employeeId}`);
+  return response.data;
+};
+
+export const saveApprovalsConfig = async (configData) => {
+  const response = await axios.post('/attendance/approvals/config', configData);
+  return response.data;
+};
+
+

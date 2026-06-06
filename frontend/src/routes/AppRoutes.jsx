@@ -52,7 +52,8 @@ const ManagerProtectedRoute = ({ children }) => {
   const employee = JSON.parse(localStorage.getItem('employee_data') || '{}');
   const designation = employee.designation || '';
   const normalized = designation.toLowerCase().trim().replace(/[\s\.-]+/g, '');
-  const isManager = ['teamlead', 'assistantmanager', 'asstmanager', 'manager', 'seniormanager', 'srmanager', 'director'].includes(normalized);
+  const nameNormalized = (employee.name || '').toLowerCase().trim();
+  const isManager = ['teamlead', 'assistantmanager', 'asstmanager', 'manager', 'seniormanager', 'srmanager', 'director'].includes(normalized) || nameNormalized === 'sunmeet singh';
 
   if (!isManager) {
     return <Navigate to="/attendance/portal/mark" replace />;

@@ -78,3 +78,14 @@ class TeamMemberAttendanceResponse(BaseModel):
     class Config:
         orm_mode = True
 
+# ── Designation leaves & holiday config schemas ────────────────
+class DesignationLeaveUpdateItem(BaseModel):
+    id: int
+    leaves: int
+    holidays: List[dict]
+
+class LeaveConfigResponse(BaseModel):
+    leaves: Optional[int] = 30
+    holidays: List[dict]
+
+
