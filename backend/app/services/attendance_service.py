@@ -192,32 +192,55 @@ def get_leave_config(db: Session, employee_id: int) -> Optional[dict]:
     Fetch the leaves limit and holidays list configured for the employee's designation.
     """
     import json
+    from datetime import date
     from app.models.designation import Designation
     
     emp = db.query(Employee).filter(Employee.id == employee_id).first()
     if not emp:
         return None
         
-    leaves_limit = 30
+    leaves_limit = 0.0
     holidays_list = []
     
     if emp.designation:
         try:
             desg = db.query(Designation).filter(Designation.name == emp.designation).first()
-            if desg:
-                leaves_limit = desg.leaves if desg.leaves is not None else 30
-                if desg.holidays:
-                    try:
-                        holidays_list = json.loads(desg.holidays)
-                    except Exception:
-                        pass
+            if desg and desg.holidays:
+                try:
+                    holidays_list = json.loads(desg.holidays)
+                except Exception:
+                    pass
         except Exception as e:
-            if "Unknown column" in str(e) and ("leaves" in str(e) or "holidays" in str(e)):
-                leaves_limit = 30
+            if "Unknown column" in str(e) and "holidays" in str(e):
                 holidays_list = []
             else:
                 raise e
                     
+    # Calculate automatic pro-rata leaves based on designation and months of service
+    today = date.today()
+    joining_date = emp.date_of_joining or today
+    
+    # Calculate months difference (inclusive of joining month)
+    months_diff = (today.year - joining_date.year) * 12 + (today.month - joining_date.month) + 1
+    if months_diff < 0:
+        months_diff = 0
+        
+    desig = emp.designation or ""
+    desig_lower = desig.lower().strip()
+    
+    if any(k in desig_lower for k in ["senior manager", "sr.manager", "sr. manager"]):
+        monthly_rate = 2.0
+    elif any(k in desig_lower for k in ["team lead", "assistant manager", "manager"]):
+        monthly_rate = 1.5
+    elif "atl" in desig_lower:
+        monthly_rate = 1.25
+    elif any(k in desig_lower for k in ["intern", "trainee", "executive", "senior executive"]):
+        monthly_rate = 1.0
+    else:
+        monthly_rate = 0.0
+        
+    leaves_limit = monthly_rate * months_diff
+    
     return {
         "leaves": leaves_limit,
         "holidays": holidays_list

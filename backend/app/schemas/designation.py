@@ -13,7 +13,7 @@ class DesignationResponse(BaseModel):
     id: int
     name: str
     is_active: bool
-    leaves: Optional[int] = 30
+    leaves: Optional[float] = 30.0
     holidays: Optional[List[dict]] = None
 
     @field_validator("holidays", mode="before")

@@ -81,11 +81,11 @@ class TeamMemberAttendanceResponse(BaseModel):
 # ── Designation leaves & holiday config schemas ────────────────
 class DesignationLeaveUpdateItem(BaseModel):
     id: int
-    leaves: int
+    leaves: float
     holidays: List[dict]
 
 class LeaveConfigResponse(BaseModel):
-    leaves: Optional[int] = 30
+    leaves: Optional[float] = 30.0
     holidays: List[dict]
 
 

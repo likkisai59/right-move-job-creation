@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ClipboardList, CheckCircle2, XCircle, Calendar, 
-  User, Clock, ShieldAlert, Check, X, Settings, Plus, Trash2 
+  User, Clock, ShieldAlert, Check, X, Plus, Trash2 
 } from 'lucide-react';
 import { getPendingLeaves, updateLeaveStatus, getTeamAttendance, saveApprovalsConfig } from '../../api/attendanceApi';
 import { fetchDesignations } from '../../api/designationsApi';
@@ -281,35 +281,22 @@ const ManageApprovals = () => {
             Team Attendance
           </button>
           {isDirector && (
-            <>
-              <button
-                onClick={() => setActiveTab('config')}
-                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
-                  activeTab === 'config'
-                    ? 'bg-white text-gray-800 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-800'
-                }`}
-              >
-                <Settings size={14} />
-                Portal Configurations
-              </button>
-              <button
-                onClick={() => setActiveTab('holidays')}
-                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
-                  activeTab === 'holidays'
-                    ? 'bg-white text-gray-800 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-800'
-                }`}
-              >
-                <Calendar size={14} />
-                Add Holidays
-              </button>
-            </>
+            <button
+              onClick={() => setActiveTab('holidays')}
+              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'holidays'
+                  ? 'bg-white text-gray-800 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-800'
+              }`}
+            >
+              <Calendar size={14} />
+              Add Holidays
+            </button>
           )}
         </div>
       </div>
 
-      {loading && activeTab !== 'config' ? (
+      {loading ? (
         <div className="bg-white p-12 rounded-2xl border border-gray-100 flex flex-col items-center justify-center gap-3 shadow-sm min-h-[300px]">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
           <span className="text-sm font-bold text-gray-500">Loading details...</span>
@@ -533,68 +520,7 @@ const ManageApprovals = () => {
             </div>
           )}
 
-          {/* PORTAL CONFIGURATIONS TAB */}
-          {activeTab === 'config' && isDirector && (
-            <div className="bg-white p-6 md:p-8 rounded-2xl border border-gray-100 shadow-sm space-y-6 animate-fade-in">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-                <div>
-                  <h3 className="text-lg font-black text-gray-800 flex items-center gap-2">
-                    <Settings size={22} className="text-blue-600 animate-spin-slow" />
-                    Designation-based Policies
-                  </h3>
-                  <p className="text-xs text-gray-400 font-medium">Configure annual leave quotas for each designation.</p>
-                </div>
-              </div>
-              
-              <div className="border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-widest">
-                      <th className="px-6 py-4">Designation</th>
-                      <th className="px-6 py-4 w-[200px]">Annual Leaves (Days)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {configDesignations.map(d => (
-                      <tr key={d.id} className="hover:bg-gray-50/30 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="font-bold text-gray-800 text-sm">{d.name}</span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            value={leavesMap[d.id] !== undefined ? leavesMap[d.id] : ''}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setLeavesMap({
-                                ...leavesMap,
-                                [d.id]: val === '' ? '' : Math.max(0, parseInt(val) || 0)
-                              });
-                            }}
-                            className="w-[120px] p-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-bold text-gray-700 text-center text-sm"
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
 
-              {/* Submit Button */}
-              <div className="border-t border-gray-100 pt-6 flex justify-end">
-                <button
-                  onClick={handleSaveConfig}
-                  disabled={configSubmitting}
-                  className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all text-xs flex items-center gap-1.5 shadow-lg shadow-blue-500/20 disabled:bg-blue-400 disabled:shadow-none"
-                >
-                  <Check size={16} />
-                  {configSubmitting ? 'Saving All Configurations...' : 'Save All Configurations'}
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* ADD HOLIDAYS TAB */}
           {activeTab === 'holidays' && isDirector && (
