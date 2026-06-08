@@ -302,7 +302,7 @@ def match_jobs_for_candidate(db: Session, candidate_id: int) -> List[dict]:
                 job_id=job.id,
                 candidate_id=candidate.id,
                 match_score=total_score,
-                status="Matched",
+                status="Shortlisted",
                 matched_skills=matched_skills_json,
                 missing_skills=missing_skills_json
             )
@@ -311,7 +311,7 @@ def match_jobs_for_candidate(db: Session, candidate_id: int) -> List[dict]:
         try:
             import logging
             logger = logging.getLogger(__name__)
-            logger.info(f"Committing mapping for candidate {candidate.id} and job {job.id} with status 'Matched'")
+            logger.info(f"Committing mapping for candidate {candidate.id} and job {job.id} with status 'Shortlisted'")
             db.commit()
             
             results.append({

@@ -629,16 +629,11 @@ def update_selection_details(
             
         # Priority 4: Pipeline State Validation
         VALID_TRANSITIONS = {
-            "Applied": ["Matched", "Rejected", "Hold"],
-            "Matched": ["Shortlisted", "Rejected", "Hold"],
-            "Shortlisted": ["Interview Scheduled", "Rejected", "Hold"],
-            "Interview Scheduled": ["Interview Completed", "Rejected", "Hold"],
-            "Interview Completed": ["Selected", "Rejected", "Hold"],
-            "Selected": ["Joined", "Rejected", "Hold"],
-            "Joined": [],
-            "Rejected": ["Hold"], # Or allow restart
-            "Hold": ["Applied", "Matched", "Shortlisted", "Interview Scheduled", "Interview Completed", "Selected", "Rejected"],
-            "in_review": []
+            "Shortlisted": ["Interview Selected", "Interview Rejected"],
+            "Interview Selected": ["Candidate Approved", "Candidate Rejected"],
+            "Interview Rejected": [],
+            "Candidate Approved": [],
+            "Candidate Rejected": []
         }
         
         new_status_enum = update_data.get("status")
@@ -654,6 +649,24 @@ def update_selection_details(
                     )
                 mapping.last_status_changed_at = func.now()
                 mapping.last_status_changed_by = current_user.get("id")
+
+        # Mandatory Field Validations based on status
+        check_status = new_status if new_status_enum else mapping.status
+        if check_status == "Interview Selected":
+            if not update_data.get("interview_date") and not mapping.interview_date:
+                return JSONResponse(status_code=400, content=error_response("Interview Date is mandatory for Interview Selected status"))
+        elif check_status == "Candidate Approved":
+            missing = []
+            if not update_data.get("joining_date") and not mapping.joining_date: missing.append("Joining Date")
+            if not update_data.get("salary_offered") and not mapping.salary_offered: missing.append("Salary")
+            if not update_data.get("band") and not mapping.band: missing.append("Band")
+            if not update_data.get("incentive") and not mapping.incentive: missing.append("Incentive")
+            if not update_data.get("approval_date") and not mapping.approval_date: missing.append("Approval Date")
+            if missing:
+                return JSONResponse(status_code=400, content=error_response(f"Mandatory fields missing for Candidate Approved: {', '.join(missing)}"))
+        elif check_status == "Candidate Rejected":
+            if not update_data.get("rejection_date") and not mapping.rejection_date:
+                return JSONResponse(status_code=400, content=error_response("Rejection Date is mandatory for Candidate Rejected status"))
 
         # Priority 6: Business Validation (Joining Date against Mapping Date)
         new_joining_date = update_data.get("joining_date")

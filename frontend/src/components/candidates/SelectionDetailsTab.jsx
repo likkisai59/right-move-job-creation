@@ -7,14 +7,11 @@ import Badge from '../common/Badge';
 import toast, { Toaster } from 'react-hot-toast';
 
 const PIPELINE_STAGES = [
-  'Applied',
-  'Matched',
   'Shortlisted',
-  'Interview Scheduled',
-  'Interview Completed',
-  'Selected',
-  'Rejected',
-  'Hold'
+  'Interview Selected',
+  'Interview Rejected',
+  'Candidate Approved',
+  'Candidate Rejected'
 ];
 
 const SelectionDetailsTab = ({ candidateId }) => {
@@ -24,6 +21,7 @@ const SelectionDetailsTab = ({ candidateId }) => {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
   const [matching, setMatching] = useState(false);
   const [filterStatus, setFilterStatus] = useState('All');
   const [sortOption, setSortOption] = useState('highest_match');
@@ -52,7 +50,11 @@ const SelectionDetailsTab = ({ candidateId }) => {
   const handleEditClick = (selection) => {
     setEditingId(selection.id);
     setEditForm({
-      status: selection.status || 'Applied',
+      status: selection.status || 'Shortlisted',
+      interview_date: selection.interview_date || '',
+      approval_date: selection.approval_date || '',
+      rejection_date: selection.rejection_date || '',
+      band: selection.band || '',
       joining_status: selection.joining_status || 'Pending',
       joining_date: selection.joining_date || '',
       salary_offered: selection.salary_offered || '',
@@ -67,13 +69,53 @@ const SelectionDetailsTab = ({ candidateId }) => {
   const handleCancelEdit = () => {
     setEditingId(null);
     setEditForm({});
+    setFormErrors({});
   };
 
   const handleSave = async (mappingId, overrideData = null) => {
     try {
       setSubmitting(true);
+      setFormErrors({});
       // Clean up empty strings, especially for dates
       const payload = overrideData ? { ...overrideData } : { ...editForm };
+      
+      let errors = {};
+      const statusToCheck = payload.status;
+      
+      if (statusToCheck === 'Interview Selected' && !payload.interview_date) {
+        errors.interview_date = 'Interview Date is required';
+      }
+      if (statusToCheck === 'Candidate Approved') {
+        if (!payload.joining_date) errors.joining_date = 'Joining Date is required';
+        if (!payload.salary_offered) errors.salary_offered = 'Salary is required';
+        else if (isNaN(Number(payload.salary_offered))) errors.salary_offered = 'Salary must be numeric only';
+        if (!payload.band) errors.band = 'Band is required';
+        if (!payload.incentive) errors.incentive = 'Incentive is required';
+        if (!payload.approval_date) errors.approval_date = 'Approval Date is required';
+      }
+      if (statusToCheck === 'Candidate Rejected' && !payload.rejection_date) {
+        errors.rejection_date = 'Rejection Date is required';
+      }
+      
+      // Also validate salary if it's provided but they aren't on 'Candidate Approved'
+      if (payload.salary_offered && isNaN(Number(payload.salary_offered))) {
+        errors.salary_offered = 'Salary must be numeric only';
+      }
+
+      if (Object.keys(errors).length > 0) {
+        setFormErrors(errors);
+        toast.error('Please fix the validation errors before saving');
+        setSubmitting(false);
+        // If it was a quick action button (overrideData is not null), open the edit form so they can fix it
+        if (overrideData) {
+          handleEditClick({...selections.find(s => s.id === mappingId), status: overrideData.status});
+        }
+        return;
+      }
+
+      if (!payload.interview_date) payload.interview_date = null;
+      if (!payload.approval_date) payload.approval_date = null;
+      if (!payload.rejection_date) payload.rejection_date = null;
       if (!payload.joining_date) payload.joining_date = null;
       if (!payload.salary_offered) payload.salary_offered = null;
       if (!payload.rate_card) payload.rate_card = null;
@@ -108,35 +150,52 @@ const SelectionDetailsTab = ({ candidateId }) => {
   };
 
   const renderPipeline = (currentStatus) => {
-    const currentIndex = PIPELINE_STAGES.indexOf(currentStatus);
+    let path = [];
+    if (currentStatus === 'Interview Rejected') {
+      path = ['Shortlisted', 'Interview Rejected'];
+    } else if (currentStatus === 'Candidate Rejected') {
+      path = ['Shortlisted', 'Interview Selected', 'Candidate Rejected'];
+    } else {
+      path = ['Shortlisted', 'Interview Selected', 'Candidate Approved'];
+    }
+
+    const currentIndex = path.indexOf(currentStatus);
     const renderIndex = currentIndex === -1 ? 0 : currentIndex;
 
     return (
       <div className="w-full py-6">
-        <div className="flex items-center justify-between relative">
+        <div className="flex items-center justify-between relative max-w-2xl mx-auto">
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 rounded-full z-0"></div>
           <div 
             className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-blue-500 rounded-full z-0 transition-all duration-500"
-            style={{ width: `${(renderIndex / (PIPELINE_STAGES.length - 1)) * 100}%` }}
+            style={{ width: `${(renderIndex / (path.length - 1 || 1)) * 100}%` }}
           ></div>
           
-          {PIPELINE_STAGES.map((stage, idx) => {
+          {path.map((stage, idx) => {
             const isCompleted = idx <= renderIndex;
             const isCurrent = idx === renderIndex;
+            const isReject = stage.includes('Rejected');
             
+            let circleClass = "w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-300 bg-white ";
+            if (isCurrent) {
+              circleClass += isReject 
+                ? "border-red-500 bg-red-500 text-white shadow-md shadow-red-500/30 ring-4 ring-red-500/20"
+                : "border-blue-500 bg-blue-500 text-white shadow-md shadow-blue-500/30 ring-4 ring-blue-500/20";
+            } else if (isCompleted) {
+              circleClass += "border-blue-500 bg-blue-500 text-white shadow-md shadow-blue-500/30";
+            } else {
+              circleClass += "border-gray-300 text-gray-300";
+            }
+
             return (
               <div key={stage} className="relative z-10 flex flex-col items-center">
-                <div 
-                  className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
-                    isCompleted 
-                      ? 'bg-blue-500 border-blue-500 text-white shadow-md shadow-blue-500/30' 
-                      : 'bg-white border-gray-300 text-gray-300'
-                  } ${isCurrent ? 'ring-4 ring-blue-500/20' : ''}`}
-                >
-                  {isCompleted && <CheckCircle2 size={12} strokeWidth={3} />}
+                <div className={circleClass}>
+                  {isCompleted && !isCurrent && <CheckCircle2 size={12} strokeWidth={3} />}
+                  {isCurrent && isReject && <XCircle size={12} strokeWidth={3} />}
+                  {isCurrent && !isReject && <CheckCircle2 size={12} strokeWidth={3} />}
                 </div>
                 <p className={`text-[10px] font-bold mt-2 absolute top-8 whitespace-nowrap text-center ${
-                  isCurrent ? 'text-blue-600' : (isCompleted ? 'text-gray-700' : 'text-gray-400')
+                  isCurrent ? (isReject ? 'text-red-600' : 'text-blue-600') : (isCompleted ? 'text-gray-700' : 'text-gray-400')
                 }`}>
                   {stage}
                 </p>
@@ -186,14 +245,11 @@ const SelectionDetailsTab = ({ candidateId }) => {
   });
 
   const STATUS_COLORS = {
-    Matched: 'bg-blue-100 text-blue-700 border-blue-200',
     Shortlisted: 'bg-purple-100 text-purple-700 border-purple-200',
-    'Interview Scheduled': 'bg-orange-100 text-orange-700 border-orange-200',
-    'Interview Completed': 'bg-indigo-100 text-indigo-700 border-indigo-200',
-    Selected: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    Joined: 'bg-green-100 text-green-700 border-green-200',
-    Rejected: 'bg-rose-100 text-rose-700 border-rose-200',
-    Hold: 'bg-gray-100 text-gray-700 border-gray-200'
+    'Interview Selected': 'bg-indigo-100 text-indigo-700 border-indigo-200',
+    'Interview Rejected': 'bg-rose-100 text-rose-700 border-rose-200',
+    'Candidate Approved': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    'Candidate Rejected': 'bg-red-100 text-red-700 border-red-200'
   };
 
   const SCORE_COLORS = (score) => {
@@ -213,13 +269,11 @@ const SelectionDetailsTab = ({ candidateId }) => {
             className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
           >
             <option value="All">All Status</option>
-            <option value="Matched">Matched</option>
             <option value="Shortlisted">Shortlisted</option>
-            <option value="Interview Scheduled">Interview Scheduled</option>
-            <option value="Interview Completed">Interview Completed</option>
-            <option value="Selected">Selected</option>
-            <option value="Rejected">Rejected</option>
-            <option value="Hold">Hold</option>
+            <option value="Interview Selected">Interview Selected</option>
+            <option value="Interview Rejected">Interview Rejected</option>
+            <option value="Candidate Approved">Candidate Approved</option>
+            <option value="Candidate Rejected">Candidate Rejected</option>
           </select>
           
           <select 
@@ -282,17 +336,17 @@ const SelectionDetailsTab = ({ candidateId }) => {
               </div>
               <div className="flex flex-col md:flex-row md:items-center gap-4">
                 <div className="flex gap-2 mr-4">
-                  {selection.status === 'Matched' && (
+                  {selection.status === 'Shortlisted' && (
                     <>
-                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleSave(selection.id, { status: 'Shortlisted' }); }} className="text-xs py-1 px-3 border-purple-200 text-purple-700 hover:bg-purple-50">Shortlist</Button>
-                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleSave(selection.id, { status: 'Rejected' }); }} className="text-xs py-1 px-3 border-rose-200 text-rose-700 hover:bg-rose-50">Reject</Button>
+                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Interview Selected'}); }} className="text-xs py-1 px-3 border-indigo-200 text-indigo-700 hover:bg-indigo-50">Select for Interview</Button>
+                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Interview Rejected'}); }} className="text-xs py-1 px-3 border-rose-200 text-rose-700 hover:bg-rose-50">Reject Interview</Button>
                     </>
                   )}
-                  {selection.status === 'Shortlisted' && (
-                    <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleSave(selection.id, { status: 'Interview Scheduled' }); }} className="text-xs py-1 px-3 border-orange-200 text-orange-700 hover:bg-orange-50">Schedule Interview</Button>
-                  )}
-                  {selection.status === 'Interview Completed' && (
-                    <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleSave(selection.id, { status: 'Selected' }); }} className="text-xs py-1 px-3 border-emerald-200 text-emerald-700 hover:bg-emerald-50">Mark Selected</Button>
+                  {selection.status === 'Interview Selected' && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Candidate Approved'}); }} className="text-xs py-1 px-3 border-emerald-200 text-emerald-700 hover:bg-emerald-50">Approve</Button>
+                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Candidate Rejected'}); }} className="text-xs py-1 px-3 border-red-200 text-red-700 hover:bg-red-50">Reject</Button>
+                    </>
                   )}
                 </div>
                 <div className="text-right">
@@ -346,50 +400,79 @@ const SelectionDetailsTab = ({ candidateId }) => {
                         </div>
                       </div>
 
-                      <div>
-                        <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                          <Clock size={14} className="text-indigo-500"/> Joining Information
-                        </h4>
-                        <div className="bg-gray-50/50 p-5 rounded-2xl border border-gray-100 grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Status</p>
-                            <p className="text-sm font-semibold text-gray-900">{selection.joining_status || 'Pending'}</p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Date</p>
-                            <p className="text-sm font-semibold text-gray-900">{selection.joining_date || '—'}</p>
+                      {(selection.interview_date || selection.approval_date || selection.rejection_date || selection.joining_date) && (
+                        <div>
+                          <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <Clock size={14} className="text-indigo-500"/> Workflow Dates
+                          </h4>
+                          <div className="bg-gray-50/50 p-5 rounded-2xl border border-gray-100 grid grid-cols-2 gap-4">
+                            {selection.interview_date && (
+                              <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Interview Date</p>
+                                <p className="text-sm font-semibold text-gray-900">{selection.interview_date}</p>
+                              </div>
+                            )}
+                            {selection.approval_date && (
+                              <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Approval Date</p>
+                                <p className="text-sm font-semibold text-gray-900">{selection.approval_date}</p>
+                              </div>
+                            )}
+                            {selection.joining_date && (
+                              <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Joining Date</p>
+                                <p className="text-sm font-semibold text-gray-900">{selection.joining_date}</p>
+                              </div>
+                            )}
+                            {selection.rejection_date && (
+                              <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Rejection Date</p>
+                                <p className="text-sm font-semibold text-gray-900">{selection.rejection_date}</p>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      </div>
+                      )}
                     </div>
 
                     {/* Right Column */}
                     <div className="space-y-6">
-                      <div>
-                        <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                          <IndianRupee size={14} className="text-emerald-500"/> Commercial Details
-                        </h4>
-                        <div className="bg-gray-50/50 p-5 rounded-2xl border border-gray-100 space-y-3">
-                          <div className="flex justify-between items-center border-b border-gray-200 pb-2">
-                            <span className="text-sm font-semibold text-gray-600">Salary Offered</span>
-                            <span className="text-sm font-bold text-gray-900">{selection.salary_offered || '—'}</span>
+                      {(selection.salary_offered || selection.band || selection.rate_card || selection.incentive) && (
+                        <div>
+                          <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <IndianRupee size={14} className="text-emerald-500"/> Commercial Details
+                          </h4>
+                          <div className="bg-gray-50/50 p-5 rounded-2xl border border-gray-100 space-y-3">
+                            {selection.salary_offered && (
+                              <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                                <span className="text-sm font-semibold text-gray-600">Salary</span>
+                                <span className="text-sm font-bold text-gray-900">{selection.salary_offered}</span>
+                              </div>
+                            )}
+                            
+                            {selection.band && (
+                              <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                                <span className="text-sm font-semibold text-gray-600">Band</span>
+                                <span className="text-sm font-bold text-gray-900">{selection.band}</span>
+                              </div>
+                            )}
+                            
+                            {(isAdmin && selection.rate_card) && (
+                              <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                                <span className="text-sm font-semibold text-gray-600">Rate Card (Admin)</span>
+                                <span className="text-sm font-bold text-gray-900">{selection.rate_card}</span>
+                              </div>
+                            )}
+                            
+                            {((isAdmin || isTL) && selection.incentive) && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm font-semibold text-gray-600">Incentive (TL)</span>
+                                <span className="text-sm font-bold text-gray-900">{selection.incentive}</span>
+                              </div>
+                            )}
                           </div>
-                          
-                          {(isAdmin) && (
-                            <div className="flex justify-between items-center border-b border-gray-200 pb-2">
-                              <span className="text-sm font-semibold text-gray-600">Rate Card (Admin)</span>
-                              <span className="text-sm font-bold text-gray-900">{selection.rate_card || '—'}</span>
-                            </div>
-                          )}
-                          
-                          {(isAdmin || isTL) && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm font-semibold text-gray-600">Incentive (TL)</span>
-                              <span className="text-sm font-bold text-gray-900">{selection.incentive || '—'}</span>
-                            </div>
-                          )}
                         </div>
-                      </div>
+                      )}
 
                       <div>
                         <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
@@ -435,73 +518,115 @@ const SelectionDetailsTab = ({ candidateId }) => {
                             onChange={(e) => setEditForm({...editForm, status: e.target.value})}
                             className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
                           >
-                            <option value="Applied">Applied</option>
-                            <option value="Matched">Matched</option>
                             <option value="Shortlisted">Shortlisted</option>
-                            <option value="Interview Scheduled">Interview Scheduled</option>
-                            <option value="Interview Completed">Interview Completed</option>
-                            <option value="Selected">Selected</option>
-                            <option value="Rejected">Rejected</option>
-                            <option value="Hold">Hold</option>
+                            <option value="Interview Selected">Interview Selected</option>
+                            <option value="Interview Rejected">Interview Rejected</option>
+                            <option value="Candidate Approved">Candidate Approved</option>
+                            <option value="Candidate Rejected">Candidate Rejected</option>
                           </select>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        
+                        {editForm.status === 'Interview Selected' && (
                           <div>
-                            <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Joining Status</label>
-                            <select 
-                              value={editForm.joining_status} 
-                              onChange={(e) => setEditForm({...editForm, joining_status: e.target.value})}
-                              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
-                            >
-                              <option value="Pending">Pending</option>
-                              <option value="Joined">Joined</option>
-                              <option value="Not Joined">Not Joined</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Joining Date</label>
+                            <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Interview Date</label>
                             <input 
                               type="date" 
-                              value={editForm.joining_date} 
-                              onChange={(e) => setEditForm({...editForm, joining_date: e.target.value})}
-                              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
+                              value={editForm.interview_date} 
+                              onChange={(e) => setEditForm({...editForm, interview_date: e.target.value})}
+                              className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.interview_date ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
                             />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Salary Offered</label>
-                          <input 
-                            type="text" 
-                            placeholder="e.g. ₹15 LPA"
-                            value={editForm.salary_offered} 
-                            onChange={(e) => setEditForm({...editForm, salary_offered: e.target.value})}
-                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
-                          />
-                        </div>
-                        
-                        {(isAdmin) && (
-                          <div>
-                            <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Rate Card (Admin)</label>
-                            <input 
-                              type="text" 
-                              placeholder="e.g. ₹20,000"
-                              value={editForm.rate_card} 
-                              onChange={(e) => setEditForm({...editForm, rate_card: e.target.value})}
-                              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
-                            />
+                            {formErrors.interview_date && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.interview_date}</p>}
                           </div>
                         )}
-                        
-                        {(isAdmin || isTL) && (
+
+                        {editForm.status === 'Candidate Approved' && (
+                          <>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Joining Date</label>
+                                <input 
+                                  type="date" 
+                                  value={editForm.joining_date} 
+                                  onChange={(e) => setEditForm({...editForm, joining_date: e.target.value})}
+                                  className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.joining_date ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
+                                />
+                                {formErrors.joining_date && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.joining_date}</p>}
+                              </div>
+                              <div>
+                                <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Approval Date</label>
+                                <input 
+                                  type="date" 
+                                  value={editForm.approval_date} 
+                                  onChange={(e) => setEditForm({...editForm, approval_date: e.target.value})}
+                                  className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.approval_date ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
+                                />
+                                {formErrors.approval_date && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.approval_date}</p>}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Salary</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="e.g. 500000"
+                                  value={editForm.salary_offered} 
+                                  onChange={(e) => setEditForm({...editForm, salary_offered: e.target.value})}
+                                  className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.salary_offered ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
+                                />
+                                {formErrors.salary_offered && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.salary_offered}</p>}
+                              </div>
+                              <div>
+                                <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Band</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="e.g. B1"
+                                  value={editForm.band} 
+                                  onChange={(e) => setEditForm({...editForm, band: e.target.value})}
+                                  className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.band ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
+                                />
+                                {formErrors.band && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.band}</p>}
+                              </div>
+                            </div>
+                            
+                            {(isAdmin) && (
+                              <div>
+                                <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Rate Card (Admin)</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="e.g. 20000"
+                                  value={editForm.rate_card} 
+                                  onChange={(e) => setEditForm({...editForm, rate_card: e.target.value})}
+                                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                              </div>
+                            )}
+                            
+                            {(isAdmin || isTL) && (
+                              <div>
+                                <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Incentive (TL)</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="e.g. 5000"
+                                  value={editForm.incentive} 
+                                  onChange={(e) => setEditForm({...editForm, incentive: e.target.value})}
+                                  className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.incentive ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
+                                />
+                                {formErrors.incentive && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.incentive}</p>}
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {editForm.status === 'Candidate Rejected' && (
                           <div>
-                            <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Incentive (TL)</label>
+                            <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Rejection Date</label>
                             <input 
-                              type="text" 
-                              placeholder="e.g. ₹5,000"
-                              value={editForm.incentive} 
-                              onChange={(e) => setEditForm({...editForm, incentive: e.target.value})}
-                              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
+                              type="date" 
+                              value={editForm.rejection_date} 
+                              onChange={(e) => setEditForm({...editForm, rejection_date: e.target.value})}
+                              className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.rejection_date ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
                             />
+                            {formErrors.rejection_date && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.rejection_date}</p>}
                           </div>
                         )}
                       </div>
