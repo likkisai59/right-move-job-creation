@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
-import { getAttendanceHistory } from '../../api/attendanceApi';
+import { getAttendanceHistory, getLeaveConfig } from '../../api/attendanceApi';
 
 const MONTHS = [
   'January','February','March','April','May','June',
@@ -11,7 +11,7 @@ const STATUS_CONFIG = {
   P:  { label: 'Present',  short: 'P', bg: 'bg-emerald-50',  text: 'text-emerald-700', border: 'border-emerald-200' },
   A:  { label: 'Absent',   short: 'A', bg: 'bg-red-50',      text: 'text-red-700',     border: 'border-red-200'     },
   L:  { label: 'Leave',    short: 'L', bg: 'bg-amber-50',    text: 'text-amber-700',   border: 'border-amber-200'   },
-  H:  { label: 'Holiday',  short: 'H', bg: 'bg-blue-50',     text: 'text-blue-700',    border: 'border-blue-200'    },
+  H:  { label: 'Holiday',  short: 'H', bg: 'bg-rose-50',     text: 'text-rose-700',    border: 'border-rose-200'    },
   WO: { label: 'Weekend',  short: '—', bg: 'bg-gray-50',     text: 'text-gray-300',    border: 'border-gray-100'    },
   FT: { label: 'Future',   short: '',  bg: 'bg-white',       text: 'text-gray-200',    border: 'border-gray-100'    },
 };
@@ -21,6 +21,7 @@ const AttendanceStatus = () => {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
   const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [holidaysList, setHolidaysList] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const employee = JSON.parse(localStorage.getItem('employee_data') || '{}');
@@ -33,10 +34,17 @@ const AttendanceStatus = () => {
       }
       setLoading(true);
       try {
-        const data = await getAttendanceHistory(employee.id);
-        setAttendanceRecords(data || []);
+        const [historyData, configData] = await Promise.all([
+          getAttendanceHistory(employee.id),
+          getLeaveConfig(employee.id).catch(err => {
+            console.error("Failed to load leave config/holidays", err);
+            return { holidays: [] };
+          })
+        ]);
+        setAttendanceRecords(historyData || []);
+        setHolidaysList(configData?.holidays || []);
       } catch (err) {
-        console.error("Error fetching attendance history:", err);
+        console.error("Error fetching attendance data:", err);
       } finally {
         setLoading(false);
       }
@@ -121,13 +129,22 @@ const AttendanceStatus = () => {
             const monthStr = String(month + 1).padStart(2, '0');
             const dateKey = `${year}-${monthStr}-${dayStr}`;
             const record = recordsMap[dateKey];
+            const holidayObj = holidaysList.find(h => h.date === dateKey);
 
             let fhStatus = '';
             let shStatus = '';
             let hasRecord = false;
             let status = 'P';
 
-            if (isFuture) {
+            if (holidayObj) {
+              if (record) {
+                hasRecord = true;
+                fhStatus = record.first_half_status;
+                shStatus = record.second_half_status;
+              } else {
+                status = 'H';
+              }
+            } else if (isFuture) {
               status = 'FT';
             } else if (record) {
               hasRecord = true;
@@ -148,15 +165,26 @@ const AttendanceStatus = () => {
             return (
               <div 
                 key={day} 
-                className={`h-24 md:h-32 border-r border-b border-gray-50 p-3 flex flex-col justify-between transition-all hover:bg-gray-50/50 ${isToday ? 'bg-blue-50/30' : ''}`}
+                className={`h-24 md:h-32 border-r border-b border-gray-50 p-3 flex flex-col justify-between transition-all hover:bg-gray-50/50 ${isToday ? 'bg-blue-50/30' : ''} ${holidayObj ? 'bg-rose-50/20' : ''}`}
               >
                 <span className={`text-sm font-black ${isToday ? 'text-blue-600' : isWeekend ? 'text-gray-300' : 'text-gray-500'}`}>
                   {day}
                 </span>
 
-                {!isFuture && (
-                  <div className="space-y-1 mt-auto">
-                    {hasDifferentStatuses ? (
+                <div className="space-y-1 mt-auto w-full">
+                  {/* Always show Holiday Name if it is a holiday */}
+                  {holidayObj && (
+                    <div 
+                      className={`px-2 py-0.5 rounded border text-[9px] font-black text-center truncate ${STATUS_CONFIG.H.bg} ${STATUS_CONFIG.H.text} ${STATUS_CONFIG.H.border}`}
+                      title={holidayObj.name}
+                    >
+                      {holidayObj.name}
+                    </div>
+                  )}
+
+                  {/* Show Attendance Status if record exists */}
+                  {hasRecord ? (
+                    hasDifferentStatuses ? (
                       <div className="grid grid-cols-1 gap-1">
                         <div className={`px-1.5 py-0.5 rounded border text-[9px] font-bold text-center leading-tight ${fhConfig.bg} ${fhConfig.text} ${fhConfig.border}`}>
                           FH: {fhConfig.label}
@@ -166,12 +194,19 @@ const AttendanceStatus = () => {
                         </div>
                       </div>
                     ) : (
+                      <div className={`px-2 py-0.5 rounded border text-[9px] font-bold text-center ${displayConfig.bg} ${displayConfig.text} ${displayConfig.border}`}>
+                        {displayConfig.label}
+                      </div>
+                    )
+                  ) : (
+                    /* Show Weekend/Absent if not a holiday and not future */
+                    !holidayObj && !isFuture && (
                       <div className={`px-2 py-1 rounded-lg border text-[10px] font-bold text-center ${displayConfig.bg} ${displayConfig.text} ${displayConfig.border}`}>
                         {displayConfig.label}
                       </div>
-                    )}
-                  </div>
-                )}
+                    )
+                  )}
+                </div>
               </div>
             );
           })}

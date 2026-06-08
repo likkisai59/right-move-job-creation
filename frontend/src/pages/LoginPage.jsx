@@ -94,19 +94,22 @@ const LoginPage = () => {
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <Input
-                label="Username / Email"
-                placeholder="Enter your username or email"
+                label="Full Name (Firstname Lastname)"
+                placeholder="e.g. Saurabh Jadge"
                 icon={User}
                 required
                 error={errors.username?.message}
-                {...register('username', { required: 'Username or email is required' })}
+                {...register('username', { 
+                  required: 'Full name is required',
+                  validate: value => value.trim().split(/\s+/).length >= 2 || 'Please enter both Firstname and Lastname'
+                })}
               />
 
               <div className="relative">
                 <Input
                   label="Password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
+                  placeholder="Enter your generated password"
                   icon={Lock}
                   required
                   error={errors.password?.message}

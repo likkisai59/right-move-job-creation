@@ -13,6 +13,13 @@ const AttendanceLoginPage = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
+
+    const parts = username.trim().split(/\s+/);
+    if (parts.length < 2) {
+      setError("Please enter both Firstname and Lastname");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -67,7 +74,7 @@ const AttendanceLoginPage = () => {
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">
-                Username (Full Name)
+                Full Name (Firstname Lastname)
               </label>
               <div className="relative">
                 <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -76,7 +83,7 @@ const AttendanceLoginPage = () => {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. John Doe"
+                  placeholder="e.g. Saurabh Jadge"
                   className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-gray-700"
                 />
               </div>
@@ -84,7 +91,7 @@ const AttendanceLoginPage = () => {
 
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">
-                Password (Employee ID)
+                Password (Generated Password)
               </label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -93,7 +100,7 @@ const AttendanceLoginPage = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="e.g. EMP001"
+                  placeholder="e.g. SJadge@0013"
                   className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-gray-700"
                 />
               </div>

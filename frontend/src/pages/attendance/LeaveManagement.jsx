@@ -58,6 +58,32 @@ const LeaveManagement = () => {
       return;
     }
 
+    // Check if any date in the applied range is a holiday
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const holidayDates = holidays.map(h => h.date);
+
+    let current = new Date(start);
+    let hasHoliday = false;
+
+    while (current <= end) {
+      const yyyy = current.getFullYear();
+      const mm = String(current.getMonth() + 1).padStart(2, '0');
+      const dd = String(current.getDate()).padStart(2, '0');
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+      
+      if (holidayDates.includes(dateStr)) {
+        hasHoliday = true;
+        break;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    if (hasHoliday) {
+      setError('Applied date is a holiday');
+      return;
+    }
+
     setError('');
     setSuccessMsg('');
     try {
@@ -123,7 +149,7 @@ const LeaveManagement = () => {
         </div>
       )}
 
-      {error && (
+      {error && !showForm && (
         <div className="bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-xl flex items-center gap-3 animate-slide-down shadow-sm">
           <ShieldAlert className="text-rose-500 shrink-0" size={20} />
           <span className="text-sm font-semibold">{error}</span>
@@ -151,7 +177,10 @@ const LeaveManagement = () => {
           Leave Requests
         </h2>
         <button 
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            setShowForm(!showForm);
+            setError('');
+          }}
           className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all text-sm"
         >
           <Plus size={18} />
@@ -162,6 +191,12 @@ const LeaveManagement = () => {
       {showForm && (
         <div className="bg-white p-8 rounded-xl shadow-sm border border-blue-100 animate-slide-down">
           <h3 className="text-lg font-bold text-gray-800 mb-6">New Leave Application</h3>
+          {error && (
+            <div className="mb-5 p-4 bg-rose-50 border border-rose-100 text-rose-700 rounded-xl flex items-center gap-2.5 text-sm font-semibold animate-shake shadow-sm">
+              <ShieldAlert className="shrink-0 text-rose-500" size={18} />
+              {error}
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div>
@@ -283,12 +318,12 @@ const LeaveManagement = () => {
               <Calendar size={18} className="text-blue-600" />
               Holiday Calendar
             </h3>
-            <span className="text-[10px] text-gray-400 font-medium">Designation specific calendar</span>
+            <span className="text-[10px] text-gray-400 font-medium">Organization-wide holiday calendar</span>
           </div>
           
           {holidays.length === 0 ? (
             <div className="p-8 text-center text-gray-400 text-xs font-semibold">
-              No holidays configured for your designation.
+              No holidays configured yet.
             </div>
           ) : (
             <div className="overflow-x-auto">

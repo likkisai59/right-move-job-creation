@@ -7,7 +7,7 @@ import { getPendingLeaves, updateLeaveStatus, getTeamAttendance, saveApprovalsCo
 import { fetchDesignations } from '../../api/designationsApi';
 
 const ManageApprovals = () => {
-  const [activeTab, setActiveTab] = useState('leaves'); // 'leaves', 'attendance', 'config'
+  const [activeTab, setActiveTab] = useState('leaves'); // 'leaves', 'attendance', 'config', 'holidays'
   const [leaves, setLeaves] = useState([]);
   const [teamAttendance, setTeamAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +18,7 @@ const ManageApprovals = () => {
   const [configDesignations, setConfigDesignations] = useState([]);
   const [leavesMap, setLeavesMap] = useState({});
   const [holidaysMap, setHolidaysMap] = useState({});
-  const [expandedDesgId, setExpandedDesgId] = useState(null);
+  const [globalHolidays, setGlobalHolidays] = useState([]);
   const [configSubmitting, setConfigSubmitting] = useState(false);
 
   const employee = JSON.parse(localStorage.getItem('employee_data') || '{}');
@@ -75,12 +75,17 @@ const ManageApprovals = () => {
         // Populate maps
         const lMap = {};
         const hMap = {};
+        let commonHolidays = [];
         res.data.forEach(d => {
           lMap[d.id] = d.leaves ?? 30;
           hMap[d.id] = d.holidays || [];
+          if (commonHolidays.length === 0 && d.holidays && d.holidays.length > 0) {
+            commonHolidays = d.holidays;
+          }
         });
         setLeavesMap(lMap);
         setHolidaysMap(hMap);
+        setGlobalHolidays(commonHolidays);
       }
     } catch (err) {
       console.error('Failed to load designations for config:', err);
@@ -95,26 +100,6 @@ const ManageApprovals = () => {
     }
   }, [managerName, isDirector]);
 
-  // Add a holiday locally to a specific designation map
-  const handleAddHoliday = (desgId, name, date) => {
-    const currentHolidays = holidaysMap[desgId] || [];
-    const updated = [...currentHolidays, { name, date }];
-    setHolidaysMap({
-      ...holidaysMap,
-      [desgId]: updated
-    });
-  };
-
-  // Delete holiday locally from specific designation map
-  const handleDeleteHoliday = (desgId, idx) => {
-    const currentHolidays = holidaysMap[desgId] || [];
-    const updated = currentHolidays.filter((_, i) => i !== idx);
-    setHolidaysMap({
-      ...holidaysMap,
-      [desgId]: updated
-    });
-  };
-
   // Save all leaves and holidays configurations to the database
   const handleSaveConfig = async () => {
     setConfigSubmitting(true);
@@ -124,7 +109,7 @@ const ManageApprovals = () => {
       const payload = configDesignations.map(d => ({
         id: d.id,
         leaves: (leavesMap[d.id] === '' || leavesMap[d.id] === undefined) ? 30 : Number(leavesMap[d.id]),
-        holidays: holidaysMap[d.id] || []
+        holidays: globalHolidays
       }));
       await saveApprovalsConfig(payload);
       setSuccessMsg('All designation configurations saved successfully!');
@@ -296,17 +281,30 @@ const ManageApprovals = () => {
             Team Attendance
           </button>
           {isDirector && (
-            <button
-              onClick={() => setActiveTab('config')}
-              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
-                activeTab === 'config'
-                  ? 'bg-white text-gray-800 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-800'
-              }`}
-            >
-              <Settings size={14} />
-              Portal Configurations
-            </button>
+            <>
+              <button
+                onClick={() => setActiveTab('config')}
+                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                  activeTab === 'config'
+                    ? 'bg-white text-gray-800 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                <Settings size={14} />
+                Portal Configurations
+              </button>
+              <button
+                onClick={() => setActiveTab('holidays')}
+                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                  activeTab === 'holidays'
+                    ? 'bg-white text-gray-800 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                <Calendar size={14} />
+                Add Holidays
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -544,7 +542,7 @@ const ManageApprovals = () => {
                     <Settings size={22} className="text-blue-600 animate-spin-slow" />
                     Designation-based Policies
                   </h3>
-                  <p className="text-xs text-gray-400 font-medium">Configure annual leave quotas and holiday calendars for each designation.</p>
+                  <p className="text-xs text-gray-400 font-medium">Configure annual leave quotas for each designation.</p>
                 </div>
               </div>
               
@@ -554,135 +552,32 @@ const ManageApprovals = () => {
                     <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-widest">
                       <th className="px-6 py-4">Designation</th>
                       <th className="px-6 py-4 w-[200px]">Annual Leaves (Days)</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {configDesignations.map(d => {
-                      const isExpanded = expandedDesgId === d.id;
-                      const currentHolidays = holidaysMap[d.id] || [];
-                      
-                      return (
-                        <React.Fragment key={d.id}>
-                          <tr className="hover:bg-gray-50/30 transition-colors">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className="font-bold text-gray-800 text-sm">{d.name}</span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <input
-                                type="number"
-                                min="0"
-                                max="100"
-                                value={leavesMap[d.id] !== undefined ? leavesMap[d.id] : ''}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setLeavesMap({
-                                    ...leavesMap,
-                                    [d.id]: val === '' ? '' : Math.max(0, parseInt(val) || 0)
-                                  });
-                                }}
-                                className="w-[120px] p-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-bold text-gray-700 text-center text-sm"
-                              />
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <button
-                                onClick={() => setExpandedDesgId(isExpanded ? null : d.id)}
-                                className={`px-4 py-2 text-xs font-bold rounded-xl border transition-all ${
-                                  isExpanded 
-                                    ? 'bg-blue-50 text-blue-600 border-blue-100'
-                                    : 'bg-gray-50 text-gray-500 hover:text-gray-800 border-gray-200'
-                                }`}
-                              >
-                                {isExpanded ? 'Hide Holidays' : `Manage Holidays (${currentHolidays.length})`}
-                              </button>
-                            </td>
-                          </tr>
-                          
-                          {isExpanded && (
-                            <tr>
-                              <td colSpan="3" className="bg-gray-50/50 p-6 space-y-4">
-                                <div className="max-w-2xl space-y-4">
-                                  <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wide">
-                                    Holidays for {d.name} ({currentHolidays.length})
-                                  </h4>
-                                  
-                                  {/* Add Holiday Form Inline */}
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                    <div className="md:col-span-2">
-                                      <input
-                                        type="text"
-                                        id={`holiday-name-${d.id}`}
-                                        placeholder="Holiday Name (e.g. Diwali)"
-                                        className="w-full p-2.5 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 text-xs font-semibold text-gray-700"
-                                      />
-                                    </div>
-                                    <div className="flex gap-2">
-                                      <input
-                                        type="date"
-                                        id={`holiday-date-${d.id}`}
-                                        className="p-2.5 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 text-xs font-semibold text-gray-700 flex-1"
-                                      />
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          const nameEl = document.getElementById(`holiday-name-${d.id}`);
-                                          const dateEl = document.getElementById(`holiday-date-${d.id}`);
-                                          if (nameEl && dateEl && nameEl.value.trim() && dateEl.value) {
-                                            handleAddHoliday(d.id, nameEl.value.trim(), dateEl.value);
-                                            nameEl.value = '';
-                                            dateEl.value = '';
-                                          }
-                                        }}
-                                        className="px-4 py-2 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-900 transition-all text-xs"
-                                      >
-                                        Add
-                                      </button>
-                                    </div>
-                                  </div>
-
-                                  {/* Holidays Table list */}
-                                  {currentHolidays.length === 0 ? (
-                                    <div className="p-3 text-center text-gray-400 text-xs font-medium bg-white rounded-xl border border-dashed border-gray-200">
-                                      No holidays configured for {d.name}.
-                                    </div>
-                                  ) : (
-                                    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                                      <table className="w-full text-left border-collapse text-xs">
-                                        <thead>
-                                          <tr className="bg-gray-50 border-b border-gray-100 text-gray-400 font-bold uppercase tracking-wider text-[10px]">
-                                            <th className="px-4 py-2">Holiday Name</th>
-                                            <th className="px-4 py-2">Date</th>
-                                            <th className="px-4 py-2 text-right">Action</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-50">
-                                          {currentHolidays.map((h, index) => (
-                                            <tr key={index}>
-                                              <td className="px-4 py-2 font-semibold text-gray-700">{h.name}</td>
-                                              <td className="px-4 py-2 font-medium text-gray-500">
-                                                {new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                              </td>
-                                              <td className="px-4 py-2 text-right">
-                                                <button
-                                                  onClick={() => handleDeleteHoliday(d.id, index)}
-                                                  className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-lg transition-colors"
-                                                >
-                                                  <Trash2 size={14} />
-                                                </button>
-                                              </td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
+                    {configDesignations.map(d => (
+                      <tr key={d.id} className="hover:bg-gray-50/30 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="font-bold text-gray-800 text-sm">{d.name}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={leavesMap[d.id] !== undefined ? leavesMap[d.id] : ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setLeavesMap({
+                                ...leavesMap,
+                                [d.id]: val === '' ? '' : Math.max(0, parseInt(val) || 0)
+                              });
+                            }}
+                            className="w-[120px] p-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-bold text-gray-700 text-center text-sm"
+                          />
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -696,6 +591,135 @@ const ManageApprovals = () => {
                 >
                   <Check size={16} />
                   {configSubmitting ? 'Saving All Configurations...' : 'Save All Configurations'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ADD HOLIDAYS TAB */}
+          {activeTab === 'holidays' && isDirector && (
+            <div className="bg-white p-6 md:p-8 rounded-2xl border border-gray-100 shadow-sm space-y-6 animate-fade-in">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                <div>
+                  <h3 className="text-lg font-black text-gray-800 flex items-center gap-2">
+                    <Calendar size={22} className="text-blue-600" />
+                    Organization Holidays
+                  </h3>
+                  <p className="text-xs text-gray-400 font-medium">Add and manage holidays applicable to all employees across the organization.</p>
+                </div>
+              </div>
+
+              {/* Add Holiday Form */}
+              <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100 space-y-4">
+                <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wide">
+                  Add New Holiday
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="md:col-span-2">
+                    <input
+                      type="text"
+                      id="global-holiday-name"
+                      placeholder="Holiday Name (e.g. Diwali)"
+                      className="w-full p-2.5 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 text-xs font-semibold text-gray-700"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      id="global-holiday-date"
+                      className="p-2.5 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 text-xs font-semibold text-gray-700 flex-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nameEl = document.getElementById("global-holiday-name");
+                        const dateEl = document.getElementById("global-holiday-date");
+                        if (nameEl && dateEl && nameEl.value.trim() && dateEl.value) {
+                          const updated = [...globalHolidays, { name: nameEl.value.trim(), date: dateEl.value }];
+                          setGlobalHolidays(updated);
+                          nameEl.value = '';
+                          dateEl.value = '';
+                        }
+                      }}
+                      className="px-4 py-2 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-900 transition-all text-xs"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Holidays Table list */}
+              {globalHolidays.length === 0 ? (
+                <div className="p-8 text-center text-gray-400 text-xs font-medium bg-white rounded-2xl border border-dashed border-gray-200">
+                  No holidays configured yet.
+                </div>
+              ) : (
+                <div className="border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-bold uppercase tracking-wider text-[10px]">
+                        <th className="px-6 py-4">Holiday Name</th>
+                        <th className="px-6 py-4">Date</th>
+                        <th className="px-6 py-4 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {globalHolidays
+                        .sort((a, b) => new Date(a.date) - new Date(b.date))
+                        .map((h, index) => (
+                          <tr key={index} className="hover:bg-gray-50/30 transition-colors">
+                            <td className="px-6 py-4 font-bold text-gray-800 text-sm">{h.name}</td>
+                            <td className="px-6 py-4 font-semibold text-gray-500">
+                              {new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', weekday: 'short' })}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <button
+                                onClick={() => {
+                                  const updated = globalHolidays.filter((_, i) => i !== index);
+                                  setGlobalHolidays(updated);
+                                }}
+                                className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-xl transition-colors"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Save Button */}
+              <div className="border-t border-gray-100 pt-6 flex justify-end">
+                <button
+                  onClick={async () => {
+                    setConfigSubmitting(true);
+                    setError('');
+                    setSuccessMsg('');
+                    try {
+                      const payload = configDesignations.map(d => ({
+                        id: d.id,
+                        leaves: (leavesMap[d.id] === '' || leavesMap[d.id] === undefined) ? 30 : Number(leavesMap[d.id]),
+                        holidays: globalHolidays
+                      }));
+                      await saveApprovalsConfig(payload);
+                      setSuccessMsg('Holidays saved and applied to all designations successfully!');
+                      await loadConfigDesignations();
+                      setTimeout(() => setSuccessMsg(''), 4000);
+                    } catch (err) {
+                      console.error(err);
+                      setError('Failed to save holidays. Please try again.');
+                    } finally {
+                      setConfigSubmitting(false);
+                    }
+                  }}
+                  disabled={configSubmitting}
+                  className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all text-xs flex items-center gap-1.5 shadow-lg shadow-blue-500/20 disabled:bg-blue-400 disabled:shadow-none"
+                >
+                  <Check size={16} />
+                  {configSubmitting ? 'Saving Holidays...' : 'Save & Apply Holidays'}
                 </button>
               </div>
             </div>

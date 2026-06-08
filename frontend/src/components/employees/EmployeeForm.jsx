@@ -554,6 +554,38 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 animate-fade-in">
 
+      {/* Top right HR and ADMIN navigation buttons */}
+      <div className="flex justify-end items-center gap-2.5 mb-6 pb-4 border-b border-gray-100">
+        <button
+          type="button"
+          onClick={() => {
+            setStep(1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`px-5 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] border ${
+            step === 1 || step === 2
+              ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200'
+              : 'bg-white border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+          }`}
+        >
+          HR
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setStep(3);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`px-5 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] border ${
+            step === 3
+              ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200'
+              : 'bg-white border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+          }`}
+        >
+          ADMIN
+        </button>
+      </div>
+
       {step === 1 && (
         <div className="animate-slide-up">
           <SectionTitle>HR</SectionTitle>

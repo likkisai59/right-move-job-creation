@@ -10,26 +10,32 @@ router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 @router.post("/login")
 def login(payload: EmployeeLoginRequest, db: Session = Depends(get_db)):
-    # Check for Employee Credentials (Username = Name/Email, Password = ID)
+    # Check for Employee Credentials (Username = Firstname Lastname, Password = Generated Password)
     input_user = payload.username.strip().lower()
     input_pass = payload.password.strip()
+
+    # Enforce username contains at least one space (Firstname Lastname)
+    if len(input_user.split()) < 2:
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content=error_response("Invalid username format. Must be 'Firstname Lastname'.")
+        )
 
     employees = db.query(Employee).all()
     target_employee = None
 
     for emp in employees:
-        db_first = emp.first_name.strip().lower() if emp.first_name else ""
-        db_full = f"{emp.first_name} {emp.last_name}".strip().lower() if emp.first_name else ""
-        db_email = emp.email.strip().lower() if emp.email else ""
+        if not emp.first_name or not emp.last_name:
+            continue
+            
+        db_full = f"{emp.first_name} {emp.last_name}".strip().lower()
         
-        # Verify password matches either employee_password (if generated) or fallback employee_id
+        # Verify password matches ONLY employee_password (if generated)
         is_pass_valid = False
         if emp.employee_password and emp.employee_password.strip() == input_pass:
             is_pass_valid = True
-        elif emp.employee_id.strip() == input_pass:
-            is_pass_valid = True
 
-        if (db_full == input_user or db_first == input_user or (db_email and db_email == input_user)) and is_pass_valid:
+        if db_full == input_user and is_pass_valid:
             target_employee = emp
             break
 
