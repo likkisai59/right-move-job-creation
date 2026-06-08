@@ -4,15 +4,11 @@ from datetime import date, datetime
 from enum import Enum
 
 class PipelineStatus(str, Enum):
-    APPLIED = "Applied"
-    MATCHED = "Matched"
     SHORTLISTED = "Shortlisted"
-    INTERVIEW_SCHEDULED = "Interview Scheduled"
-    INTERVIEW_COMPLETED = "Interview Completed"
-    SELECTED = "Selected"
-    REJECTED = "Rejected"
-    HOLD = "Hold"
-    IN_REVIEW = "in_review"
+    INTERVIEW_SELECTED = "Interview Selected"
+    INTERVIEW_REJECTED = "Interview Rejected"
+    CANDIDATE_APPROVED = "Candidate Approved"
+    CANDIDATE_REJECTED = "Candidate Rejected"
 
 class JoiningStatus(str, Enum):
     PENDING = "Pending"
@@ -24,6 +20,10 @@ class CandidateActionRequest(BaseModel):
 
 class SelectionDetailsUpdate(BaseModel):
     status: Optional[PipelineStatus] = None
+    interview_date: Optional[date] = None
+    approval_date: Optional[date] = None
+    rejection_date: Optional[date] = None
+    band: Optional[str] = None
     joining_status: Optional[JoiningStatus] = None
     joining_date: Optional[date] = None
     salary_offered: Optional[str] = None
@@ -56,6 +56,10 @@ class SelectionDetailsResponse(BaseModel):
     candidate_id: int
     match_score: Optional[int] = None
     status: str
+    interview_date: Optional[date] = None
+    approval_date: Optional[date] = None
+    rejection_date: Optional[date] = None
+    band: Optional[str] = None
     matched_skills: Optional[str] = None
     missing_skills: Optional[str] = None
     joining_status: Optional[str] = None

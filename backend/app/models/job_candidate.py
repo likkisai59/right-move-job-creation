@@ -12,11 +12,17 @@ class JobCandidateMapping(Base):
     job_id = Column(Integer, ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False)
     candidate_id = Column(Integer, ForeignKey("candidates.id", ondelete="CASCADE"), nullable=False)
     match_score = Column(Integer, nullable=True, default=0)
-    status = Column(String(50), nullable=False, default="Applied") # Applied, Matched, Shortlisted, Interview Scheduled, Interview Completed, Selected, Rejected, Hold
+    status = Column(String(50), nullable=False, default="Shortlisted")
     
     # Matching Details
     matched_skills = Column(Text, nullable=True) # JSON list
     missing_skills = Column(Text, nullable=True) # JSON list
+    
+    # Selection Workflow Details
+    interview_date = Column(Date, nullable=True)
+    approval_date = Column(Date, nullable=True)
+    rejection_date = Column(Date, nullable=True)
+    band = Column(String(50), nullable=True)
     
     # Joining Information
     joining_status = Column(String(50), nullable=True, default="Pending") # Pending, Joined, Not Joined
