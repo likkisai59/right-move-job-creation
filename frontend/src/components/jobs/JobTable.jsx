@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, Eye, Briefcase } from 'lucide-react';
+import { Pencil, Eye, Briefcase, BarChart2 } from 'lucide-react';
 import Table from '../common/Table';
 import Button from '../common/Button';
 import EmptyState from '../common/EmptyState';
 import { formatDate } from '../../utils/formatters';
 
 
-const JobTable = ({ jobs = [], loading = false, onEdit }) => {
+const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats }) => {
   const navigate = useNavigate();
   const [popoverId, setPopoverId] = useState(null);
   const popoverRef = useRef(null);
@@ -75,7 +75,13 @@ const JobTable = ({ jobs = [], loading = false, onEdit }) => {
 
         return (
           <div className="relative flex flex-col items-start gap-1">
-            <span className="text-gray-900 font-medium">{totalPositions}</span>
+            {totalPositions <= 0 ? (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-black bg-rose-50 text-rose-700 border border-rose-100">
+                Position Filled
+              </span>
+            ) : (
+              <span className="text-gray-900 font-medium">{totalPositions}</span>
+            )}
             {hasMore && (
               <button
                 onClick={(e) => {
@@ -113,9 +119,15 @@ const JobTable = ({ jobs = [], loading = false, onEdit }) => {
                           {req.job_title}
                         </span>
                         <div>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded border border-gray-100 bg-gray-50 text-gray-500">
-                            {count} Positions
-                          </span>
+                          {count <= 0 ? (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded border border-rose-100 bg-rose-50 text-rose-600 font-bold">
+                              Position Filled
+                            </span>
+                          ) : (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded border border-gray-100 bg-gray-50 text-gray-500">
+                              {count} Positions
+                            </span>
+                          )}
                         </div>
                       </div>
                     );
@@ -154,6 +166,17 @@ const JobTable = ({ jobs = [], loading = false, onEdit }) => {
             title="Edit job"
           >
             <Pencil size={15} />
+          </button>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onViewStats) onViewStats(row);
+            }}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-purple-600 hover:bg-purple-50 transition-colors"
+            title="View Pipeline Stats"
+          >
+            <BarChart2 size={15} />
           </button>
         </div>
       ),

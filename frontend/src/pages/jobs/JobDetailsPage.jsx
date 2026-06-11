@@ -184,6 +184,11 @@ const JobDetailsPage = () => {
           </button>
           <div className="flex items-center gap-2">
             <Badge status={job.status} />
+            {(!job.requirements || job.requirements.reduce((sum, r) => sum + (r.number_of_open_positions || 0), 0) <= 0) && (
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border bg-rose-50 text-rose-600 border-rose-100">
+                Position Filled
+              </span>
+            )}
             <button
               onClick={() => navigate(`/jobs/edit/${id}`)}
               className="text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 transition-colors"
@@ -252,6 +257,7 @@ const JobDetailsPage = () => {
               {job.requirements.map(req => {
                 const count = (roleMatching[req.id] || []).length;
                 const isActive = selectedReqId === req.id;
+                const isFilled = (req.number_of_open_positions || 0) <= 0;
                 return (
                   <button
                     key={req.id}
@@ -259,16 +265,24 @@ const JobDetailsPage = () => {
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
                       isActive
                         ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-100'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600'
+                        : isFilled
+                          ? 'bg-rose-50 text-rose-700 border-rose-100 hover:bg-rose-100/50'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600'
                     }`}
                   >
                     <Briefcase size={14} />
-                    {req.job_title}
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                      isActive ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
-                    }`}>
-                      {count} matched
-                    </span>
+                    <span className={isFilled ? 'line-through opacity-75' : ''}>{req.job_title}</span>
+                    {isFilled ? (
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-rose-500 text-white`}>
+                        Filled
+                      </span>
+                    ) : (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                      }`}>
+                        {count} matched
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -340,12 +354,24 @@ const JobDetailsPage = () => {
               onBulkShortlist={handleBulkShortlist}
               processingId={processingId}
               tab="matching"
+              jobId={parseInt(id)}
             />
           ) : (
             <MatchingCandidatesTable
               candidates={shortlistedCandidates}
               processingId={processingId}
               tab="shortlisted"
+              jobId={parseInt(id)}
+              onRefresh={async () => {
+                try {
+                  const res = await fetchShortlistedCandidates(id);
+                  setShortlistedCandidates(
+                    (res.data || []).map(c => ({ ...c, skills: normalizeSkills(c.skills) }))
+                  );
+                } catch (err) {
+                  console.error('Failed to refresh shortlisted candidates:', err);
+                }
+              }}
             />
           )}
         </div>

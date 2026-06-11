@@ -182,3 +182,10 @@ export const uploadJobDescription = async (file) => {
   });
   return response.data; // { message: "...", data: { file_url: "..." } }
 };
+
+// ── GET /api/jobs/{id}/stats ───────────────────────
+export const fetchJobStats = async (id) => {
+  const response = await api.get(`/jobs/${id}/stats`);
+  return { data: response.data.data };
+};
+

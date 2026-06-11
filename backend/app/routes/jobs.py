@@ -484,3 +484,101 @@ def shortlisted(job_id: int, db: Session = Depends(get_db)):
     except Exception as exc:
         logger.error(f"Error fetching shortlisted candidates: {exc}", exc_info=True)
         return JSONResponse(status_code=500, content=error_response("Failed to fetch shortlisted candidates."))
+
+
+@router.get("/{job_id}/stats")
+def get_job_stats(job_id: int, db: Session = Depends(get_db)):
+    """
+    GET /api/jobs/{job_id}/stats
+    
+    Returns consolidated openings and candidate pipeline statistics for a job requirement.
+    """
+    try:
+        from app.models.job_requirement import Job
+        from app.models.job_candidate import JobCandidateMapping
+
+        job = db.query(Job).filter(Job.id == job_id).first()
+        if not job:
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content=error_response(message="Job requirement not found")
+            )
+
+        # Initialize openings counts
+        openings_total = 0
+        openings_active = 0
+        openings_on_hold = 0
+        openings_closed = 0
+        openings_draft = 0
+
+        for req in job.requirements:
+            positions = req.number_of_open_positions or 0
+            openings_total += positions
+            
+            req_status = (req.status or "ACTIVE").upper()
+            if req_status == "ACTIVE":
+                openings_active += positions
+            elif req_status == "ON_HOLD":
+                openings_on_hold += positions
+            elif req_status == "CLOSED":
+                openings_closed += positions
+            elif req_status == "DRAFT":
+                openings_draft += positions
+
+        # Query candidate mapping statuses for this job
+        mappings = db.query(JobCandidateMapping).filter(JobCandidateMapping.job_id == job_id).all()
+
+        cand_shortlisted = 0
+        cand_interviewing = 0
+        cand_approved = 0
+        cand_rejected = 0
+        cand_joined = 0
+
+        for mapping in mappings:
+            mapping_status = (mapping.status or "").strip().lower()
+            
+            # "matched" is treated as shortlisted in the new workflow
+            if mapping_status in ["shortlisted", "shortlist", "matched"]:
+                cand_shortlisted += 1
+            elif mapping_status in ["interview scheduled", "interview selected", "interview completed", "interviewing"]:
+                cand_interviewing += 1
+            elif mapping_status in ["selected", "candidate approved"]:
+                cand_approved += 1
+            elif mapping_status in ["rejected", "interview rejected", "candidate rejected"]:
+                cand_rejected += 1
+            elif mapping_status == "joined":
+                cand_joined += 1
+
+        stats_data = {
+            "job_code": job.job_code,
+            "company_name": job.company_name,
+            "openings": {
+                "total": openings_total,
+                "active": openings_active,
+                "on_hold": openings_on_hold,
+                "closed": openings_closed,
+                "draft": openings_draft
+            },
+            "candidates": {
+                "shortlisted": cand_shortlisted,
+                "interviewing": cand_interviewing,
+                "approved": cand_approved,
+                "rejected": cand_rejected,
+                "joined": cand_joined
+            }
+        }
+
+        return JSONResponse(
+            status_code=200,
+            content=success_response(
+                message="Job statistics fetched successfully",
+                data=stats_data
+            )
+        )
+    except Exception as exc:
+        logger.error(f"Error fetching stats for job {job_id}: {exc}", exc_info=True)
+        return JSONResponse(
+            status_code=500,
+            content=error_response("Failed to fetch job statistics.")
+        )
+

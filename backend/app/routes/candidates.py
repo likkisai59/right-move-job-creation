@@ -597,6 +597,15 @@ def get_selection_details(candidate_id: int, db: Session = Depends(get_db)):
         logger.error(f"Error fetching selection details: {exc}", exc_info=True)
         return JSONResponse(status_code=500, content=error_response("An internal server error occurred while fetching selection details."))
 
+def check_incentive_update_permission(role: str) -> bool:
+    """
+    Hook for role-based access control on updating candidate incentives.
+    Currently, anyone is allowed to edit the incentive. In the future, this can be
+    restricted to role.lower() in ["admin", "team lead", "tl"] or similar.
+    """
+    # FUTURE ROLE RESTRICTION: return role.lower() in ["admin", "team lead", "tl"]
+    return True # Currently unrestricted
+
 @router.put("/{candidate_id}/selection-details/{mapping_id}", status_code=status.HTTP_200_OK)
 def update_selection_details(
     candidate_id: int, 
@@ -624,46 +633,66 @@ def update_selection_details(
                 return JSONResponse(status_code=403, content=error_response("Forbidden: Only Admin can update Rate Card"))
             
         if "incentive" in update_data and update_data["incentive"] != mapping.incentive:
-            if role.lower() not in ["admin", "team lead", "tl"]:
+            if not check_incentive_update_permission(role):
                 return JSONResponse(status_code=403, content=error_response("Forbidden: Only Admin or Team Lead can update Incentive"))
             
         # Priority 4: Pipeline State Validation
         VALID_TRANSITIONS = {
-            "Shortlisted": ["Interview Selected", "Interview Rejected"],
-            "Interview Selected": ["Candidate Approved", "Candidate Rejected"],
+            "Shortlisted": ["Interview Selected", "Candidate Rejected"],
+            "Interview Selected": ["Candidate Approved", "Interview Rejected"],
+            "Candidate Approved": ["Joined"],
             "Interview Rejected": [],
-            "Candidate Approved": [],
-            "Candidate Rejected": []
+            "Candidate Rejected": [],
+            "Joined": []
         }
         
+        from app.models.job_candidate import CandidateStatusHistory
+
         new_status_enum = update_data.get("status")
+        status_changed = False
+        old_status = None
+        new_status = None
+        
         if new_status_enum:
             new_status = new_status_enum.value if hasattr(new_status_enum, 'value') else new_status_enum
-            current_status = mapping.status
-            if new_status != current_status:
-                allowed_next = VALID_TRANSITIONS.get(current_status, [])
+            old_status = mapping.status
+            if new_status != old_status:
+                allowed_next = VALID_TRANSITIONS.get(old_status, [])
                 if new_status not in allowed_next:
                     return JSONResponse(
                         status_code=400, 
-                        content=error_response(f"Invalid status transition from {current_status} to {new_status}")
+                        content=error_response(f"Invalid status transition from {old_status} to {new_status}")
                     )
                 mapping.last_status_changed_at = func.now()
                 mapping.last_status_changed_by = current_user.get("id")
+                status_changed = True
 
         # Mandatory Field Validations based on status
         check_status = new_status if new_status_enum else mapping.status
         if check_status == "Interview Selected":
-            if not update_data.get("interview_date") and not mapping.interview_date:
-                return JSONResponse(status_code=400, content=error_response("Interview Date is mandatory for Interview Selected status"))
+            missing = []
+            if not update_data.get("interview_date") and not mapping.interview_date: missing.append("Interview Date")
+            if not update_data.get("interview_time") and not mapping.interview_time: missing.append("Interview Time")
+            if not update_data.get("recruiter_notes") and not mapping.recruiter_notes: missing.append("Recruiter Notes")
+            if missing:
+                return JSONResponse(status_code=400, content=error_response(f"Mandatory fields missing for Interview Selected: {', '.join(missing)}"))
         elif check_status == "Candidate Approved":
             missing = []
             if not update_data.get("joining_date") and not mapping.joining_date: missing.append("Joining Date")
             if not update_data.get("salary_offered") and not mapping.salary_offered: missing.append("Salary")
             if not update_data.get("band") and not mapping.band: missing.append("Band")
-            if not update_data.get("incentive") and not mapping.incentive: missing.append("Incentive")
             if not update_data.get("approval_date") and not mapping.approval_date: missing.append("Approval Date")
+            if not update_data.get("incentive") and not mapping.incentive: missing.append("Incentive")
             if missing:
                 return JSONResponse(status_code=400, content=error_response(f"Mandatory fields missing for Candidate Approved: {', '.join(missing)}"))
+
+        elif check_status == "Joined":
+            missing = []
+            if not update_data.get("joining_date") and not mapping.joining_date: missing.append("Joining Date")
+            if not update_data.get("joined_by") and not mapping.joined_by: missing.append("Joined By")
+            if not update_data.get("remarks") and not mapping.remarks: missing.append("Remarks")
+            if missing:
+                return JSONResponse(status_code=400, content=error_response(f"Mandatory fields missing for Joined: {', '.join(missing)}"))
         elif check_status == "Candidate Rejected":
             if not update_data.get("rejection_date") and not mapping.rejection_date:
                 return JSONResponse(status_code=400, content=error_response("Rejection Date is mandatory for Candidate Rejected status"))
@@ -690,6 +719,17 @@ def update_selection_details(
         # Priority 5: Audit Trail
         mapping.updated_by = current_user.get("id")
             
+        if status_changed:
+            history = CandidateStatusHistory(
+                candidate_id=candidate_id,
+                job_id=mapping.job_id,
+                old_status=old_status,
+                new_status=new_status,
+                changed_by=current_user.get("id"),
+                remarks=update_data.get("remarks") or update_data.get("recruiter_notes") or update_data.get("tl_notes") or ""
+            )
+            db.add(history)
+
         db.commit()
         db.refresh(mapping)
         return JSONResponse(status_code=200, content=success_response("Selection details updated successfully", {}))
@@ -697,3 +737,83 @@ def update_selection_details(
         db.rollback()
         logger.error(f"Error updating selection details: {exc}", exc_info=True)
         return JSONResponse(status_code=500, content=error_response("An internal server error occurred while updating selection details."))
+
+
+@router.get(
+    "/analytics/dashboard",
+    summary="Dashboard Recruitment Metrics",
+    description="Returns aggregate recruitment metrics across all jobs and candidates.",
+)
+def get_dashboard_analytics(
+    business_unit: Optional[str] = Query(None, description="Filter by business unit"),
+    db: Session = Depends(get_db),
+):
+    try:
+        from app.models.job_requirement import Job, JobRequirement
+        from app.models.candidate import Candidate
+        from app.models.job_candidate import JobCandidateMapping
+
+        # Base queries
+        jobs_query = db.query(Job)
+        requirements_query = db.query(JobRequirement)
+        candidates_query = db.query(Candidate)
+        mappings_query = db.query(JobCandidateMapping)
+
+        # If business_unit filter is applied
+        if business_unit and business_unit.upper() != "ALL":
+            jobs_query = jobs_query.filter(Job.business_unit == business_unit.upper())
+            requirements_query = requirements_query.join(Job).filter(Job.business_unit == business_unit.upper())
+            mappings_query = mappings_query.join(Job).filter(Job.business_unit == business_unit.upper())
+
+        # Calculations
+        total_jobs = jobs_query.count()
+        total_candidates = candidates_query.count()
+
+        # Total Openings (sum of open positions on requirements)
+        total_openings_res = requirements_query.with_entities(func.sum(JobRequirement.number_of_open_positions)).scalar()
+        total_openings = int(total_openings_res) if total_openings_res is not None else 0
+
+        # Filled Positions = mappings with status 'Joined'
+        filled_positions = mappings_query.filter(JobCandidateMapping.status == "Joined").count()
+
+        # Available Openings = Total Openings - Filled Positions
+        available_openings = max(0, total_openings - filled_positions)
+
+        # Pipeline stage counts
+        shortlisted_count = mappings_query.filter(JobCandidateMapping.status == "Shortlisted").count()
+        interview_selected_count = mappings_query.filter(JobCandidateMapping.status == "Interview Selected").count()
+        interview_rejected_count = mappings_query.filter(JobCandidateMapping.status == "Interview Rejected").count()
+        approved_count = mappings_query.filter(JobCandidateMapping.status == "Candidate Approved").count()
+        candidate_rejected_count = mappings_query.filter(JobCandidateMapping.status == "Candidate Rejected").count()
+        joined_count = filled_positions # Joined candidates
+        rejected_count = mappings_query.filter(
+            JobCandidateMapping.status.in_(["Interview Rejected", "Candidate Rejected"])
+        ).count()
+
+        return JSONResponse(
+            status_code=200,
+            content=success_response(
+                message="Dashboard statistics fetched successfully",
+                data={
+                    "total_jobs": total_jobs,
+                    "total_candidates": total_candidates,
+                    "total_openings": total_openings,
+                    "filled_positions": filled_positions,
+                    "available_openings": available_openings,
+                    "shortlisted_candidates": shortlisted_count,
+                    "interview_selected_candidates": interview_selected_count,
+                    "interview_rejected_candidates": interview_rejected_count,
+                    "approved_candidates": approved_count,
+                    "candidate_rejected_candidates": candidate_rejected_count,
+                    "joined_candidates": joined_count,
+                    "rejected_candidates": rejected_count
+                }
+            )
+        )
+    except Exception as exc:
+        logger.error(f"Error fetching dashboard analytics: {exc}", exc_info=True)
+        return JSONResponse(
+            status_code=500,
+            content=error_response("An internal server error occurred while fetching dashboard statistics.")
+        )
+

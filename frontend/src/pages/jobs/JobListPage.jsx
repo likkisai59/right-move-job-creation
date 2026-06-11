@@ -6,6 +6,7 @@ import Button from '../../components/common/Button';
 import JobTable from '../../components/jobs/JobTable';
 import JobFilters from '../../components/jobs/JobFilters';
 import { fetchJobs } from '../../api/jobsApi';
+import JobStatsModal from '../../components/jobs/JobStatsModal';
 
 const JobListPage = () => {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ const JobListPage = () => {
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const exportRef = useRef(null);
+  const [selectedJobForStats, setSelectedJobForStats] = useState(null);
 
   // Close export dropdown when clicking outside
   useEffect(() => {
@@ -159,8 +161,14 @@ const JobListPage = () => {
         </div>
 
         {/* Table */}
-        <JobTable jobs={jobs} loading={loading} />
+        <JobTable jobs={jobs} loading={loading} onViewStats={setSelectedJobForStats} />
       </div>
+
+      <JobStatsModal 
+        isOpen={!!selectedJobForStats} 
+        onClose={() => setSelectedJobForStats(null)} 
+        job={selectedJobForStats} 
+      />
     </PageContainer>
   );
 };
