@@ -11,10 +11,11 @@ const PIPELINE_STAGES = [
   'Interview Selected',
   'Interview Rejected',
   'Candidate Approved',
-  'Candidate Rejected'
+  'Candidate Rejected',
+  'Joined'
 ];
 
-const SelectionDetailsTab = ({ candidateId }) => {
+const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
   const [selections, setSelections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
@@ -30,6 +31,13 @@ const SelectionDetailsTab = ({ candidateId }) => {
   const isAdmin = currentUser.role === 'Administrator' || currentUser.role === 'Admin' || currentUser.role === 'Director';
   const isTL = currentUser.role === 'Team Lead' || currentUser.role === 'TL';
 
+  // Future Ready Permission Hook/Placeholder
+  const canEditIncentive = (role) => {
+    // Return true for all users now, as no current restriction should be enforced.
+    // In future, can be changed to: role === 'Administrator' || role === 'Admin' || role === 'Team Lead' || role === 'TL'
+    return true; 
+  };
+
   useEffect(() => {
     loadSelections();
   }, [candidateId]);
@@ -38,8 +46,12 @@ const SelectionDetailsTab = ({ candidateId }) => {
     try {
       setLoading(true);
       const { data } = await fetchSelectionDetails(candidateId);
-      setSelections(data || []);
-      if (data?.length > 0) setExpandedId(data[0].id);
+      // If jobId is provided (e.g. from Job Details page), filter to only show that job's mapping
+      const filtered = jobId
+        ? (data || []).filter(s => s.job_id === jobId)
+        : (data || []);
+      setSelections(filtered);
+      if (filtered?.length > 0) setExpandedId(filtered[0].id);
     } catch (error) {
       console.error('Failed to load selection details:', error);
     } finally {
@@ -52,6 +64,7 @@ const SelectionDetailsTab = ({ candidateId }) => {
     setEditForm({
       status: selection.status || 'Shortlisted',
       interview_date: selection.interview_date || '',
+      interview_time: selection.interview_time || '',
       approval_date: selection.approval_date || '',
       rejection_date: selection.rejection_date || '',
       band: selection.band || '',
@@ -63,6 +76,8 @@ const SelectionDetailsTab = ({ candidateId }) => {
       recruiter_notes: selection.recruiter_notes || '',
       tl_notes: selection.tl_notes || '',
       client_feedback: selection.client_feedback || '',
+      joined_by: selection.joined_by || '',
+      remarks: selection.remarks || '',
     });
   };
 
@@ -82,24 +97,35 @@ const SelectionDetailsTab = ({ candidateId }) => {
       let errors = {};
       const statusToCheck = payload.status;
       
-      if (statusToCheck === 'Interview Selected' && !payload.interview_date) {
-        errors.interview_date = 'Interview Date is required';
+      if (statusToCheck === 'Interview Selected') {
+        if (!payload.interview_date) errors.interview_date = 'Interview Date is required';
+        if (!payload.interview_time) errors.interview_time = 'Interview Time is required';
+        if (!payload.recruiter_notes) errors.recruiter_notes = 'Recruiter Notes is required';
       }
       if (statusToCheck === 'Candidate Approved') {
         if (!payload.joining_date) errors.joining_date = 'Joining Date is required';
         if (!payload.salary_offered) errors.salary_offered = 'Salary is required';
         else if (isNaN(Number(payload.salary_offered))) errors.salary_offered = 'Salary must be numeric only';
         if (!payload.band) errors.band = 'Band is required';
-        if (!payload.incentive) errors.incentive = 'Incentive is required';
         if (!payload.approval_date) errors.approval_date = 'Approval Date is required';
+        if (!payload.incentive) errors.incentive = 'Incentive is required';
+        else if (isNaN(Number(payload.incentive))) errors.incentive = 'Incentive must be numeric only';
+      }
+      if (statusToCheck === 'Joined') {
+        if (!payload.joining_date) errors.joining_date = 'Joining Date is required';
+        if (!payload.joined_by) errors.joined_by = 'Joined By is required';
+        if (!payload.remarks) errors.remarks = 'Remarks is required';
       }
       if (statusToCheck === 'Candidate Rejected' && !payload.rejection_date) {
         errors.rejection_date = 'Rejection Date is required';
       }
       
-      // Also validate salary if it's provided but they aren't on 'Candidate Approved'
+      // Also validate salary and incentive if provided but they aren't on 'Candidate Approved'
       if (payload.salary_offered && isNaN(Number(payload.salary_offered))) {
         errors.salary_offered = 'Salary must be numeric only';
+      }
+      if (payload.incentive && isNaN(Number(payload.incentive))) {
+        errors.incentive = 'Incentive must be numeric only';
       }
 
       if (Object.keys(errors).length > 0) {
@@ -114,16 +140,20 @@ const SelectionDetailsTab = ({ candidateId }) => {
       }
 
       if (!payload.interview_date) payload.interview_date = null;
+      if (!payload.interview_time) payload.interview_time = null;
       if (!payload.approval_date) payload.approval_date = null;
       if (!payload.rejection_date) payload.rejection_date = null;
       if (!payload.joining_date) payload.joining_date = null;
       if (!payload.salary_offered) payload.salary_offered = null;
       if (!payload.rate_card) payload.rate_card = null;
       if (!payload.incentive) payload.incentive = null;
+      if (!payload.joined_by) payload.joined_by = null;
+      if (!payload.remarks) payload.remarks = null;
       
       await updateSelectionDetails(candidateId, mappingId, payload);
       setEditingId(null);
       loadSelections();
+      if (onUpdate) onUpdate();
       toast.success('Selection details updated successfully');
     } catch (error) {
       console.error('Failed to update selection details:', error);
@@ -149,18 +179,28 @@ const SelectionDetailsTab = ({ candidateId }) => {
     }
   };
 
-  const renderPipeline = (currentStatus) => {
+  const renderPipeline = (currentStatus, selection = {}) => {
     let path = [];
     if (currentStatus === 'Interview Rejected') {
-      path = ['Shortlisted', 'Interview Rejected'];
+      path = ['Shortlisted', 'Interview Selected', 'Interview Completed', 'Interview Rejected'];
     } else if (currentStatus === 'Candidate Rejected') {
-      path = ['Shortlisted', 'Interview Selected', 'Candidate Rejected'];
+      if (selection.interview_date) {
+        path = ['Shortlisted', 'Interview Selected', 'Interview Completed', 'Candidate Rejected'];
+      } else {
+        path = ['Shortlisted', 'Candidate Rejected'];
+      }
     } else {
-      path = ['Shortlisted', 'Interview Selected', 'Candidate Approved'];
+      path = ['Shortlisted', 'Interview Selected', 'Interview Completed', 'Candidate Approved', 'Joined'];
     }
 
-    const currentIndex = path.indexOf(currentStatus);
-    const renderIndex = currentIndex === -1 ? 0 : currentIndex;
+    // Determine completion index
+    let renderIndex = 0;
+    if (currentStatus === 'Shortlisted') renderIndex = 0;
+    else if (currentStatus === 'Interview Selected') renderIndex = 1;
+    else if (currentStatus === 'Interview Completed' || currentStatus === 'Interview Rejected') renderIndex = 2;
+    else if (currentStatus === 'Candidate Approved') renderIndex = 3;
+    else if (currentStatus === 'Joined') renderIndex = 4;
+    else if (currentStatus === 'Candidate Rejected') renderIndex = path.length - 1;
 
     return (
       <div className="w-full py-6">
@@ -173,7 +213,7 @@ const SelectionDetailsTab = ({ candidateId }) => {
           
           {path.map((stage, idx) => {
             const isCompleted = idx <= renderIndex;
-            const isCurrent = idx === renderIndex;
+            const isCurrent = stage === currentStatus || (stage === 'Interview Completed' && (currentStatus === 'Candidate Approved' || currentStatus === 'Joined'));
             const isReject = stage.includes('Rejected');
             
             let circleClass = "w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-300 bg-white ";
@@ -193,6 +233,7 @@ const SelectionDetailsTab = ({ candidateId }) => {
                   {isCompleted && !isCurrent && <CheckCircle2 size={12} strokeWidth={3} />}
                   {isCurrent && isReject && <XCircle size={12} strokeWidth={3} />}
                   {isCurrent && !isReject && <CheckCircle2 size={12} strokeWidth={3} />}
+                  {!isCompleted && <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />}
                 </div>
                 <p className={`text-[10px] font-bold mt-2 absolute top-8 whitespace-nowrap text-center ${
                   isCurrent ? (isReject ? 'text-red-600' : 'text-blue-600') : (isCompleted ? 'text-gray-700' : 'text-gray-400')
@@ -249,7 +290,8 @@ const SelectionDetailsTab = ({ candidateId }) => {
     'Interview Selected': 'bg-indigo-100 text-indigo-700 border-indigo-200',
     'Interview Rejected': 'bg-rose-100 text-rose-700 border-rose-200',
     'Candidate Approved': 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    'Candidate Rejected': 'bg-red-100 text-red-700 border-red-200'
+    'Candidate Rejected': 'bg-red-100 text-red-700 border-red-200',
+    Joined: 'bg-blue-100 text-blue-700 border-blue-200'
   };
 
   const SCORE_COLORS = (score) => {
@@ -274,6 +316,7 @@ const SelectionDetailsTab = ({ candidateId }) => {
             <option value="Interview Rejected">Interview Rejected</option>
             <option value="Candidate Approved">Candidate Approved</option>
             <option value="Candidate Rejected">Candidate Rejected</option>
+            <option value="Joined">Joined</option>
           </select>
           
           <select 
@@ -338,14 +381,19 @@ const SelectionDetailsTab = ({ candidateId }) => {
                 <div className="flex gap-2 mr-4">
                   {selection.status === 'Shortlisted' && (
                     <>
-                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Interview Selected'}); }} className="text-xs py-1 px-3 border-indigo-200 text-indigo-700 hover:bg-indigo-50">Select for Interview</Button>
-                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Interview Rejected'}); }} className="text-xs py-1 px-3 border-rose-200 text-rose-700 hover:bg-rose-50">Reject Interview</Button>
+                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Interview Selected'}); }} className="text-xs py-1 px-3 border-indigo-200 text-indigo-700 hover:bg-indigo-50">Schedule Interview</Button>
+                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Candidate Rejected'}); }} className="text-xs py-1 px-3 border-red-200 text-red-700 hover:bg-red-50">Reject Candidate</Button>
                     </>
                   )}
                   {selection.status === 'Interview Selected' && (
                     <>
                       <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Candidate Approved'}); }} className="text-xs py-1 px-3 border-emerald-200 text-emerald-700 hover:bg-emerald-50">Approve</Button>
-                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Candidate Rejected'}); }} className="text-xs py-1 px-3 border-red-200 text-red-700 hover:bg-red-50">Reject</Button>
+                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Interview Rejected'}); }} className="text-xs py-1 px-3 border-rose-200 text-rose-700 hover:bg-rose-50">Reject Interview</Button>
+                    </>
+                  )}
+                  {selection.status === 'Candidate Approved' && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Joined'}); }} className="text-xs py-1 px-3 border-blue-200 text-blue-700 hover:bg-blue-50">Mark as Joined</Button>
                     </>
                   )}
                 </div>
@@ -363,7 +411,7 @@ const SelectionDetailsTab = ({ candidateId }) => {
               <div className="p-6 md:p-8 space-y-8 animate-in slide-in-from-top-2 duration-300">
                 {/* Pipeline */}
                 <div className="mb-12">
-                  {renderPipeline(selection.status || 'Applied')}
+                  {renderPipeline(selection.status || 'Applied', selection)}
                 </div>
 
                 {!isEditing ? (
@@ -403,13 +451,13 @@ const SelectionDetailsTab = ({ candidateId }) => {
                       {(selection.interview_date || selection.approval_date || selection.rejection_date || selection.joining_date) && (
                         <div>
                           <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                            <Clock size={14} className="text-indigo-500"/> Workflow Dates
+                            <Clock size={14} className="text-indigo-500"/> Workflow Dates & Details
                           </h4>
                           <div className="bg-gray-50/50 p-5 rounded-2xl border border-gray-100 grid grid-cols-2 gap-4">
                             {selection.interview_date && (
                               <div>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Interview Date</p>
-                                <p className="text-sm font-semibold text-gray-900">{selection.interview_date}</p>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Interview Details</p>
+                                <p className="text-sm font-semibold text-gray-900">{selection.interview_date} {selection.interview_time ? `@ ${selection.interview_time}` : ''}</p>
                               </div>
                             )}
                             {selection.approval_date && (
@@ -428,6 +476,12 @@ const SelectionDetailsTab = ({ candidateId }) => {
                               <div>
                                 <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Rejection Date</p>
                                 <p className="text-sm font-semibold text-gray-900">{selection.rejection_date}</p>
+                              </div>
+                            )}
+                            {selection.joined_by && (
+                              <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Joined By</p>
+                                <p className="text-sm font-semibold text-gray-900">{selection.joined_by}</p>
                               </div>
                             )}
                           </div>
@@ -464,9 +518,9 @@ const SelectionDetailsTab = ({ candidateId }) => {
                               </div>
                             )}
                             
-                            {((isAdmin || isTL) && selection.incentive) && (
+                            {(canEditIncentive(currentUser.role) && selection.incentive) && (
                               <div className="flex justify-between items-center">
-                                <span className="text-sm font-semibold text-gray-600">Incentive (TL)</span>
+                                <span className="text-sm font-semibold text-gray-600">Incentive</span>
                                 <span className="text-sm font-bold text-gray-900">{selection.incentive}</span>
                               </div>
                             )}
@@ -497,7 +551,13 @@ const SelectionDetailsTab = ({ candidateId }) => {
                               <p className="text-sm text-gray-700 italic">{selection.client_feedback}</p>
                             </div>
                           )}
-                          {!selection.recruiter_notes && !selection.tl_notes && !selection.client_feedback && (
+                          {selection.remarks && (
+                            <div>
+                              <p className="text-[10px] font-bold text-amber-600 uppercase mb-1">Joining Remarks</p>
+                              <p className="text-sm text-gray-700 italic">{selection.remarks}</p>
+                            </div>
+                          )}
+                          {!selection.recruiter_notes && !selection.tl_notes && !selection.client_feedback && !selection.remarks && (
                             <p className="text-sm text-gray-400 italic">No remarks provided yet.</p>
                           )}
                         </div>
@@ -523,19 +583,33 @@ const SelectionDetailsTab = ({ candidateId }) => {
                             <option value="Interview Rejected">Interview Rejected</option>
                             <option value="Candidate Approved">Candidate Approved</option>
                             <option value="Candidate Rejected">Candidate Rejected</option>
+                            <option value="Joined">Joined</option>
                           </select>
                         </div>
                         
                         {editForm.status === 'Interview Selected' && (
-                          <div>
-                            <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Interview Date</label>
-                            <input 
-                              type="date" 
-                              value={editForm.interview_date} 
-                              onChange={(e) => setEditForm({...editForm, interview_date: e.target.value})}
-                              className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.interview_date ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
-                            />
-                            {formErrors.interview_date && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.interview_date}</p>}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Interview Date</label>
+                              <input 
+                                type="date" 
+                                value={editForm.interview_date} 
+                                onChange={(e) => setEditForm({...editForm, interview_date: e.target.value})}
+                                className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.interview_date ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
+                              />
+                              {formErrors.interview_date && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.interview_date}</p>}
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Interview Time</label>
+                              <input 
+                                type="text" 
+                                placeholder="e.g. 11:30 AM"
+                                value={editForm.interview_time} 
+                                onChange={(e) => setEditForm({...editForm, interview_time: e.target.value})}
+                                className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.interview_time ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
+                              />
+                              {formErrors.interview_time && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.interview_time}</p>}
+                            </div>
                           </div>
                         )}
 
@@ -563,7 +637,7 @@ const SelectionDetailsTab = ({ candidateId }) => {
                                 {formErrors.approval_date && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.approval_date}</p>}
                               </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-3 gap-4">
                               <div>
                                 <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Salary</label>
                                 <input 
@@ -586,6 +660,19 @@ const SelectionDetailsTab = ({ candidateId }) => {
                                 />
                                 {formErrors.band && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.band}</p>}
                               </div>
+                              {canEditIncentive(currentUser.role) && (
+                                <div>
+                                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Incentive</label>
+                                  <input 
+                                    type="text" 
+                                    placeholder="e.g. 5000"
+                                    value={editForm.incentive} 
+                                    onChange={(e) => setEditForm({...editForm, incentive: e.target.value})}
+                                    className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.incentive ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
+                                  />
+                                  {formErrors.incentive && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.incentive}</p>}
+                                </div>
+                              )}
                             </div>
                             
                             {(isAdmin) && (
@@ -600,20 +687,45 @@ const SelectionDetailsTab = ({ candidateId }) => {
                                 />
                               </div>
                             )}
-                            
-                            {(isAdmin || isTL) && (
+                          </>
+                        )}
+
+                        {editForm.status === 'Joined' && (
+                          <>
+                            <div className="grid grid-cols-2 gap-4">
                               <div>
-                                <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Incentive (TL)</label>
+                                <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Joining Date</label>
+                                <input 
+                                  type="date" 
+                                  value={editForm.joining_date} 
+                                  onChange={(e) => setEditForm({...editForm, joining_date: e.target.value})}
+                                  className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.joining_date ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
+                                />
+                                {formErrors.joining_date && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.joining_date}</p>}
+                              </div>
+                              <div>
+                                <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Joined By</label>
                                 <input 
                                   type="text" 
-                                  placeholder="e.g. 5000"
-                                  value={editForm.incentive} 
-                                  onChange={(e) => setEditForm({...editForm, incentive: e.target.value})}
-                                  className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.incentive ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
+                                  placeholder="e.g. Priya Sharma"
+                                  value={editForm.joined_by} 
+                                  onChange={(e) => setEditForm({...editForm, joined_by: e.target.value})}
+                                  className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.joined_by ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
                                 />
-                                {formErrors.incentive && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.incentive}</p>}
+                                {formErrors.joined_by && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.joined_by}</p>}
                               </div>
-                            )}
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Remarks</label>
+                              <textarea 
+                                rows={2}
+                                placeholder="Joining remarks..."
+                                value={editForm.remarks} 
+                                onChange={(e) => setEditForm({...editForm, remarks: e.target.value})}
+                                className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.remarks ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none resize-none`}
+                              ></textarea>
+                              {formErrors.remarks && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.remarks}</p>}
+                            </div>
                           </>
                         )}
 

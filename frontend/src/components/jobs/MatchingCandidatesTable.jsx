@@ -10,6 +10,7 @@ import {
   Check
 } from 'lucide-react';
 import Badge from '../common/Badge';
+import SelectionDetailsTab from '../candidates/SelectionDetailsTab';
 
 const MatchingCandidatesTable = ({
   candidates = [],
@@ -17,7 +18,9 @@ const MatchingCandidatesTable = ({
   onReject,
   processingId,
   tab = 'matching',
-  onBulkShortlist
+  onBulkShortlist,
+  onRefresh,
+  jobId = null
 }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,6 +28,7 @@ const MatchingCandidatesTable = ({
   const [minMatch, setMinMatch] = useState(0);
   const [sortConfig, setSortConfig] = useState({ key: 'match_score', direction: 'desc' });
   const [selectedCandidates, setSelectedCandidates] = useState([]);
+  const [expandedCandidateId, setExpandedCandidateId] = useState(null);
 
   // Toggle selection
   const toggleSelect = (id) => {
@@ -168,110 +172,161 @@ const MatchingCandidatesTable = ({
           </thead>
           <tbody className="divide-y divide-gray-50">
             {sortedCandidates.length > 0 ? (
-              sortedCandidates.map((c) => (
-                <tr key={c.candidate_id || c.id} className={`hover:bg-blue-50/30 transition-colors group ${selectedCandidates.includes(c.candidate_id || c.id) ? 'bg-blue-50/50' : ''}`}>
-                  {tab === 'matching' && (
-                    <td className="px-6 py-4">
-                      <input
-                        type="checkbox"
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        checked={selectedCandidates.includes(c.candidate_id || c.id)}
-                        onChange={() => toggleSelect(c.candidate_id || c.id)}
-                        disabled={c.status === 'shortlisted' || c.status === 'rejected'}
-                      />
-                    </td>
-                  )}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shadow-sm ${c.status === 'shortlisted' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'
-                        }`}>
-                        {c.name.charAt(0)}
-                      </div>
-                      <div className="font-bold text-gray-900">{c.name}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-wrap gap-1.5 max-w-xs">
-                      {(c.skills || []).slice(0, 3).map(skill => (
-                        <span key={skill} className="px-2 py-0.5 rounded-md bg-gray-100 border border-gray-200 text-gray-600 text-[10px] font-bold uppercase tracking-tight">
-                          {skill}
-                        </span>
-                      ))}
-                      {c.skills && c.skills.length > 3 && (
-                        <span className="text-[10px] text-gray-400 font-bold ml-1">+{c.skills.length - 3}</span>
+              sortedCandidates.map((c) => {
+                const isExpanded = expandedCandidateId === (c.candidate_id || c.id);
+                return (
+                  <React.Fragment key={c.candidate_id || c.id}>
+                    <tr 
+                      onClick={(e) => {
+                        if (tab === 'shortlisted') {
+                          if (e.target.closest('button') || e.target.closest('a') || e.target.closest('input')) {
+                            return;
+                          }
+                          setExpandedCandidateId(isExpanded ? null : (c.candidate_id || c.id));
+                        }
+                      }}
+                      className={`hover:bg-blue-50/30 transition-colors group cursor-pointer ${selectedCandidates.includes(c.candidate_id || c.id) ? 'bg-blue-50/50' : ''} ${isExpanded ? 'bg-blue-50/20' : ''}`}
+                    >
+                      {tab === 'matching' && (
+                        <td className="px-6 py-4">
+                          <input
+                            type="checkbox"
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            checked={selectedCandidates.includes(c.candidate_id || c.id)}
+                            onChange={() => toggleSelect(c.candidate_id || c.id)}
+                            disabled={c.status === 'shortlisted' || c.status === 'rejected'}
+                          />
+                        </td>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm font-semibold text-gray-700">{c.experience} Years</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col gap-1.5 w-32">
-                      <div className="flex items-center justify-between">
-                        <span className={`text-xs font-extra-bold ${getScoreColor(c.match_score).split(' ')[0]}`}>
-                          {c.match_score}%
-                        </span>
-                      </div>
-                      <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-1000 ${getScoreBadge(c.match_score)}`}
-                          style={{ width: `${c.match_score}%` }}
-                        />
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${c.status === 'shortlisted' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                        c.status === 'rejected' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                          'bg-blue-50 text-blue-600 border-blue-100'
-                      }`}>
-                      {c.status}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => navigate(`/candidates/${c.candidate_id || c.id}`)}
-                        title="View Profile"
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                      >
-                        <Eye size={18} />
-                      </button>
-
-                      {c.status !== 'shortlisted' && c.status !== 'rejected' ? (
-                        <>
-                          <button
-                            onClick={() => onReject(c.candidate_id || c.id)}
-                            disabled={processingId === (c.candidate_id || c.id)}
-                            title="Reject"
-                            className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all disabled:opacity-50"
-                          >
-                            <XCircle size={18} />
-                          </button>
-                          <button
-                            onClick={() => onShortlist(c.candidate_id || c.id)}
-                            disabled={processingId === (c.candidate_id || c.id)}
-                            title="Shortlist"
-                            className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all disabled:opacity-50"
-                          >
-                            <CheckCircle2 size={18} />
-                          </button>
-                        </>
-                      ) : (
-                        <div className="w-20 text-center">
-                          {c.status === 'shortlisted' ? (
-                            <div className="text-emerald-500 font-bold text-xs flex items-center justify-end gap-1">
-                              <Check size={14} strokeWidth={3} /> Shortlisted
+                      <td className="px-6 py-4">
+                        <div className="flex items-start gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shadow-sm mt-0.5 ${c.status === 'shortlisted' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'
+                            }`}>
+                            {c.name.charAt(0)}
+                          </div>
+                          <div className="flex flex-col">
+                            <div className="font-bold text-gray-900">{c.name}</div>
+                            <div className="text-[10px] text-gray-500 mt-1 space-y-0.5 font-medium">
+                              {c.recruiter_name && (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-gray-400">Recruiter:</span>
+                                  <span className="font-semibold text-gray-700">{c.recruiter_name}</span>
+                                </div>
+                              )}
+                              {c.email_address && (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-gray-400">Email:</span>
+                                  <span className="text-gray-600">{c.email_address}</span>
+                                </div>
+                              )}
+                              {c.phone_number && (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-gray-400">Phone:</span>
+                                  <span className="text-gray-600">
+                                    {c.country_code ? `${c.country_code} ` : ''}{c.phone_number}
+                                  </span>
+                                </div>
+                              )}
                             </div>
-                          ) : (
-                            <div className="text-rose-500 font-bold text-xs">Rejected</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap gap-1.5 max-w-xs">
+                          {(c.skills || []).slice(0, 3).map(skill => (
+                            <span key={skill} className="px-2 py-0.5 rounded-md bg-gray-100 border border-gray-200 text-gray-600 text-[10px] font-bold uppercase tracking-tight">
+                              {skill}
+                            </span>
+                          ))}
+                          {c.skills && c.skills.length > 3 && (
+                            <span className="text-[10px] text-gray-400 font-bold ml-1">+{c.skills.length - 3}</span>
                           )}
                         </div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-semibold text-gray-700">{c.experience} Years</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1.5 w-32">
+                          <div className="flex items-center justify-between">
+                            <span className={`text-xs font-extra-bold ${getScoreColor(c.match_score).split(' ')[0]}`}>
+                              {c.match_score}%
+                            </span>
+                          </div>
+                          <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-1000 ${getScoreBadge(c.match_score)}`}
+                              style={{ width: `${c.match_score}%` }}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                          c.status === 'Shortlisted' ? 'bg-purple-50 text-purple-600 border-purple-100' :
+                          c.status === 'Interview Selected' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
+                          c.status === 'Interview Rejected' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                          c.status === 'Candidate Approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                          c.status === 'Candidate Rejected' ? 'bg-red-50 text-red-600 border-red-100' :
+                          c.status === 'Joined' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                          'bg-blue-50 text-blue-600 border-blue-100'
+                        }`}>
+                          {c.status}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => navigate(`/candidates/${c.candidate_id || c.id}`)}
+                            title="View Profile"
+                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                          >
+                            <Eye size={18} />
+                          </button>
+
+                          {c.status !== 'Shortlisted' && c.status !== 'Candidate Rejected' && c.status !== 'Interview Selected' && c.status !== 'Interview Rejected' && c.status !== 'Candidate Approved' && c.status !== 'Joined' ? (
+                            <>
+                              <button
+                                onClick={() => onReject(c.candidate_id || c.id)}
+                                disabled={processingId === (c.candidate_id || c.id)}
+                                title="Reject"
+                                className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all disabled:opacity-50"
+                              >
+                                <XCircle size={18} />
+                              </button>
+                              <button
+                                onClick={() => onShortlist(c.candidate_id || c.id)}
+                                disabled={processingId === (c.candidate_id || c.id)}
+                                title="Shortlist"
+                                className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all disabled:opacity-50"
+                              >
+                                <CheckCircle2 size={18} />
+                              </button>
+                            </>
+                          ) : (
+                            <div className="w-20 text-center font-bold text-xs text-blue-600">
+                              {tab === 'shortlisted' ? 'Click to View' : 'Shortlisted'}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    {tab === 'shortlisted' && isExpanded && (
+                      <tr className="bg-gray-50/50">
+                        <td colSpan={7} className="px-6 py-6 border-b border-gray-100">
+                          <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-inner">
+                            <SelectionDetailsTab 
+                              candidateId={c.candidate_id || c.id} 
+                              onUpdate={onRefresh}
+                              jobId={jobId}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
             ) : (
               <tr>
                 <td colSpan="7" className="px-6 py-12 text-center">

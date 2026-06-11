@@ -38,6 +38,11 @@ class JobCandidateMapping(Base):
     tl_notes = Column(Text, nullable=True)
     client_feedback = Column(Text, nullable=True)
     
+    # New recruitment workflow columns
+    interview_time = Column(String(50), nullable=True)
+    joined_by = Column(String(255), nullable=True)
+    remarks = Column(Text, nullable=True)
+    
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
     
@@ -54,3 +59,23 @@ class JobCandidateMapping(Base):
     # Relationships
     job = relationship("Job", backref="candidate_mappings")
     candidate = relationship("Candidate", backref="job_mappings")
+
+
+class CandidateStatusHistory(Base):
+    """
+    Audit log for candidate status updates.
+    """
+    __tablename__ = "candidate_status_history"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    candidate_id = Column(Integer, ForeignKey("candidates.id", ondelete="CASCADE"), nullable=False, index=True)
+    job_id = Column(Integer, ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False, index=True)
+    old_status = Column(String(50), nullable=True)
+    new_status = Column(String(50), nullable=False)
+    changed_by = Column(Integer, nullable=True)
+    changed_date = Column(DateTime, nullable=False, server_default=func.now())
+    remarks = Column(Text, nullable=True)
+
+    job = relationship("Job", backref="status_histories")
+    candidate = relationship("Candidate", backref="status_histories")
+

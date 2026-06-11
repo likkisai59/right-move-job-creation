@@ -9,6 +9,7 @@ class PipelineStatus(str, Enum):
     INTERVIEW_REJECTED = "Interview Rejected"
     CANDIDATE_APPROVED = "Candidate Approved"
     CANDIDATE_REJECTED = "Candidate Rejected"
+    JOINED = "Joined"
 
 class JoiningStatus(str, Enum):
     PENDING = "Pending"
@@ -32,6 +33,9 @@ class SelectionDetailsUpdate(BaseModel):
     recruiter_notes: Optional[str] = None
     tl_notes: Optional[str] = None
     client_feedback: Optional[str] = None
+    interview_time: Optional[str] = None
+    joined_by: Optional[str] = None
+    remarks: Optional[str] = None
 
     @field_validator('salary_offered', 'rate_card', 'incentive')
     @classmethod
@@ -70,6 +74,9 @@ class SelectionDetailsResponse(BaseModel):
     recruiter_notes: Optional[str] = None
     tl_notes: Optional[str] = None
     client_feedback: Optional[str] = None
+    interview_time: Optional[str] = None
+    joined_by: Optional[str] = None
+    remarks: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     updated_by: Optional[int] = None
@@ -84,3 +91,4 @@ class SelectionDetailsResponse(BaseModel):
     hiring_manager: Optional[str] = None
     
     model_config = {"from_attributes": True}
+

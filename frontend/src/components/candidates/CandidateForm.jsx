@@ -112,20 +112,22 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
   // ── Recruiter logic ────────────────────────────────────────────────────
   useEffect(() => {
     if (!publicForm) {
-      // CASE 1: Logged-in recruiter — auto-fill from session
-      const user = getCurrentUser();
-      if (user) {
-        const name = user.name || user.username || user.email || '';
-        setValue('recruiterName', name);
-        setRecruiterReadOnly(true);
+      // CASE 1: Logged-in recruiter — auto-fill from session only if creating a new candidate
+      if (!isEdit) {
+        const user = getCurrentUser();
+        if (user) {
+          const name = user.name || user.username || user.email || '';
+          setValue('recruiterName', name);
+        }
       }
+      setRecruiterReadOnly(false);
     } else {
       // CASE 2: Public form — load recruiter dropdown from API
       fetchRecruiters()
         .then((options) => setRecruiterOptions(options))
         .catch(() => setRecruiterOptions([]));
     }
-  }, [publicForm, setValue]);
+  }, [publicForm, setValue, isEdit]);
 
   // ── Fetch active business units ────────────────────────────────────────
   useEffect(() => {

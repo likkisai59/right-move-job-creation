@@ -417,7 +417,11 @@ def get_matching_candidates(db: Session, job_id: int, strict: bool = True, requi
                 "skills": candidate_skills,
                 "experience": candidate_exp,
                 "match_score": round(total_score, 1),
-                "status": status
+                "status": status,
+                "recruiter_name": candidate.recruiter_name,
+                "email_address": candidate.email_address,
+                "phone_number": candidate.phone_number,
+                "country_code": candidate.country_code
             })
         except Exception as exc:
             db.rollback()
@@ -431,7 +435,7 @@ def get_matching_candidates(db: Session, job_id: int, strict: bool = True, requi
 
 def shortlist_candidate(db: Session, job_id: int, candidate_id: int) -> JobCandidateMapping:
     """
-    Updates or creates status = "shortlisted"
+    Updates or creates status = "Shortlisted"
     """
     mapping = db.query(JobCandidateMapping).filter(
         JobCandidateMapping.job_id == job_id,
@@ -439,12 +443,12 @@ def shortlist_candidate(db: Session, job_id: int, candidate_id: int) -> JobCandi
     ).first()
     
     if mapping:
-        mapping.status = "shortlisted"
+        mapping.status = "Shortlisted"
     else:
         mapping = JobCandidateMapping(
             job_id=job_id,
             candidate_id=candidate_id,
-            status="shortlisted"
+            status="Shortlisted"
         )
         db.add(mapping)
     
@@ -454,7 +458,7 @@ def shortlist_candidate(db: Session, job_id: int, candidate_id: int) -> JobCandi
 
 def reject_candidate(db: Session, job_id: int, candidate_id: int) -> JobCandidateMapping:
     """
-    Updates or creates status = "rejected"
+    Updates or creates status = "Candidate Rejected"
     """
     mapping = db.query(JobCandidateMapping).filter(
         JobCandidateMapping.job_id == job_id,
@@ -462,12 +466,12 @@ def reject_candidate(db: Session, job_id: int, candidate_id: int) -> JobCandidat
     ).first()
     
     if mapping:
-        mapping.status = "rejected"
+        mapping.status = "Candidate Rejected"
     else:
         mapping = JobCandidateMapping(
             job_id=job_id,
             candidate_id=candidate_id,
-            status="rejected"
+            status="Candidate Rejected"
         )
         db.add(mapping)
     
@@ -477,30 +481,48 @@ def reject_candidate(db: Session, job_id: int, candidate_id: int) -> JobCandidat
 
 def get_shortlisted_candidates(db: Session, job_id: int) -> List[dict]:
     """
-    Returns shortlisted candidates with their match scores.
+    Returns shortlisted/pipeline candidates with their match scores.
     """
     mappings = db.query(JobCandidateMapping).filter(
         JobCandidateMapping.job_id == job_id,
-        JobCandidateMapping.status == "shortlisted"
+        JobCandidateMapping.status != "Matched"
     ).all()
     
     candidate_ids = [m.candidate_id for m in mappings]
     candidates = db.query(Candidate).filter(Candidate.id.in_(candidate_ids)).all()
     
-    # We need to compute scores again or fetch them if they were stored.
-    # For now, let's just return candidate info.
     results = []
-    # Create a map for quick lookup
     mapping_dict = {m.candidate_id: m for m in mappings}
     
     for candidate in candidates:
+        m = mapping_dict[candidate.id]
         results.append({
             "candidate_id": candidate.id,
             "name": f"{candidate.first_name} {candidate.last_name}",
             "skills": parse_skills(candidate.skills),
             "experience": extract_experience_years(candidate.relevant_experience_years or candidate.total_experience),
-            "match_score": mapping_dict[candidate.id].match_score or 0,
-            "status": "shortlisted"
+            "match_score": m.match_score or 0,
+            "status": m.status,
+            "mapping_id": m.id,
+            "interview_date": m.interview_date.isoformat() if m.interview_date else None,
+            "interview_time": m.interview_time,
+            "approval_date": m.approval_date.isoformat() if m.approval_date else None,
+            "rejection_date": m.rejection_date.isoformat() if m.rejection_date else None,
+            "joining_date": m.joining_date.isoformat() if m.joining_date else None,
+            "band": m.band,
+            "salary_offered": m.salary_offered,
+            "rate_card": m.rate_card,
+            "incentive": m.incentive,
+            "recruiter_notes": m.recruiter_notes,
+            "tl_notes": m.tl_notes,
+            "client_feedback": m.client_feedback,
+            "joined_by": m.joined_by,
+            "remarks": m.remarks,
+            "recruiter_name": candidate.recruiter_name,
+            "email_address": candidate.email_address,
+            "phone_number": candidate.phone_number,
+            "country_code": candidate.country_code
         })
     
     return results
+
