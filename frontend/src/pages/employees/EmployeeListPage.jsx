@@ -191,21 +191,6 @@ const EmployeeListPage = () => {
             ))}
           </select>
 
-          <input
-            type="number"
-            placeholder="Min LPA"
-            value={filters.minPackage}
-            onChange={(e) => handleFilterChange('minPackage', e.target.value)}
-            className="h-10 w-24 px-3 text-sm bg-white border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-shadow"
-          />
-          <input
-            type="number"
-            placeholder="Max LPA"
-            value={filters.maxPackage}
-            onChange={(e) => handleFilterChange('maxPackage', e.target.value)}
-            className="h-10 w-24 px-3 text-sm bg-white border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-shadow"
-          />
-
           <SortBy
             options={[
               { label: 'Employee ID Ascending', value: 'employee_id:asc' },

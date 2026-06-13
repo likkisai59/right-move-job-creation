@@ -39,3 +39,6 @@ starlette==0.38.6
 typing_extensions==4.15.0
 
 uvicorn==0.30.6
+
+python-docx
+PyPDF2

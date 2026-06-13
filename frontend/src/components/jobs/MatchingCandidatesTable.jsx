@@ -207,12 +207,12 @@ const MatchingCandidatesTable = ({
                           <div className="flex flex-col">
                             <div className="font-bold text-gray-900">{c.name}</div>
                             <div className="text-[10px] text-gray-500 mt-1 space-y-0.5 font-medium">
-                              {c.recruiter_name && (
-                                <div className="flex items-center gap-1">
-                                  <span className="text-gray-400">Recruiter:</span>
-                                  <span className="font-semibold text-gray-700">{c.recruiter_name}</span>
-                                </div>
-                              )}
+                              <div className="flex items-center gap-1">
+                                <span className="text-gray-400">Recruiter:</span>
+                                <span className="font-semibold text-gray-700">
+                                  {c.recruiter_name || c.recruiterName || '—'}
+                                </span>
+                              </div>
                               {c.email_address && (
                                 <div className="flex items-center gap-1">
                                   <span className="text-gray-400">Email:</span>

@@ -102,6 +102,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
   const [parseMessage, setParseMessage] = useState({ type: '', text: '' });
   const [parseConfidence, setParseConfidence] = useState(null);
   const publicForm = isPublicForm();
+  const isEdit = window.location.pathname.includes('/edit');
   const personalDetailsRef = useRef(null);
 
   const totalExperience = watch('totalExperience');

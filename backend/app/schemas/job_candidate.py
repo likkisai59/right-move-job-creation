@@ -4,6 +4,7 @@ from datetime import date, datetime
 from enum import Enum
 
 class PipelineStatus(str, Enum):
+    MATCHED = "Matched"
     SHORTLISTED = "Shortlisted"
     INTERVIEW_SELECTED = "Interview Selected"
     INTERVIEW_REJECTED = "Interview Rejected"
@@ -36,6 +37,28 @@ class SelectionDetailsUpdate(BaseModel):
     interview_time: Optional[str] = None
     joined_by: Optional[str] = None
     remarks: Optional[str] = None
+
+    @field_validator(
+        'interview_date', 'approval_date', 'rejection_date',
+        'band', 'joining_status', 'joining_date', 'salary_offered',
+        'rate_card', 'incentive', 'recruiter_notes', 'tl_notes',
+        'client_feedback', 'interview_time', 'joined_by', 'remarks',
+        mode='before'
+    )
+    @classmethod
+    def coerce_empty_to_none(cls, v):
+        if v == "":
+            return None
+        return v
+
+    @field_validator('salary_offered', 'rate_card', 'incentive', mode='before')
+    @classmethod
+    def coerce_numeric_string(cls, v):
+        if v == "" or v is None:
+            return None
+        if isinstance(v, (int, float)):
+            return str(v)
+        return v
 
     @field_validator('salary_offered', 'rate_card', 'incentive')
     @classmethod

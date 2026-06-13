@@ -102,21 +102,6 @@ const OrganizationTable = ({ organizations = [], loading = false, onCreate, onDe
           <button
             onClick={(e) => {
               e.stopPropagation();
-              if (onCreate) {
-                onCreate(row);
-              } else {
-                navigate('/organizations/create');
-              }
-            }}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors shadow-sm bg-white border border-gray-100"
-            title="Create Organization"
-          >
-            <Plus size={15} />
-          </button>
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
               navigate(`/organizations/edit/${row.id}`);
             }}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors shadow-sm bg-white border border-gray-100"

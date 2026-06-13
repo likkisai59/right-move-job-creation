@@ -124,6 +124,17 @@ app = FastAPI(
     redoc_url="/redoc",      # ReDoc UI  → http://localhost:8000/redoc
 )
 
+from fastapi.exceptions import RequestValidationError
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    logger.error(f"422 Validation Error: {exc.errors()}")
+    logger.error(f"422 Request body: {exc.body}")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors(), "body": exc.body}
+    )
+
 # ── CORS Middleware ───────────────────────────────────────────
 # Allows the React frontend (localhost:5173) to call this API.
 app.add_middleware(

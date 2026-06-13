@@ -638,6 +638,7 @@ def update_selection_details(
             
         # Priority 4: Pipeline State Validation
         VALID_TRANSITIONS = {
+            "Matched": ["Shortlisted", "Interview Selected", "Candidate Rejected"],
             "Shortlisted": ["Interview Selected", "Candidate Rejected"],
             "Interview Selected": ["Candidate Approved", "Interview Rejected"],
             "Candidate Approved": ["Joined"],
