@@ -43,17 +43,18 @@ const AttendancePortalLayout = () => {
     { name: 'Assigned Tasks', path: '/attendance/portal/tasks', icon: Briefcase },
     { name: 'Leave Management', path: '/attendance/portal/leaves', icon: ClipboardList },
     { name: 'Attendance Status', path: '/attendance/portal/status', icon: PieChart },
-    {
-      name: 'Attendance Marking',
-      path: '/attendance/portal/mark',
-      icon: CalendarCheck,
-      disabled: !FEATURE_FLAGS.enableAttendanceMarking
-    },
   ];
 
   if (isManager(employee)) {
     navItems.push({ name: 'Manage Approvals', path: '/attendance/portal/approvals', icon: CheckSquare });
   }
+
+  navItems.push({
+    name: 'Attendance Marking',
+    path: '/attendance/portal/mark',
+    icon: CalendarCheck,
+    disabled: !FEATURE_FLAGS.enableAttendanceMarking
+  });
 
 
   return (
