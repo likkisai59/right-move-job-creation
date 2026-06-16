@@ -6,6 +6,7 @@ import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import JobForm from '../../components/jobs/JobForm';
 import { createJob } from '../../api/jobsApi';
+import { getCurrentUser } from '../../api/authApi';
 
 const CreateJobPage = () => {
   const navigate = useNavigate();
@@ -15,7 +16,8 @@ const CreateJobPage = () => {
   const handleSubmit = async (data) => {
     setLoading(true);
     try {
-      await createJob(data);
+      const user = getCurrentUser() || { username: 'Admin' };
+      await createJob({ ...data, createdBy: user.username });
       setSuccess(true);
       setTimeout(() => navigate('/jobs'), 1200);
     } catch (err) {

@@ -36,3 +36,42 @@ export const getCurrentUser = () => {
     }
     return null;
 };
+
+export const getUserDesignation = () => {
+    const user = localStorage.getItem('user');
+    const employee = localStorage.getItem('employee_data');
+    if (user) {
+        try {
+            const userData = JSON.parse(user);
+            return userData.role || '';
+        } catch (e) {
+            return '';
+        }
+    }
+    if (employee) {
+        try {
+            const empData = JSON.parse(employee);
+            return empData.designation || '';
+        } catch (e) {
+            return '';
+        }
+    }
+    return '';
+};
+
+export const checkPermission = (action) => {
+    const designation = getUserDesignation();
+    const norm = (designation || '').toLowerCase().trim().replace(/[\s\.-]+/g, '');
+    
+    if (action === 'add_employee') {
+        return ['director', 'admin', 'hr'].includes(norm);
+    }
+    if (action === 'add_organization' || action === 'add_job') {
+        return ['director', 'admin', 'hr', 'srmanager', 'manager', 'assistantmanager', 'asstmanager', 'teamlead'].includes(norm);
+    }
+    if (action === 'add_candidate') {
+        return ['atl', 'seniorexecutive', 'executive', 'trainee', 'intern'].includes(norm);
+    }
+    return true;
+};
+

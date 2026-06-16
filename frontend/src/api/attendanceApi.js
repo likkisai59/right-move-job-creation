@@ -69,4 +69,14 @@ export const saveApprovalsConfig = async (configData) => {
   return response.data;
 };
 
+/**
+ * Job tasks assigned to the recruiter/employee
+ */
+export const getAssignedJobs = async (employeeName) => {
+  const response = await axios.get('/jobs', {
+    params: { assigned_to: employeeName }
+  });
+  return response.data.data;
+};
+
 

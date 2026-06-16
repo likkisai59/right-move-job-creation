@@ -8,6 +8,7 @@ import SortBy from '../../components/common/SortBy';
 import OrganizationTable from '../../components/organizations/OrganizationTable';
 import { fetchOrganizations, deleteOrganization } from '../../api/organizationsApi';
 import api from '../../api/axios';
+import { checkPermission } from '../../api/authApi';
 
 const OrganizationListPage = () => {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ const OrganizationListPage = () => {
   const loadOrganizations = async (search = '', start = '', end = '') => {
     setLoading(true);
     try {
-      const response = await fetchOrganizations({ 
+      const response = await fetchOrganizations({
         search: search.trim(),
         start_date: start,
         end_date: end,
@@ -83,7 +84,7 @@ const OrganizationListPage = () => {
         sort_by: sortField,
         sort_order: sortOrder
       };
-      
+
       if (specificIds && specificIds.length > 0) {
         params.export_ids = specificIds.join(',');
       }
@@ -92,9 +93,9 @@ const OrganizationListPage = () => {
         params,
         responseType: 'blob'
       });
-      
-      const blob = new Blob([response.data], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -128,9 +129,11 @@ const OrganizationListPage = () => {
           <Button variant="secondary" icon={Download} onClick={() => handleExport()} disabled={organizations.length === 0}>
             Export Excel
           </Button>
-          <Button icon={Plus} onClick={() => navigate('/organizations/create')}>
-            Add Organization
-          </Button>
+          {checkPermission('add_organization') && (
+            <Button icon={Plus} onClick={() => navigate('/organizations/create')}>
+              Add Organization
+            </Button>
+          )}
         </div>
       }
     >
@@ -147,14 +150,14 @@ const OrganizationListPage = () => {
                 <div>
                   <h4 className="text-base font-bold text-slate-900">Contract Renewal Notice</h4>
                   <p className="text-sm text-slate-600 mt-1 leading-relaxed">
-                    The following organizations have contracts reaching their termination date within the next <span className="font-bold text-indigo-600">30 days</span>. 
+                    The following organizations have contracts reaching their termination date within the next <span className="font-bold text-indigo-600">30 days</span>.
                     Please ensure necessary renewal documentation is processed to maintain service continuity.
                   </p>
                 </div>
-                <Button 
-                  variant="secondary" 
-                  size="sm" 
-                  icon={Download} 
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={Download}
                   onClick={() => handleExport(expiringOrgs.map(org => org.id))}
                 >
                   Export Excel
@@ -182,7 +185,7 @@ const OrganizationListPage = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          
+
           <div className="w-full md:w-48">
             <Input
               label="Contract End From"
@@ -214,9 +217,9 @@ const OrganizationListPage = () => {
             />
           </div>
 
-          <Button 
-            variant="secondary" 
-            size="md" 
+          <Button
+            variant="secondary"
+            size="md"
             onClick={() => {
               setSearchTerm('');
               setStartDate('');
@@ -230,9 +233,9 @@ const OrganizationListPage = () => {
         </div>
 
         {/* Table Component */}
-        <OrganizationTable 
-          organizations={organizations} 
-          loading={loading} 
+        <OrganizationTable
+          organizations={organizations}
+          loading={loading}
           onCreate={handleCreate}
           onDelete={handleDelete}
         />

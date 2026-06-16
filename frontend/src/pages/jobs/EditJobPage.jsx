@@ -40,7 +40,7 @@ const EditJobPage = () => {
   const handleSubmit = async (data) => {
     setSaving(true);
     try {
-      await updateJob(id, data);
+      await updateJob(id, { ...data, createdBy: job?.createdBy });
       setSuccess(true);
       setTimeout(() => navigate('/jobs'), 1200);
     } catch (err) {

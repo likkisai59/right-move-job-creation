@@ -45,6 +45,7 @@ class Job(Base):
     
     # Name of the recruiter assigned to this requirement
     assigned_to = Column(String(255), nullable=False)
+    created_by = Column(String(255), nullable=True)
 
     # ── Timestamps ────────────────────────────────────────────
     created_at = Column(DateTime, nullable=False, server_default=func.now())

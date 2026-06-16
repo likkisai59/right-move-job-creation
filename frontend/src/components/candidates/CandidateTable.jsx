@@ -5,6 +5,7 @@ import Table from '../common/Table';
 import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
 import { Users } from 'lucide-react';
+import { checkPermission } from '../../api/authApi';
 
 const CandidateTable = ({ candidates = [], loading = false }) => {
   const navigate = useNavigate();
@@ -134,9 +135,11 @@ const CandidateTable = ({ candidates = [], loading = false }) => {
           title="No candidates found"
           description="Add a new candidate to get started"
           action={
-            <Button onClick={() => navigate('/candidates/create')} icon={Users}>
-              Add Candidate
-            </Button>
+            checkPermission('add_candidate') ? (
+              <Button onClick={() => navigate('/candidates/create')} icon={Users}>
+                Add Candidate
+              </Button>
+            ) : null
           }
         />
       </div>

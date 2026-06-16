@@ -20,7 +20,8 @@ const MatchingCandidatesTable = ({
   tab = 'matching',
   onBulkShortlist,
   onRefresh,
-  jobId = null
+  jobId = null,
+  assignedTo = null
 }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
@@ -174,6 +175,7 @@ const MatchingCandidatesTable = ({
             {sortedCandidates.length > 0 ? (
               sortedCandidates.map((c) => {
                 const isExpanded = expandedCandidateId === (c.candidate_id || c.id);
+                const isJoined = (c.status || '').trim().toLowerCase() === 'joined';
                 return (
                   <React.Fragment key={c.candidate_id || c.id}>
                     <tr 
@@ -185,7 +187,7 @@ const MatchingCandidatesTable = ({
                           setExpandedCandidateId(isExpanded ? null : (c.candidate_id || c.id));
                         }
                       }}
-                      className={`hover:bg-blue-50/30 transition-colors group cursor-pointer ${selectedCandidates.includes(c.candidate_id || c.id) ? 'bg-blue-50/50' : ''} ${isExpanded ? 'bg-blue-50/20' : ''}`}
+                      className={`hover:bg-blue-50/30 transition-colors group cursor-pointer ${selectedCandidates.includes(c.candidate_id || c.id) ? 'bg-blue-50/50' : ''} ${isExpanded ? 'bg-blue-50/20' : ''} ${isJoined ? 'opacity-45 grayscale bg-gray-50/50 hover:bg-gray-50/50' : ''}`}
                     >
                       {tab === 'matching' && (
                         <td className="px-6 py-4">
@@ -194,7 +196,7 @@ const MatchingCandidatesTable = ({
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                             checked={selectedCandidates.includes(c.candidate_id || c.id)}
                             onChange={() => toggleSelect(c.candidate_id || c.id)}
-                            disabled={c.status === 'shortlisted' || c.status === 'rejected'}
+                            disabled={c.status === 'shortlisted' || c.status === 'rejected' || isJoined}
                           />
                         </td>
                       )}
@@ -305,7 +307,7 @@ const MatchingCandidatesTable = ({
                             </>
                           ) : (
                             <div className="w-20 text-center font-bold text-xs text-blue-600">
-                              {tab === 'shortlisted' ? 'Click to View' : 'Shortlisted'}
+                              {tab === 'shortlisted' ? 'Click to View' : c.status}
                             </div>
                           )}
                         </div>

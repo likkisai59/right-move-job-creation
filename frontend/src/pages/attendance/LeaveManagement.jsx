@@ -12,7 +12,7 @@ const LeaveManagement = () => {
   const [successMsg, setSuccessMsg] = useState('');
 
   // Form states
-  const [leaveType, setLeaveType] = useState('Sick Leave');
+  const [leaveType, setLeaveType] = useState('Paid Leave');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [reason, setReason] = useState('');
@@ -71,7 +71,7 @@ const LeaveManagement = () => {
       const mm = String(current.getMonth() + 1).padStart(2, '0');
       const dd = String(current.getDate()).padStart(2, '0');
       const dateStr = `${yyyy}-${mm}-${dd}`;
-      
+
       if (holidayDates.includes(dateStr)) {
         hasHoliday = true;
         break;
@@ -96,13 +96,13 @@ const LeaveManagement = () => {
       });
       setSuccessMsg('Leave application submitted successfully!');
       setShowForm(false);
-      
+
       // Reset form
-      setLeaveType('Sick Leave');
+      setLeaveType('Paid Leave');
       setStartDate('');
       setEndDate('');
       setReason('');
-      
+
       // Refresh details
       fetchLeavesAndConfig();
 
@@ -140,7 +140,7 @@ const LeaveManagement = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      
+
       {/* Banners */}
       {successMsg && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl flex items-center gap-3 animate-slide-down shadow-sm">
@@ -160,7 +160,7 @@ const LeaveManagement = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Annual Leave Quota', val: annualQuota, color: 'blue' },
-          { label: 'Leaves Taken (Approved)', val: totalApprovedDays, color: 'rose' },
+          { label: 'Leaves Taken (Approved)', val: approvedLeaves.length, color: 'rose' },
           { label: 'Pending Requests', val: pendingLeavesCount, color: 'amber' },
           { label: 'Available Balance', val: availableBalance, color: 'emerald' },
         ].map(item => (
@@ -176,7 +176,7 @@ const LeaveManagement = () => {
           <ClipboardList size={20} className="text-blue-600" />
           Leave Requests
         </h2>
-        <button 
+        <button
           onClick={() => {
             setShowForm(!showForm);
             setError('');
@@ -201,35 +201,35 @@ const LeaveManagement = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Leave Type</label>
-                <select 
+                <select
                   value={leaveType}
                   onChange={(e) => setLeaveType(e.target.value)}
                   className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-semibold text-gray-700"
                 >
-                  <option>Sick Leave</option>
-                  <option>Casual Leave</option>
-                  <option>Earned Leave</option>
+                  <option>Paid Leave</option>
+                  <option>Unpaid Leave</option>
+                  <option>Optional Leave</option>
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Start Date</label>
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     required
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-gray-700" 
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-gray-700"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">End Date</label>
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     required
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-gray-700" 
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-gray-700"
                   />
                 </div>
               </div>
@@ -237,11 +237,11 @@ const LeaveManagement = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Reason</label>
-                <textarea 
-                  rows="4" 
+                <textarea
+                  rows="4"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 text-gray-700" 
+                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 text-gray-700"
                   placeholder="Please specify your reason..."
                 />
               </div>
@@ -320,7 +320,7 @@ const LeaveManagement = () => {
             </h3>
             <span className="text-[10px] text-gray-400 font-medium">Organization-wide holiday calendar</span>
           </div>
-          
+
           {holidays.length === 0 ? (
             <div className="p-8 text-center text-gray-400 text-xs font-semibold">
               No holidays configured yet.

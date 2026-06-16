@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CalendarCheck, Info, CheckCircle2, Save, AlertCircle } from 'lucide-react';
 import { markAttendance, getAttendanceHistory } from '../../api/attendanceApi';
+import { FEATURE_FLAGS } from '../../config/features';
 
 const AttendanceMarking = () => {
   const formatDate = (date) => {
@@ -127,7 +128,7 @@ const AttendanceMarking = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className={`max-w-4xl mx-auto space-y-6 transition-all duration-300 ${!FEATURE_FLAGS.enableAttendanceMarking ? 'opacity-50 grayscale pointer-events-none select-none' : ''}`}>
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         
         {/* Header */}

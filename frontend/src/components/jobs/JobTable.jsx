@@ -5,6 +5,7 @@ import Table from '../common/Table';
 import Button from '../common/Button';
 import EmptyState from '../common/EmptyState';
 import { formatDate } from '../../utils/formatters';
+import { checkPermission } from '../../api/authApi';
 
 
 const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats }) => {
@@ -191,9 +192,11 @@ const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats }) => {
           title="No job requirements found"
           description="Create a new job requirement to get started"
           action={
-            <Button onClick={() => navigate('/jobs/create')} icon={Briefcase}>
-              Create Job Requirement
-            </Button>
+            checkPermission('add_job') ? (
+              <Button onClick={() => navigate('/jobs/create')} icon={Briefcase}>
+                Create Job Requirement
+              </Button>
+            ) : null
           }
         />
       </div>

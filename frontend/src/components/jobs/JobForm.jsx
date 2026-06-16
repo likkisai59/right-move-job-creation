@@ -4,7 +4,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import Input from '../common/Input';
 import Select from '../common/Select';
 import Button from '../common/Button';
-import { mockRecruiters } from '../../utils/mockData';
+import { fetchEmployees } from '../../api/employeesApi';
 import { fetchOrganizations } from '../../api/organizationsApi';
 import { uploadJobDescription } from '../../api/jobsApi';
 import { NOTICE_PERIODS, EDUCATION_OPTIONS, JOB_SHIFTS } from '../../utils/constants';
@@ -48,6 +48,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
   const [organizations, setOrganizations] = React.useState([]);
   const [businessUnits, setBusinessUnits] = React.useState([]);
   const [workModes, setWorkModes] = React.useState([]);
+  const [recruiters, setRecruiters] = React.useState([]);
 
   useEffect(() => {
     const loadOrgs = async () => {
@@ -103,6 +104,28 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
     };
     loadBUsAndWorkModes();
   }, [defaultValues]);
+
+  useEffect(() => {
+    const loadRecruiters = async () => {
+      try {
+        const res = await fetchEmployees({ status: 'Active' });
+        if (res && res.data) {
+          const allowedAssignees = res.data.filter(emp => {
+            if (!emp.designation) return false;
+            const norm = emp.designation.toLowerCase().trim().replace(/[\s\.-]+/g, '');
+            return ['atl', 'seniorexecutive', 'executive', 'trainee', 'intern'].includes(norm);
+          });
+          setRecruiters(allowedAssignees.map(emp => ({
+            value: `${emp.firstName} ${emp.lastName}`.trim(),
+            label: `${emp.firstName} ${emp.lastName}`.trim()
+          })));
+        }
+      } catch (err) {
+        console.error('Failed to load recruiters:', err);
+      }
+    };
+    loadRecruiters();
+  }, []);
 
   const handleOrgChange = (e) => {
     const orgId = Number(e.target.value);
@@ -197,7 +220,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
           label="Assign Owner"
           placeholder="Select Owner"
           required
-          options={mockRecruiters}
+          options={recruiters}
           error={errors.assignedTo?.message}
           {...register('assignedTo', {
             required: 'Please select an owner',

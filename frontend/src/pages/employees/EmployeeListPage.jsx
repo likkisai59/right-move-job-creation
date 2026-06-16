@@ -8,6 +8,7 @@ import EmployeeTable from '../../components/employees/EmployeeTable';
 import { EMPLOYEE_STATUS_OPTIONS, EMPLOYEE_BLOOD_GROUP_OPTIONS } from '../../utils/constants';
 import { fetchEmployees, deleteEmployee, exportEmployees } from '../../api/employeesApi';
 import { fetchDesignations } from '../../api/designationsApi';
+import { checkPermission } from '../../api/authApi';
 
 const EmployeeListPage = () => {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ const EmployeeListPage = () => {
   const [designations, setDesignations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
-  
+
   const [filters, setFilters] = useState({
     search: '',
     status: 'ALL',
@@ -90,7 +91,7 @@ const EmployeeListPage = () => {
       if (filters.maxPackage) params.max_package = filters.maxPackage;
       if (filters.sortField) params.sortField = filters.sortField;
       if (filters.sortOrder) params.sortOrder = filters.sortOrder;
-      
+
       await exportEmployees(params);
     } catch (err) {
       console.error('Export failed:', err);
@@ -130,17 +131,19 @@ const EmployeeListPage = () => {
       subtitle={`${employees.length} employee${employees.length !== 1 ? 's' : ''} in the system`}
       actions={
         <div className="flex items-center gap-3">
-          <Button 
-            variant="secondary" 
-            onClick={handleExport} 
+          <Button
+            variant="secondary"
+            onClick={handleExport}
             icon={Download}
             disabled={exporting}
           >
             {exporting ? 'Exporting...' : 'Export Excel'}
           </Button>
-          <Button onClick={() => navigate('/employees/create')} icon={UserPlus}>
-            Add Employee
-          </Button>
+          {checkPermission('add_employee') && (
+            <Button onClick={() => navigate('/employees/create')} icon={UserPlus}>
+              Add Employee
+            </Button>
+          )}
         </div>
       }
     >
@@ -207,19 +210,19 @@ const EmployeeListPage = () => {
               handleFilterChange('sortOrder', val.sortOrder);
             }}
           />
-          
+
           {(filters.search || filters.status !== 'ALL' || filters.designation !== 'ALL' || filters.bloodGroup !== 'ALL' || filters.minPackage || filters.maxPackage || filters.sortField) && (
-            <Button variant="ghost" size="sm" onClick={() => setFilters({search: '', status: 'ALL', designation: 'ALL', bloodGroup: 'ALL', minPackage: '', maxPackage: '', sortField: '', sortOrder: 'desc'})}>
+            <Button variant="ghost" size="sm" onClick={() => setFilters({ search: '', status: 'ALL', designation: 'ALL', bloodGroup: 'ALL', minPackage: '', maxPackage: '', sortField: '', sortOrder: 'desc' })}>
               Clear
             </Button>
           )}
         </div>
 
-        <EmployeeTable 
-          employees={employees} 
+        <EmployeeTable
+          employees={employees}
           loading={loading}
-          onEdit={handleEdit} 
-          onDelete={handleDelete} 
+          onEdit={handleEdit}
+          onDelete={handleDelete}
         />
       </div>
     </PageContainer>

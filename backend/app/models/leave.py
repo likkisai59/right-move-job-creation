@@ -10,7 +10,7 @@ class Leave(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False)
-    leave_type = Column(String(50), nullable=False) # Sick, Casual, Earned
+    leave_type = Column(String(50), nullable=False) # Paid, Unpaid, Optional
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
     reason = Column(String(500), nullable=True)

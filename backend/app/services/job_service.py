@@ -43,6 +43,7 @@ def create_job_requirement(db: Session, payload: JobCreateRequest) -> Job:
         external_spoc=payload.external_spoc,
         external_spoc_email_id=payload.external_spoc_email_id,
         assigned_to=payload.assigned_to,
+        created_by=payload.created_by,
     )
 
     # Add requirements
@@ -79,6 +80,8 @@ def get_all_jobs(
     end_date: Optional[date] = None,
     status: Optional[str] = None,
     business_unit: Optional[str] = None,
+    assigned_to: Optional[str] = None,
+    created_by: Optional[str] = None,
     sort_by: Optional[str] = None,
     sort_order: Optional[str] = "desc",
     skip: int = 0,
@@ -114,6 +117,12 @@ def get_all_jobs(
 
     if business_unit and business_unit.upper() != "ALL":
         query = query.filter(Job.business_unit == business_unit.upper())
+
+    if assigned_to:
+        query = query.filter(Job.assigned_to == assigned_to)
+
+    if created_by:
+        query = query.filter(Job.created_by == created_by)
 
     from app.utils.sorting import apply_sorting
     query = apply_sorting(query, Job, sort_by, sort_order, Job.created_at)
@@ -195,6 +204,7 @@ def update_job(
     job.external_spoc = payload.external_spoc
     job.external_spoc_email_id = payload.external_spoc_email_id
     job.assigned_to = payload.assigned_to
+    job.created_by = payload.created_by
 
     # Update requirements (replace existing ones)
     job.requirements = []
@@ -498,6 +508,7 @@ def get_shortlisted_candidates(db: Session, job_id: int) -> List[dict]:
         m = mapping_dict[candidate.id]
         results.append({
             "candidate_id": candidate.id,
+            "candidate_code": candidate.candidate_code,
             "name": f"{candidate.first_name} {candidate.last_name}",
             "skills": parse_skills(candidate.skills),
             "experience": extract_experience_years(candidate.relevant_experience_years or candidate.total_experience),

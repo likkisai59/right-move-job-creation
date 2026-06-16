@@ -19,7 +19,7 @@ const NAV_ITEMS = [
   { label: 'Candidates', path: '/candidates', icon: Users },
   { label: 'Organizations', path: '/organizations', icon: Building2 },
   { label: 'Employees', path: '/employees', icon: UserCheck },
-  { label: 'Attendance', path: '/attendance/portal', icon: CalendarCheck },
+  { label: 'RMEP', path: '/attendance/portal', icon: CalendarCheck },
   { label: 'Settings', path: '/settings', icon: Settings },
 ];
 

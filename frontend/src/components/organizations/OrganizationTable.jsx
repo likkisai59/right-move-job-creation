@@ -5,6 +5,7 @@ import Table from '../common/Table';
 import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
 import { formatRelativeTime } from '../../utils/formatters';
+import { checkPermission } from '../../api/authApi';
 
 const STATUS_CONFIG = {
   active: { label: 'Active', classes: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -133,9 +134,11 @@ const OrganizationTable = ({ organizations = [], loading = false, onCreate, onDe
           title="No organizations listed"
           description="Initialize your recruiter database by adding your first organization partner."
           action={
-            <Button onClick={() => navigate('/organizations/create')} icon={Building2} size="md">
-              Create Organization
-            </Button>
+            checkPermission('add_organization') ? (
+              <Button onClick={() => navigate('/organizations/create')} icon={Building2} size="md">
+                Create Organization
+              </Button>
+            ) : null
           }
         />
       </div>

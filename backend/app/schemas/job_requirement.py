@@ -95,6 +95,7 @@ class JobCreateRequest(BaseModel):
     external_spoc_email_id: Optional[str] = Field(default=None, description="External SPOC Email ID")
     requirements: List[RequirementCreate] = Field(..., min_length=1, description="List of hiring requirements")
     assigned_to: str = Field(..., min_length=1, description="Name of the assigned recruiter")
+    created_by: Optional[str] = Field(default=None, description="Name of the creator")
 
     @field_validator("company_name", "assigned_to", mode="before")
     @classmethod
@@ -131,6 +132,7 @@ class JobUpdateRequest(BaseModel):
     external_spoc_email_id: Optional[str] = Field(default=None, description="External SPOC Email ID")
     requirements: List[RequirementCreate] = Field(..., min_length=1, description="List of hiring requirements")
     assigned_to: str = Field(..., min_length=1, description="Name of the assigned recruiter")
+    created_by: Optional[str] = Field(default=None, description="Name of the creator")
 
     @field_validator("company_name", "assigned_to", mode="before")
     @classmethod
@@ -155,6 +157,7 @@ class JobResponse(BaseModel):
     external_spoc_email_id: Optional[str] = None
     requirements: List[RequirementResponse]
     assigned_to: str
+    created_by: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

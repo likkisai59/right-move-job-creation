@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ClipboardList, CheckCircle2, XCircle, Calendar, 
-  User, Clock, ShieldAlert, Check, X, Plus, Trash2 
+import {
+  ClipboardList, CheckCircle2, XCircle, Calendar,
+  User, Clock, ShieldAlert, Check, X, Plus, Trash2
 } from 'lucide-react';
 import { getPendingLeaves, updateLeaveStatus, getTeamAttendance, saveApprovalsConfig } from '../../api/attendanceApi';
 import { fetchDesignations } from '../../api/designationsApi';
@@ -71,7 +71,7 @@ const ManageApprovals = () => {
       const res = await fetchDesignations({ active_only: true }); // Fetch ONLY active designations
       if (res.success) {
         setConfigDesignations(res.data || []);
-        
+
         // Populate maps
         const lMap = {};
         const hMap = {};
@@ -113,7 +113,7 @@ const ManageApprovals = () => {
       }));
       await saveApprovalsConfig(payload);
       setSuccessMsg('All designation configurations saved successfully!');
-      
+
       // Reload configurations from database
       await loadConfigDesignations();
 
@@ -135,7 +135,7 @@ const ManageApprovals = () => {
       await updateLeaveStatus(leaveId, action, managerName);
       setSuccessMsg(`Leave request has been successfully ${action.toLowerCase()}.`);
       loadData();
-      
+
       setTimeout(() => {
         setSuccessMsg('');
       }, 4000);
@@ -149,7 +149,7 @@ const ManageApprovals = () => {
     const s = new Date(start);
     const e = new Date(end);
     const options = { month: 'short', day: 'numeric', year: 'numeric' };
-    
+
     if (start === end) {
       return s.toLocaleDateString('en-US', options);
     }
@@ -191,11 +191,10 @@ const ManageApprovals = () => {
     if (fh === 'L' || sh === 'L') {
       const isFullLeave = fh === 'L' && sh === 'L';
       return (
-        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border uppercase ${
-          isFullLeave 
-            ? 'bg-rose-50 text-rose-600 border-rose-100' 
+        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border uppercase ${isFullLeave
+            ? 'bg-rose-50 text-rose-600 border-rose-100'
             : 'bg-amber-50 text-amber-600 border-amber-100'
-        }`}>
+          }`}>
           {isFullLeave ? 'L' : 'HL'}
         </span>
       );
@@ -211,9 +210,8 @@ const ManageApprovals = () => {
 
     const isAbsent = fh === 'A' || sh === 'A';
     return (
-      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border uppercase ${
-        isAbsent ? 'bg-red-50 text-red-600 border-red-100' : 'bg-gray-50 text-gray-500 border-gray-100'
-      }`}>
+      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border uppercase ${isAbsent ? 'bg-red-50 text-red-600 border-red-100' : 'bg-gray-50 text-gray-500 border-gray-100'
+        }`}>
         {fh}
       </span>
     );
@@ -230,7 +228,7 @@ const ManageApprovals = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      
+
       {/* Banners */}
       {successMsg && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl flex items-center gap-3 animate-slide-down shadow-sm">
@@ -262,32 +260,29 @@ const ManageApprovals = () => {
         <div className="flex bg-gray-100 p-1 rounded-xl">
           <button
             onClick={() => setActiveTab('leaves')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${
-              activeTab === 'leaves'
+            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'leaves'
                 ? 'bg-white text-gray-800 shadow-sm'
                 : 'text-gray-500 hover:text-gray-800'
-            }`}
+              }`}
           >
             Leave Approvals ({pendingLeaves.length})
           </button>
           <button
             onClick={() => setActiveTab('attendance')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${
-              activeTab === 'attendance'
+            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'attendance'
                 ? 'bg-white text-gray-800 shadow-sm'
                 : 'text-gray-500 hover:text-gray-800'
-            }`}
+              }`}
           >
             Team Attendance
           </button>
           {isDirector && (
             <button
               onClick={() => setActiveTab('holidays')}
-              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
-                activeTab === 'holidays'
+              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${activeTab === 'holidays'
                   ? 'bg-white text-gray-800 shadow-sm'
                   : 'text-gray-500 hover:text-gray-800'
-              }`}
+                }`}
             >
               <Calendar size={14} />
               Add Holidays
@@ -306,7 +301,7 @@ const ManageApprovals = () => {
           {/* LEAVE APPROVALS TAB */}
           {activeTab === 'leaves' && (
             <div className="space-y-8 animate-fade-in">
-              
+
               {/* Pending Requests Section */}
               <div className="space-y-4">
                 <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
@@ -323,8 +318,8 @@ const ManageApprovals = () => {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {pendingLeaves.map((leave) => (
-                      <div 
-                        key={leave.id} 
+                      <div
+                        key={leave.id}
                         className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between gap-5"
                       >
                         <div className="space-y-3">

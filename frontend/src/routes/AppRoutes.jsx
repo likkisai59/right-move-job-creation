@@ -20,7 +20,7 @@ import AddEmployeePage from '../pages/employees/AddEmployeePage';
 import EditEmployeePage from '../pages/employees/EditEmployeePage';
 import SettingsPage from '../pages/SettingsPage';
 import LoginPage from '../pages/LoginPage';
-import { isAuthenticated } from '../api/authApi';
+import { isAuthenticated, checkPermission } from '../api/authApi';
 
 // ── Attendance Portal Imports ────────────────────────────────
 import AttendanceLoginPage from '../pages/attendance/AttendanceLoginPage';
@@ -29,11 +29,20 @@ import AttendanceMarking from '../pages/attendance/AttendanceMarking';
 import LeaveManagement from '../pages/attendance/LeaveManagement';
 import AttendanceStatus from '../pages/attendance/AttendanceStatus';
 import ManageApprovals from '../pages/attendance/ManageApprovals';
+import AssignedTasks from '../pages/attendance/AssignedTasks';
 
 // ── Protected Route Component ────────────────────────────────
 const ProtectedRoute = ({ children }) => {
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
+  }
+  return children;
+};
+
+// ── Permission Protected Route Component ─────────────────────
+const PermissionProtectedRoute = ({ children, action }) => {
+  if (!checkPermission(action)) {
+    return <Navigate to="/dashboard" replace />;
   }
   return children;
 };
@@ -84,6 +93,7 @@ const AppRoutes = () => {
       >
         <Route index element={<Navigate to="mark" replace />} />
         <Route path="mark" element={<AttendanceMarking />} />
+        <Route path="tasks" element={<AssignedTasks />} />
         <Route path="leaves" element={<LeaveManagement />} />
         <Route path="status" element={<AttendanceStatus />} />
         <Route
@@ -115,31 +125,31 @@ const AppRoutes = () => {
                   <Routes>
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/dashboard" element={<Dashboard />} />
-                    
-                    {/* Jobs */}
-                    <Route path="/jobs" element={<JobListPage />} />
-                    <Route path="/jobs/create" element={<CreateJobPage />} />
-                    <Route path="/jobs/:id" element={<JobDetailsPage />} />
-                    <Route path="/jobs/edit/:id" element={<EditJobPage />} />
-                    
-                    {/* Candidates */}
-                    <Route path="/candidates" element={<CandidateListPage />} />
-                    <Route path="/candidates/create" element={<AddCandidatePage />} />
-                    <Route path="/candidates/edit/:id" element={<EditCandidatePage />} />
-                    <Route path="/candidates/:id" element={<CandidateDetails />} />
-                    
-                    {/* Global Search */}
-                    <Route path="/search" element={<GlobalSearchPage />} />
 
-                    {/* Organizations */}
-                    <Route path="/organizations" element={<OrganizationListPage />} />
-                    <Route path="/organizations/create" element={<OrganizationCreatePage />} />
-                    <Route path="/organizations/edit/:id" element={<OrganizationEditPage />} />
-
-                    {/* Employees */}
-                    <Route path="/employees" element={<EmployeeListPage />} />
-                    <Route path="/employees/create" element={<AddEmployeePage />} />
-                    <Route path="/employees/edit/:id" element={<EditEmployeePage />} />
+                     {/* Jobs */}
+                     <Route path="/jobs" element={<JobListPage />} />
+                     <Route path="/jobs/create" element={<PermissionProtectedRoute action="add_job"><CreateJobPage /></PermissionProtectedRoute>} />
+                     <Route path="/jobs/:id" element={<JobDetailsPage />} />
+                     <Route path="/jobs/edit/:id" element={<EditJobPage />} />
+ 
+                     {/* Candidates */}
+                     <Route path="/candidates" element={<CandidateListPage />} />
+                     <Route path="/candidates/create" element={<PermissionProtectedRoute action="add_candidate"><AddCandidatePage /></PermissionProtectedRoute>} />
+                     <Route path="/candidates/edit/:id" element={<EditCandidatePage />} />
+                     <Route path="/candidates/:id" element={<CandidateDetails />} />
+ 
+                     {/* Global Search */}
+                     <Route path="/search" element={<GlobalSearchPage />} />
+ 
+                     {/* Organizations */}
+                     <Route path="/organizations" element={<OrganizationListPage />} />
+                     <Route path="/organizations/create" element={<PermissionProtectedRoute action="add_organization"><OrganizationCreatePage /></PermissionProtectedRoute>} />
+                     <Route path="/organizations/edit/:id" element={<OrganizationEditPage />} />
+ 
+                     {/* Employees */}
+                     <Route path="/employees" element={<EmployeeListPage />} />
+                     <Route path="/employees/create" element={<PermissionProtectedRoute action="add_employee"><AddEmployeePage /></PermissionProtectedRoute>} />
+                     <Route path="/employees/edit/:id" element={<EditEmployeePage />} />
 
                     {/* Settings */}
                     <Route path="/settings" element={<SettingsPage />} />

@@ -154,6 +154,8 @@ def list_jobs(
     end_date: Optional[date] = Query(None, description="Filter jobs up to this date (YYYY-MM-DD)"),
     status_filter: Optional[str] = Query(None, alias="status", description="Filter by status: ACTIVE, CLOSED, ON_HOLD"),
     business_unit: Optional[str] = Query(None, description="Filter by IT, ITSM, BPO"),
+    assigned_to: Optional[str] = Query(None, description="Filter by assigned recruiter name"),
+    created_by: Optional[str] = Query(None, description="Filter by creator name"),
     sort_by: Optional[str] = Query(None, description="Field to sort by"),
     sort_order: Optional[str] = Query("desc", description="Sort order (asc or desc)"),
     skip: int = Query(0, description="Pagination skip"),
@@ -173,6 +175,8 @@ def list_jobs(
             end_date=end_date,
             status=status_filter,
             business_unit=business_unit,
+            assigned_to=assigned_to,
+            created_by=created_by,
             sort_by=sort_by,
             sort_order=sort_order,
             skip=skip,
@@ -537,16 +541,32 @@ def get_job_stats(job_id: int, db: Session = Depends(get_db)):
         for mapping in mappings:
             mapping_status = (mapping.status or "").strip().lower()
             
-            # "matched" is treated as shortlisted in the new workflow
-            if mapping_status in ["shortlisted", "shortlist", "matched"]:
+            # Shortlisted (any status except Matched)
+            if mapping_status != "matched":
                 cand_shortlisted += 1
-            elif mapping_status in ["interview scheduled", "interview selected", "interview completed", "interviewing"]:
+                
+            # Interview Selected/Interviewing (includes interview selected, interview rejected, candidate approved, joined, and older variants)
+            if mapping_status in [
+                "interview selected", 
+                "interview rejected", 
+                "candidate approved", 
+                "joined",
+                "interview scheduled",
+                "interview completed",
+                "interviewing"
+            ]:
                 cand_interviewing += 1
-            elif mapping_status in ["selected", "candidate approved"]:
+                
+            # Candidate Approved (includes approved, joined, and older variants)
+            if mapping_status in ["candidate approved", "joined", "selected"]:
                 cand_approved += 1
-            elif mapping_status in ["rejected", "interview rejected", "candidate rejected"]:
+                
+            # Rejected (includes interview rejected, candidate rejected, and older variants)
+            if mapping_status in ["interview rejected", "candidate rejected", "rejected"]:
                 cand_rejected += 1
-            elif mapping_status == "joined":
+                
+            # Joined
+            if mapping_status == "joined":
                 cand_joined += 1
 
         stats_data = {

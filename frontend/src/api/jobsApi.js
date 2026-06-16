@@ -54,6 +54,7 @@ const mapToFrontend = (dbRecord) => {
     numberOfCandidates: requirements.reduce((sum, r) => sum + r.number_of_open_positions, 0),
     experience: requirements.map(r => r.experience).join(', '),
     assignedTo: dbRecord.assigned_to || '',
+    createdBy: dbRecord.created_by || '',
     created_at: dbRecord.created_at,
     updated_at: dbRecord.updated_at,
   };
@@ -86,7 +87,7 @@ const mapToBackend = (formData) => {
       job_description: req.jobDescription || null
     })),
     assigned_to: formData.assignedTo,
-
+    created_by: formData.createdBy || null,
   };
 };
 
@@ -105,6 +106,8 @@ export const fetchJobs = async (params = {}) => {
   }
   if (params.sortField) queryParams.sort_by = params.sortField;
   if (params.sortOrder) queryParams.sort_order = params.sortOrder;
+  if (params.assignedTo) queryParams.assigned_to = params.assignedTo;
+  if (params.createdBy) queryParams.created_by = params.createdBy;
 
   const response = await api.get('/jobs', { params: queryParams });
 

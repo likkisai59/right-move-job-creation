@@ -694,6 +694,15 @@ def update_selection_details(
             if not update_data.get("remarks") and not mapping.remarks: missing.append("Remarks")
             if missing:
                 return JSONResponse(status_code=400, content=error_response(f"Mandatory fields missing for Joined: {', '.join(missing)}"))
+            
+            # Check if this candidate is already joined to another job requirement
+            already_joined = db.query(JobCandidateMapping).filter(
+                JobCandidateMapping.candidate_id == candidate_id,
+                JobCandidateMapping.status == "Joined",
+                JobCandidateMapping.id != mapping_id
+            ).first()
+            if already_joined:
+                return JSONResponse(status_code=400, content=error_response("already joined"))
         elif check_status == "Candidate Rejected":
             if not update_data.get("rejection_date") and not mapping.rejection_date:
                 return JSONResponse(status_code=400, content=error_response("Rejection Date is mandatory for Candidate Rejected status"))
@@ -730,6 +739,66 @@ def update_selection_details(
                 remarks=update_data.get("remarks") or update_data.get("recruiter_notes") or update_data.get("tl_notes") or ""
             )
             db.add(history)
+
+            # Decrement open positions on Joined status
+            if new_status == "Joined":
+                try:
+                    from app.models.job_requirement import JobRequirement
+                    from app.models.candidate import Candidate
+                    
+                    candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+                    requirements = db.query(JobRequirement).filter(
+                        JobRequirement.job_id == mapping.job_id,
+                        JobRequirement.status == "ACTIVE"
+                    ).all()
+                    
+                    if not requirements:
+                        requirements = db.query(JobRequirement).filter(
+                            JobRequirement.job_id == mapping.job_id
+                        ).all()
+                        
+                    if requirements:
+                        selected_req = None
+                        
+                        # Match by title if multiple requirements
+                        if len(requirements) > 1 and candidate:
+                            cand_des = (candidate.current_designation or "").lower().strip()
+                            if cand_des:
+                                for req in requirements:
+                                    req_title = (req.job_title or "").lower().strip()
+                                    if req_title and (req_title in cand_des or cand_des in req_title) and req.number_of_open_positions > 0:
+                                        selected_req = req
+                                        break
+                                        
+                        # Match by skills if still not found
+                        if not selected_req and len(requirements) > 1 and candidate:
+                            cand_skills = set(s.strip().lower() for s in (candidate.skills or "").split(",") if s.strip())
+                            best_match_count = 0
+                            for req in requirements:
+                                if req.number_of_open_positions > 0:
+                                    req_skills = set(s.strip().lower() for s in (req.mandatory_skill or "").split(",") if s.strip())
+                                    common = cand_skills & req_skills
+                                    if len(common) > best_match_count:
+                                        best_match_count = len(common)
+                                        selected_req = req
+                                        
+                        # Fallback to first active requirement with remaining spots
+                        if not selected_req:
+                            for req in requirements:
+                                if req.number_of_open_positions > 0:
+                                    selected_req = req
+                                    break
+                                    
+                        # Ultimate fallback to the first requirement
+                        if not selected_req:
+                            selected_req = requirements[0]
+                            
+                        if selected_req.number_of_open_positions > 0:
+                            selected_req.number_of_open_positions -= 1
+                            logger.info(f"Decremented open positions for JobRequirement {selected_req.id} (Title: {selected_req.job_title}). New count: {selected_req.number_of_open_positions}")
+                            db.add(selected_req)
+                except Exception as req_exc:
+                    logger.error(f"Error decrementing open positions for mapping {mapping_id}: {req_exc}", exc_info=True)
 
         db.commit()
         db.refresh(mapping)
@@ -770,21 +839,28 @@ def get_dashboard_analytics(
         total_jobs = jobs_query.count()
         total_candidates = candidates_query.count()
 
-        # Total Openings (sum of open positions on requirements)
-        total_openings_res = requirements_query.with_entities(func.sum(JobRequirement.number_of_open_positions)).scalar()
-        total_openings = int(total_openings_res) if total_openings_res is not None else 0
-
         # Filled Positions = mappings with status 'Joined'
         filled_positions = mappings_query.filter(JobCandidateMapping.status == "Joined").count()
 
-        # Available Openings = Total Openings - Filled Positions
-        available_openings = max(0, total_openings - filled_positions)
+        # Total Openings (sum of open positions on requirements)
+        current_openings_res = requirements_query.with_entities(func.sum(JobRequirement.number_of_open_positions)).scalar()
+        current_openings = int(current_openings_res) if current_openings_res is not None else 0
 
-        # Pipeline stage counts
-        shortlisted_count = mappings_query.filter(JobCandidateMapping.status == "Shortlisted").count()
-        interview_selected_count = mappings_query.filter(JobCandidateMapping.status == "Interview Selected").count()
+        # Available Openings = remaining open positions to fill
+        available_openings = current_openings
+
+        # Total Openings (original target vacancies) = remaining open positions + filled positions
+        total_openings = current_openings + filled_positions
+
+        # Pipeline stage counts (cumulative)
+        shortlisted_count = mappings_query.filter(JobCandidateMapping.status != "Matched").count()
+        interview_selected_count = mappings_query.filter(
+            JobCandidateMapping.status.in_(["Interview Selected", "Interview Rejected", "Candidate Approved", "Joined"])
+        ).count()
         interview_rejected_count = mappings_query.filter(JobCandidateMapping.status == "Interview Rejected").count()
-        approved_count = mappings_query.filter(JobCandidateMapping.status == "Candidate Approved").count()
+        approved_count = mappings_query.filter(
+            JobCandidateMapping.status.in_(["Candidate Approved", "Joined"])
+        ).count()
         candidate_rejected_count = mappings_query.filter(JobCandidateMapping.status == "Candidate Rejected").count()
         joined_count = filled_positions # Joined candidates
         rejected_count = mappings_query.filter(

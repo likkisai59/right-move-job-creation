@@ -6,6 +6,7 @@ import Button from '../../components/common/Button';
 import CandidateTable from '../../components/candidates/CandidateTable';
 import CandidateFilters from '../../components/candidates/CandidateFilters';
 import { fetchCandidates, deleteCandidate } from '../../api/candidatesApi';
+import { checkPermission } from '../../api/authApi';
 
 const CandidateListPage = () => {
   const navigate = useNavigate();
@@ -147,9 +148,11 @@ const CandidateListPage = () => {
             )}
           </div>
 
-          <Button icon={UserPlus} onClick={() => navigate('/candidates/create')}>
-            Add Candidate
-          </Button>
+          {checkPermission('add_candidate') && (
+            <Button icon={UserPlus} onClick={() => navigate('/candidates/create')}>
+              Add Candidate
+            </Button>
+          )}
         </div>
       }
     >
@@ -164,9 +167,9 @@ const CandidateListPage = () => {
         </div>
 
         {/* Table */}
-        <CandidateTable 
-          candidates={candidates} 
-          loading={loading} 
+        <CandidateTable
+          candidates={candidates}
+          loading={loading}
           onDelete={handleDeleteCandidate}
         />
       </div>

@@ -355,6 +355,7 @@ const JobDetailsPage = () => {
               processingId={processingId}
               tab="matching"
               jobId={parseInt(id)}
+              assignedTo={job?.assignedTo}
             />
           ) : (
             <MatchingCandidatesTable
@@ -362,6 +363,7 @@ const JobDetailsPage = () => {
               processingId={processingId}
               tab="shortlisted"
               jobId={parseInt(id)}
+              assignedTo={job?.assignedTo}
               onRefresh={async () => {
                 try {
                   const res = await fetchShortlistedCandidates(id);

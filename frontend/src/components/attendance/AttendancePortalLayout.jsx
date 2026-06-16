@@ -1,13 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import {
   LogOut, CalendarCheck,
-  ClipboardList, PieChart, UserCircle, ArrowLeft, CheckSquare
+  ClipboardList, PieChart, UserCircle, ArrowLeft, CheckSquare, Clock, Briefcase
 } from 'lucide-react';
+import { FEATURE_FLAGS } from '../../config/features';
 
 const AttendancePortalLayout = () => {
   const navigate = useNavigate();
   const employee = JSON.parse(localStorage.getItem('employee_data') || '{}');
+  const [showToast, setShowToast] = useState(false);
+
+  const handleComingSoon = () => {
+    setShowToast(true);
+  };
+
+  useEffect(() => {
+    if (showToast) {
+      const timer = setTimeout(() => {
+        setShowToast(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showToast]);
 
   const handleSignOut = () => {
     localStorage.removeItem('employee_token');
@@ -25,9 +40,15 @@ const AttendancePortalLayout = () => {
   };
 
   const navItems = [
-    { name: 'Attendance Marking', path: '/attendance/portal/mark', icon: CalendarCheck },
+    { name: 'Assigned Tasks', path: '/attendance/portal/tasks', icon: Briefcase },
     { name: 'Leave Management', path: '/attendance/portal/leaves', icon: ClipboardList },
     { name: 'Attendance Status', path: '/attendance/portal/status', icon: PieChart },
+    {
+      name: 'Attendance Marking',
+      path: '/attendance/portal/mark',
+      icon: CalendarCheck,
+      disabled: !FEATURE_FLAGS.enableAttendanceMarking
+    },
   ];
 
   if (isManager(employee)) {
@@ -52,21 +73,36 @@ const AttendancePortalLayout = () => {
 
           {/* Nav Links */}
           <nav className="hidden lg:flex items-center gap-1">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) => `
-                  flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
-                  ${isActive
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}
-                `}
-              >
-                <item.icon size={16} />
-                {item.name}
-              </NavLink>
-            ))}
+            {navItems.map((item) => {
+              if (item.disabled) {
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={handleComingSoon}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all text-gray-300 opacity-60 hover:bg-transparent"
+                  >
+                    <item.icon size={16} />
+                    {item.name}
+                  </NavLink>
+                );
+              }
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) => `
+                    flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
+                    ${isActive
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}
+                  `}
+                >
+                  <item.icon size={16} />
+                  {item.name}
+                </NavLink>
+              );
+            })}
           </nav>
 
           {/* User & Signout */}
@@ -94,21 +130,38 @@ const AttendancePortalLayout = () => {
 
       {/* ── MOBILE NAVBAR (Bottom) ── */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 h-16 flex items-center justify-around px-2 z-50">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) => `
-              flex flex-col items-center gap-1 p-2 rounded-lg transition-all
-              ${isActive ? 'text-blue-600' : 'text-gray-400'}
-            `}
-          >
-            <item.icon size={20} />
-            <span className="text-[10px] font-bold truncate max-w-[70px]">
-              {item.name.split(' ')[0]}
-            </span>
-          </NavLink>
-        ))}
+        {navItems.map((item) => {
+          if (item.disabled) {
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={handleComingSoon}
+                className="flex flex-col items-center gap-1 p-2 rounded-lg transition-all text-gray-300 opacity-60"
+              >
+                <item.icon size={20} />
+                <span className="text-[10px] font-bold truncate max-w-[70px]">
+                  {item.name.split(' ')[0]}
+                </span>
+              </NavLink>
+            );
+          }
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) => `
+                flex flex-col items-center gap-1 p-2 rounded-lg transition-all
+                ${isActive ? 'text-blue-600' : 'text-gray-400'}
+              `}
+            >
+              <item.icon size={20} />
+              <span className="text-[10px] font-bold truncate max-w-[70px]">
+                {item.name.split(' ')[0]}
+              </span>
+            </NavLink>
+          );
+        })}
       </nav>
 
       {/* ── MAIN CONTENT ── */}
@@ -155,6 +208,14 @@ const AttendancePortalLayout = () => {
         {/* Page Content */}
         <Outlet />
       </main>
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed bottom-20 md:bottom-6 right-6 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-xl z-50 flex items-center gap-2.5 animate-fade-in border border-gray-800 text-xs font-bold">
+          <Clock size={16} className="text-amber-400 animate-pulse" />
+          <span>Attendance Marking is coming soon!</span>
+        </div>
+      )}
     </div>
   );
 };

@@ -7,6 +7,7 @@ import JobTable from '../../components/jobs/JobTable';
 import JobFilters from '../../components/jobs/JobFilters';
 import { fetchJobs } from '../../api/jobsApi';
 import JobStatsModal from '../../components/jobs/JobStatsModal';
+import { checkPermission } from '../../api/authApi';
 
 const JobListPage = () => {
   const navigate = useNavigate();
@@ -141,12 +142,14 @@ const JobListPage = () => {
           </div>
 
           {/* Create Job Button */}
-          <Button
-            icon={Plus}
-            onClick={() => navigate('/jobs/create')}
-          >
-            Create Job
-          </Button>
+          {checkPermission('add_job') && (
+            <Button
+              icon={Plus}
+              onClick={() => navigate('/jobs/create')}
+            >
+              Create Job
+            </Button>
+          )}
         </div>
       }
     >
