@@ -20,8 +20,9 @@ class AttendanceCreate(AttendanceBase):
 class AttendanceResponse(AttendanceBase):
     id: int
     employee_id: int
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 # ── Leave ─────────────────────────────────────────────────────
 class LeaveBase(BaseModel):
@@ -38,8 +39,9 @@ class LeaveResponse(LeaveBase):
     employee_id: int
     status: str
     approved_by: Optional[str] = None
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 # ── Approvals & Team Management ───────────────────────────────
 class LeaveActionRequest(BaseModel):
@@ -57,8 +59,9 @@ class TeamLeaveResponse(BaseModel):
     reason: Optional[str] = None
     status: str
     approved_by: Optional[str] = None
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 class TeamDailyAttendance(BaseModel):
     id: Optional[int] = None
@@ -66,8 +69,9 @@ class TeamDailyAttendance(BaseModel):
     first_half_status: str
     second_half_status: str
     work_mode: str
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 class TeamMemberAttendanceResponse(BaseModel):
     employee_id: int
@@ -75,8 +79,9 @@ class TeamMemberAttendanceResponse(BaseModel):
     employee_name: str
     designation: str
     attendance: List[TeamDailyAttendance]
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 # ── Designation leaves & holiday config schemas ────────────────
 class DesignationLeaveUpdateItem(BaseModel):

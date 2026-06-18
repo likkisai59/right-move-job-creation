@@ -47,7 +47,7 @@ def mark_employee_attendance(db: Session, employee_id: int, payload: AttendanceC
         
     new_record = Attendance(
         employee_id=employee_id,
-        **payload.dict()
+        **payload.model_dump()
     )
     db.add(new_record)
     db.commit()
@@ -71,7 +71,7 @@ def create_leave_request(db: Session, payload: LeaveCreate) -> Leave:
     """
     Apply for a new leave request.
     """
-    new_leave = Leave(**payload.dict())
+    new_leave = Leave(**payload.model_dump())
     db.add(new_leave)
     db.commit()
     db.refresh(new_leave)

@@ -82,6 +82,17 @@ class SelectionDetailsResponse(BaseModel):
     job_id: int
     candidate_id: int
     match_score: Optional[int] = None
+
+    @field_validator('match_score', mode='before')
+    @classmethod
+    def coerce_match_score(cls, v):
+        if v is not None:
+            try:
+                return round(float(v))
+            except (ValueError, TypeError):
+                return v
+        return v
+
     status: str
     interview_date: Optional[date] = None
     approval_date: Optional[date] = None
