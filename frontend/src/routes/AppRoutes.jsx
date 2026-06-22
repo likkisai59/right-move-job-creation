@@ -20,6 +20,7 @@ import AddEmployeePage from '../pages/employees/AddEmployeePage';
 import EditEmployeePage from '../pages/employees/EditEmployeePage';
 import SettingsPage from '../pages/SettingsPage';
 import LoginPage from '../pages/LoginPage';
+import AccountsPage from '../pages/accounts/AccountsPage';
 import { isAuthenticated, checkPermission } from '../api/authApi';
 
 // ── Attendance Portal Imports ────────────────────────────────
@@ -150,6 +151,9 @@ const AppRoutes = () => {
                      <Route path="/employees" element={<EmployeeListPage />} />
                      <Route path="/employees/create" element={<PermissionProtectedRoute action="add_employee"><AddEmployeePage /></PermissionProtectedRoute>} />
                      <Route path="/employees/edit/:id" element={<EditEmployeePage />} />
+
+                     {/* Accounts */}
+                     <Route path="/accounts" element={<AccountsPage />} />
 
                     {/* Settings */}
                     <Route path="/settings" element={<SettingsPage />} />

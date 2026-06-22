@@ -20,6 +20,7 @@ const NAV_ITEMS = [
   { label: 'Organizations', path: '/organizations', icon: Building2 },
   { label: 'Employees', path: '/employees', icon: UserCheck },
   { label: 'RMEP', path: '/attendance/portal', icon: CalendarCheck },
+  { label: 'Accounts', path: '/accounts', icon: UserCheck },
   { label: 'Settings', path: '/settings', icon: Settings },
 ];
 
