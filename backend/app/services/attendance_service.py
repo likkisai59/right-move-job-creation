@@ -71,7 +71,13 @@ def create_leave_request(db: Session, payload: LeaveCreate) -> Leave:
     """
     Apply for a new leave request.
     """
-    new_leave = Leave(**payload.model_dump())
+    # Calculate duration in days
+    num_days = float((payload.end_date - payload.start_date).days + 1)
+    
+    new_leave = Leave(
+        **payload.model_dump(),
+        total_leaves=num_days
+    )
     db.add(new_leave)
     db.commit()
     db.refresh(new_leave)
@@ -116,9 +122,28 @@ def get_leaves_for_approval(db: Session, manager_name: str) -> List[dict]:
             "end_date": leave.end_date,
             "reason": leave.reason,
             "status": leave.status,
-            "approved_by": leave.approved_by
+            "approved_by": leave.approved_by,
+            "total_leaves": leave.total_leaves
         })
     return result
+
+def sync_employee_unpaid_leaves(db: Session, employee_id: int):
+    """
+    Synchronize the sum of approved unpaid leaves with the employee's Account model total_leaves.
+    """
+    from sqlalchemy import func
+    from app.models.account import Account
+    
+    total_unpaid = db.query(func.sum(Leave.total_leaves)).filter(
+        Leave.employee_id == employee_id,
+        Leave.status == "Approved",
+        Leave.leave_type.ilike("%unpaid%")
+    ).scalar() or 0.0
+    
+    account = db.query(Account).filter(Account.employee_id == employee_id).first()
+    if account:
+        account.total_leaves = total_unpaid
+        db.commit()
 
 def action_leave_request(db: Session, leave_id: int, status: str, manager_name: str) -> Optional[Leave]:
     """
@@ -131,6 +156,10 @@ def action_leave_request(db: Session, leave_id: int, status: str, manager_name: 
     leave.approved_by = manager_name
     db.commit()
     db.refresh(leave)
+    
+    # Sync unpaid leaves to Account model total_leaves
+    sync_employee_unpaid_leaves(db, leave.employee_id)
+    
     return leave
 
 def get_team_attendance(db: Session, manager_name: str) -> List[dict]:

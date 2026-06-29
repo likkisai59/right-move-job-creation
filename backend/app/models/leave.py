@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Float
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -16,6 +16,7 @@ class Leave(Base):
     reason = Column(String(500), nullable=True)
     status = Column(String(20), default="Pending") # Pending, Approved, Rejected
     approved_by = Column(String(100), nullable=True) # Manager or Admin name
+    total_leaves = Column(Float, default=0.0, nullable=False)
 
     # Relationship back to employee
     employee = relationship("Employee", back_populates="leave_records")

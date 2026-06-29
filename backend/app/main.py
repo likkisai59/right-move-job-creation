@@ -36,6 +36,7 @@ from app.models import designation  # noqa: F401
 from app.models import business_unit  # noqa: F401
 from app.models import work_mode  # noqa: F401
 from app.models import exit_type  # noqa: F401
+from app.models import account
 
 # Import routers
 from app.routes import jobs
@@ -48,6 +49,7 @@ from app.routes import designation as designation_router
 from app.routes import business_unit as business_unit_router
 from app.routes import work_mode as work_mode_router
 from app.routes import exit_type as exit_type_router
+from app.routes import accounts as accounts_router
 
 # ── Lifespan: runs once on startup ────────────────────────────
 @asynccontextmanager
@@ -156,6 +158,7 @@ app.include_router(designation_router.router)
 app.include_router(business_unit_router.router)
 app.include_router(work_mode_router.router)
 app.include_router(exit_type_router.router)
+app.include_router(accounts_router.router)
 
 # ── Static Files ──────────────────────────────────────────────
 # Ensure uploads directory exists

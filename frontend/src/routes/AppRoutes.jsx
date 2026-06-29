@@ -21,6 +21,7 @@ import EditEmployeePage from '../pages/employees/EditEmployeePage';
 import SettingsPage from '../pages/SettingsPage';
 import LoginPage from '../pages/LoginPage';
 import AccountsPage from '../pages/accounts/AccountsPage';
+import EditAccountPage from '../pages/accounts/EditAccountPage';
 import { isAuthenticated, checkPermission } from '../api/authApi';
 
 // ── Attendance Portal Imports ────────────────────────────────
@@ -154,6 +155,7 @@ const AppRoutes = () => {
 
                      {/* Accounts */}
                      <Route path="/accounts" element={<AccountsPage />} />
+                     <Route path="/accounts/edit/:employeeId" element={<EditAccountPage />} />
 
                     {/* Settings */}
                     <Route path="/settings" element={<SettingsPage />} />

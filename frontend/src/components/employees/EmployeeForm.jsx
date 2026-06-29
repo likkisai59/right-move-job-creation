@@ -423,11 +423,18 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
       'aadharNumber', 'aadharUrl', 'panNumber', 'panUrl',
       'marksheet10thUrl', 'marksheet12thUrl', 'marksheetGraduationUrl', 'photoUrl',
       'dateOfJoining', 'resumeUrl', 'designation', 'assignedBusinessUnit',
-      'reportingDesignation', 'reportingTo', 'workMode', 'ctc', 'compliance',
+      'workMode', 'ctc', 'compliance',
       'bankName', 'bankAccountNumber', 'bankIfscCode'
     ];
     if (currentStatus === 'Inactive') {
       hrMandatoryFields.push('lastWorkingDate');
+    }
+    
+    // Reporting details are not required if designation is "Director"
+    const selectedDes = formValues.designation;
+    if (!selectedDes || selectedDes.toLowerCase().trim() !== 'director') {
+      hrMandatoryFields.push('reportingDesignation');
+      hrMandatoryFields.push('reportingTo');
     }
 
     return hrMandatoryFields.every(field => {

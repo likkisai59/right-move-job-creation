@@ -5,3 +5,4 @@ from .candidate import Candidate
 from .job_candidate import JobCandidateMapping
 from .attendance import Attendance
 from .leave import Leave
+from .account import Account

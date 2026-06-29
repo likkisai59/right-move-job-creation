@@ -129,6 +129,11 @@ const LeaveManagement = () => {
     return acc + calculateDays(leave.start_date, leave.end_date);
   }, 0);
 
+  const approvedUnpaidLeaves = leaves.filter(l => l.status === 'Approved' && l.leave_type.toLowerCase().includes('unpaid'));
+  const totalUnpaidLeaves = approvedUnpaidLeaves.reduce((acc, leave) => {
+    return acc + calculateDays(leave.start_date, leave.end_date);
+  }, 0);
+
   const pendingLeavesCount = leaves.filter(l => l.status === 'Pending').length;
   const availableBalance = Math.max(0, annualQuota - totalApprovedDays);
 
@@ -157,10 +162,11 @@ const LeaveManagement = () => {
       )}
 
       {/* Summary Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {[
           { label: 'Annual Leave Quota', val: annualQuota, color: 'blue' },
           { label: 'Leaves Taken (Approved)', val: approvedLeaves.length, color: 'rose' },
+          { label: 'Total Unpaid Leaves', val: totalUnpaidLeaves, color: 'red' },
           { label: 'Pending Requests', val: pendingLeavesCount, color: 'amber' },
           { label: 'Available Balance', val: availableBalance, color: 'emerald' },
         ].map(item => (
