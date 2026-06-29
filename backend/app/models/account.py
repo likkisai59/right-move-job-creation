@@ -27,7 +27,10 @@ class Account(Base):
     total_net_payable_salary = Column(Integer, default=0, nullable=False)
     gross_salary = Column(Integer, default=0, nullable=False)
     pf = Column(Float, default=0.0, nullable=False)
-    tdf = Column(Float, default=0.0, nullable=False)
+    tds = Column(Float, default=0.0, nullable=False)
+    additional_incentive = Column(Integer, default=0, nullable=False)
+    incentive_deducted = Column(Integer, default=0, nullable=False)
+    loan_deducted = Column(Integer, default=0, nullable=False)
     total_gross_salary = Column(Integer, default=0, nullable=False)
 
     # Relationship to Employee

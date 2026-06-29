@@ -4,7 +4,7 @@ import { ArrowLeft, Save } from 'lucide-react';
 import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
 import { fetchEmployeeById } from '../../api/employeesApi';
-import { createAccount, updateAccount, fetchAccounts } from '../../api/accountsApi';
+import { createAccount, updateAccount, fetchAccounts, fetchPayrollConfig } from '../../api/accountsApi';
 
 const EditAccountPage = () => {
   const navigate = useNavigate();
@@ -15,6 +15,7 @@ const EditAccountPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [config, setConfig] = useState({ pf_percentage: 12.0, tds_percentage: 10.0 });
 
   const [formData, setFormData] = useState({
     basic_pay: 0,
@@ -31,7 +32,10 @@ const EditAccountPage = () => {
     total_net_payable_salary: 0,
     gross_salary: 0,
     pf: 0.0,
-    tdf: 0.0,
+    tds: 0.0,
+    additional_incentive: 0,
+    incentive_deducted: 0,
+    loan_deducted: 0,
     total_gross_salary: 0,
   });
 
@@ -42,14 +46,28 @@ const EditAccountPage = () => {
       try {
         // 1. Fetch employee details to show name & code
         const empRes = await fetchEmployeeById(employeeId);
+        let employeeData = null;
         if (empRes.success) {
           setEmployee(empRes.data);
+          employeeData = empRes.data;
         } else {
           setError('Failed to fetch employee details.');
           return;
         }
 
-        // 2. Fetch all accounts and find if there is an existing record
+        // 2. Fetch payroll config
+        let currentConfig = { pf_percentage: 12.0, tds_percentage: 10.0 };
+        try {
+          const configRes = await fetchPayrollConfig();
+          if (configRes) {
+            setConfig(configRes);
+            currentConfig = configRes;
+          }
+        } catch (confErr) {
+          console.error('Failed to load payroll configuration:', confErr);
+        }
+
+        // 3. Fetch all accounts and find if there is an existing record
         // (This is safer than calling direct fetch by employee ID which throws 404 when missing)
         const accountsData = await fetchAccounts();
         const existing = accountsData.find((acc) => acc.employee_id === parseInt(employeeId, 10));
@@ -57,6 +75,24 @@ const EditAccountPage = () => {
         if (existing) {
           setHasAccount(existing.id !== null);
           const basicPayVal = existing.basic_pay || 0;
+          const hraVal = existing.hra || 0;
+          const totalPay = basicPayVal + hraVal;
+          const comp = employeeData?.compliance;
+          
+          let calculatedPf = existing.pf;
+          let calculatedTds = existing.tds;
+          
+          if (comp === 'PF') {
+            calculatedPf = parseFloat((totalPay * (currentConfig.pf_percentage / 100.0)).toFixed(2));
+            calculatedTds = 0.0;
+          } else if (comp === 'TDS') {
+            calculatedPf = 0.0;
+            calculatedTds = parseFloat((totalPay * (currentConfig.tds_percentage / 100.0)).toFixed(2));
+          } else {
+            calculatedPf = 0.0;
+            calculatedTds = 0.0;
+          }
+
           const totalLeavesVal = existing.total_leaves || 0.0;
           const calculatedLd = Math.floor(basicPayVal / 30) * totalLeavesVal;
           const calculatedNetPayable = basicPayVal - calculatedLd;
@@ -64,10 +100,11 @@ const EditAccountPage = () => {
           const calculatedTotalNetPayable = calculatedNetPayable + incentivesVal;
           const deductionVal = existing.deduction_amount || 0;
           const calculatedGross = calculatedTotalNetPayable - deductionVal;
+          const calculatedTotalGross = Math.floor(calculatedGross - calculatedPf - calculatedTds);
 
           setFormData({
             basic_pay: basicPayVal,
-            hra: existing.hra || 0,
+            hra: hraVal,
             loan_amount: existing.loan_amount || 0,
             client_incentive: existing.client_incentive || 0,
             deduction_amount: deductionVal,
@@ -79,12 +116,23 @@ const EditAccountPage = () => {
             client_total: existing.client_total || 0,
             total_net_payable_salary: calculatedTotalNetPayable,
             gross_salary: calculatedGross,
-            pf: existing.pf || 0.0,
-            tdf: existing.tdf || 0.0,
-            total_gross_salary: existing.total_gross_salary || 0,
+            pf: calculatedPf,
+            tds: calculatedTds,
+            additional_incentive: existing.additional_incentive || 0,
+            incentive_deducted: existing.incentive_deducted || 0,
+            loan_deducted: existing.loan_deducted || 0,
+            total_gross_salary: calculatedTotalGross,
           });
         } else {
           setHasAccount(false);
+          // Pre-populate with default 0 calculations based on compliance
+          const comp = employeeData?.compliance;
+          setFormData((prev) => ({
+            ...prev,
+            pf: 0.0,
+            tds: 0.0,
+            total_gross_salary: 0,
+          }));
         }
       } catch (err) {
         console.error('Error loading account configuration:', err);
@@ -102,7 +150,7 @@ const EditAccountPage = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => {
-      const parsedValue = value === '' ? '' : (['total_leaves', 'pf', 'tdf'].includes(name) ? parseFloat(value) || 0.0 : parseInt(value, 10) || 0);
+      const parsedValue = value === '' ? '' : (['total_leaves', 'pf', 'tds'].includes(name) ? parseFloat(value) || 0.0 : parseInt(value, 10) || 0);
       const updated = {
         ...prev,
         [name]: parsedValue,
@@ -128,6 +176,27 @@ const EditAccountPage = () => {
         : (prev.deduction_amount || 0);
       updated.gross_salary = updated.total_net_payable_salary - deductionVal;
 
+      // 4. Calculate PF and TDS based on compliance and basic/hra changes
+      const hraVal = name === 'hra' 
+        ? (parsedValue === '' ? 0 : parsedValue) 
+        : (prev.hra || 0);
+      const totalPay = basicPayVal + hraVal;
+      const comp = employee?.compliance;
+
+      if (comp === 'PF') {
+        updated.pf = parseFloat((totalPay * (config.pf_percentage / 100.0)).toFixed(2));
+        updated.tds = 0.0;
+      } else if (comp === 'TDS') {
+        updated.pf = 0.0;
+        updated.tds = parseFloat((totalPay * (config.tds_percentage / 100.0)).toFixed(2));
+      } else {
+        updated.pf = 0.0;
+        updated.tds = 0.0;
+      }
+
+      // 5. total_gross_salary = gross_salary - pf - tds
+      updated.total_gross_salary = Math.floor(updated.gross_salary - updated.pf - updated.tds);
+
       return updated;
     });
   };
@@ -139,7 +208,7 @@ const EditAccountPage = () => {
     // Convert empty string values to default numeric values
     const sanitizedData = Object.keys(formData).reduce((acc, key) => {
       const val = formData[key];
-      acc[key] = val === '' ? (['total_leaves', 'pf', 'tdf'].includes(key) ? 0.0 : 0) : val;
+      acc[key] = val === '' ? (['total_leaves', 'pf', 'tds'].includes(key) ? 0.0 : 0) : val;
       return acc;
     }, {});
 
@@ -281,31 +350,43 @@ const EditAccountPage = () => {
             </div>
 
 
-            {/* PF */}
+
+            {/* Additional Incentive */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">PF</label>
+              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Additional Incentive</label>
               <input
                 type="number"
-                step="0.01"
-                name="pf"
-                value={formData.pf}
+                name="additional_incentive"
+                value={formData.additional_incentive}
                 onChange={handleInputChange}
                 className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-                placeholder="Enter PF"
+                placeholder="Enter additional incentive"
               />
             </div>
 
-            {/* TDF */}
+            {/* Incentive Deducted */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">TDF</label>
+              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Incentive Deducted</label>
               <input
                 type="number"
-                step="0.01"
-                name="tdf"
-                value={formData.tdf}
+                name="incentive_deducted"
+                value={formData.incentive_deducted}
                 onChange={handleInputChange}
                 className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-                placeholder="Enter TDF"
+                placeholder="Enter incentive deducted"
+              />
+            </div>
+
+            {/* Loan Deducted */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Loan Deducted</label>
+              <input
+                type="number"
+                name="loan_deducted"
+                value={formData.loan_deducted}
+                onChange={handleInputChange}
+                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                placeholder="Enter loan deducted"
               />
             </div>
           </div>

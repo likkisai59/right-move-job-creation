@@ -190,7 +190,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
           label="Organization"
           required
           placeholder="Select Organization"
-          options={organizations.map(o => ({ value: o.id, label: o.organization_name }))}
+          options={organizations.map(o => ({ value: o.id, label: o.location ? `${o.organization_name} - ${o.location}` : o.organization_name }))}
           value={watch('organizationId')}
           onChange={(val) => {
             setValue('organizationId', val, { shouldValidate: true });

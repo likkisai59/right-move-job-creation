@@ -15,6 +15,11 @@ class OrganizationCreate(BaseModel):
     poc_country_code: Optional[str] = Field(None)
     poc_contact: Optional[str] = Field(None, pattern=r'^\d*$')
     poc_email_id: Optional[str] = None
+    location: Optional[str] = None
+    gst_number: Optional[str] = None
+    cgst: Optional[float] = 0.0
+    sgst: Optional[float] = 0.0
+    igst: Optional[float] = 0.0
 
     @field_validator("organization_name", mode="before")
     @classmethod
@@ -51,6 +56,11 @@ class OrganizationUpdate(BaseModel):
     poc_country_code: Optional[str] = Field(None)
     poc_contact: Optional[str] = Field(None, pattern=r'^\d*$')
     poc_email_id: Optional[str] = None
+    location: Optional[str] = None
+    gst_number: Optional[str] = None
+    cgst: Optional[float] = None
+    sgst: Optional[float] = None
+    igst: Optional[float] = None
 
     @model_validator(mode='after')
     def validate_dates(self) -> 'OrganizationUpdate':
@@ -75,6 +85,11 @@ class OrganizationResponse(BaseModel):
     poc_country_code: Optional[str] = None
     poc_contact: Optional[str] = None
     poc_email_id: Optional[str] = None
+    location: Optional[str] = None
+    gst_number: Optional[str] = None
+    cgst: Optional[float] = None
+    sgst: Optional[float] = None
+    igst: Optional[float] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     

@@ -23,6 +23,11 @@ class Organization(Base):
     is_active = Column(Integer, nullable=False, default=1) # Using Integer (0/1) for boolean for better compatibility or just Boolean
     band = Column(String(255), nullable=True)
     rate = Column(String(255), nullable=True)
+    location = Column(String(255), nullable=True)
+    gst_number = Column(String(50), nullable=True)
+    cgst = Column(Float, nullable=True, default=0.0)
+    sgst = Column(Float, nullable=True, default=0.0)
+    igst = Column(Float, nullable=True, default=0.0)
 
     poc_country_code = Column(String(10), nullable=True)
     poc_contact = Column(String(20), nullable=True)

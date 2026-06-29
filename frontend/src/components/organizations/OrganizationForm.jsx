@@ -51,6 +51,11 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
       poc_contact: initialData.poc_contact || '',
       poc_email_id: initialData.poc_email_id || '',
       contract_document_url: initialData.contract_document_url || '',
+      location: initialData.location || '',
+      gst_number: initialData.gst_number || '',
+      cgst: initialData.cgst !== undefined ? initialData.cgst : 0.0,
+      sgst: initialData.sgst !== undefined ? initialData.sgst : 0.0,
+      igst: initialData.igst !== undefined ? initialData.igst : 0.0,
     },
     mode: 'onChange'
   });
@@ -80,6 +85,11 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
         poc_contact: initialData.poc_contact || '',
         poc_email_id: initialData.poc_email_id || '',
         contract_document_url: initialData.contract_document_url || '',
+        location: initialData.location || '',
+        gst_number: initialData.gst_number || '',
+        cgst: initialData.cgst !== undefined ? initialData.cgst : 0.0,
+        sgst: initialData.sgst !== undefined ? initialData.sgst : 0.0,
+        igst: initialData.igst !== undefined ? initialData.igst : 0.0,
       });
     }
   }, [JSON.stringify(initialData), reset]);
@@ -187,6 +197,49 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
                   <span className="text-sm font-medium">Organization already exists</span>
                 </div>
               )}
+            </div>
+
+            {/* Location & Tax Configurations */}
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Input
+                label="Location"
+                placeholder="e.g. Bangalore, India"
+                error={errors.location?.message}
+                {...register('location')}
+              />
+              <Input
+                label="GST Number"
+                placeholder="e.g. 29AAAAA1111A1Z1"
+                error={errors.gst_number?.message}
+                {...register('gst_number')}
+              />
+            </div>
+            
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Input
+                label="CGST (%)"
+                type="number"
+                step="0.01"
+                placeholder="e.g. 9.0"
+                error={errors.cgst?.message}
+                {...register('cgst', { valueAsNumber: true })}
+              />
+              <Input
+                label="SGST (%)"
+                type="number"
+                step="0.01"
+                placeholder="e.g. 9.0"
+                error={errors.sgst?.message}
+                {...register('sgst', { valueAsNumber: true })}
+              />
+              <Input
+                label="IGST (%)"
+                type="number"
+                step="0.01"
+                placeholder="e.g. 18.0"
+                error={errors.igst?.message}
+                {...register('igst', { valueAsNumber: true })}
+              />
             </div>
 
             {/* New Fields: Contact */}

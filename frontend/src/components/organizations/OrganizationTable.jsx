@@ -42,6 +42,11 @@ const OrganizationTable = ({ organizations = [], loading = false, onCreate, onDe
         </div>
       ),
     },
+    {
+      key: 'location',
+      header: 'Location',
+      render: (val) => <span className="text-gray-600 text-sm font-medium">{val || '—'}</span>,
+    },
 
     {
       key: 'contract_signed_date',

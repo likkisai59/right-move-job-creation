@@ -1,8 +1,8 @@
 import React from 'react';
 import { Pencil, Trash2, Wallet, Calendar, FileText, AlertTriangle, CheckCircle, HelpCircle } from 'lucide-react';
-import Table from '../common/Table';
-import EmptyState from '../common/EmptyState';
-import Button from '../common/Button';
+import Table from '../../components/common/Table';
+import EmptyState from '../../components/common/EmptyState';
+import Button from '../../components/common/Button';
 
 const AccountsTable = ({ 
   activeTab = 'baseline', 

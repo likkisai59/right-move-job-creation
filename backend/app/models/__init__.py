@@ -6,3 +6,5 @@ from .job_candidate import JobCandidateMapping
 from .attendance import Attendance
 from .leave import Leave
 from .account import Account
+from .payroll_config import PayrollConfig
+from .invoice import Invoice
