@@ -47,3 +47,69 @@ export const updateInvoice = async (mappingId, invoiceData) => {
   const response = await api.put(`/accounts/invoices/${mappingId}`, invoiceData);
   return response.data;
 };
+
+// Export accounts data as Excel
+export const exportAccounts = async (params = {}) => {
+  const response = await api.get('/accounts/export', {
+    params,
+    responseType: 'blob'
+  });
+
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+
+  const contentDisposition = response.headers['content-disposition'];
+  let filename = `accounts_${params.tab || 'data'}_export.xlsx`;
+  if (contentDisposition) {
+    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+    if (filenameMatch && filenameMatch.length === 2) {
+      filename = filenameMatch[1];
+    }
+  }
+
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+};
+
+// Close current month and reset calculations
+export const closeMonth = async () => {
+  const response = await api.post('/accounts/close-month');
+  return response.data;
+};
+
+// Fetch list of historically closed months
+export const fetchHistoryMonths = async () => {
+  const response = await api.get('/accounts/history/months');
+  return response.data;
+};
+
+// Export a past month's payroll history as Excel
+export const exportHistory = async (month) => {
+  const response = await api.get('/accounts/history/export', {
+    params: { month },
+    responseType: 'blob'
+  });
+
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+
+  const contentDisposition = response.headers['content-disposition'];
+  let filename = `payroll_history_${month.replace(/\s+/g, '_')}.xlsx`;
+  if (contentDisposition) {
+    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+    if (filenameMatch && filenameMatch.length === 2) {
+      filename = filenameMatch[1];
+    }
+  }
+
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+};

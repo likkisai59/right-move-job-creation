@@ -51,6 +51,7 @@ def serialize_employee(emp: Employee) -> dict:
         "completion_percentage_admin": emp.completion_percentage_admin,
         "employee_password": emp.employee_password,
         "last_working_date": str(emp.last_working_date) if emp.last_working_date else None,
+        "date": str(emp.date) if emp.date else None,
         
         # Additional fields
         "date_of_birth": str(emp.date_of_birth) if emp.date_of_birth else None,

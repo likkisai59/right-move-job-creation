@@ -9,12 +9,15 @@ import { createAccount, updateAccount, fetchAccounts, fetchPayrollConfig } from 
 const EditAccountPage = () => {
   const navigate = useNavigate();
   const { employeeId } = useParams(); // Database integer ID of the employee
-  
+  const queryParams = new URLSearchParams(window.location.search);
+  const editType = queryParams.get('editType') || 'baseline';
+
   const [employee, setEmployee] = useState(null);
   const [hasAccount, setHasAccount] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   const [config, setConfig] = useState({ pf_percentage: 12.0, tds_percentage: 10.0 });
 
   const [formData, setFormData] = useState({
@@ -71,17 +74,20 @@ const EditAccountPage = () => {
         // (This is safer than calling direct fetch by employee ID which throws 404 when missing)
         const accountsData = await fetchAccounts();
         const existing = accountsData.find((acc) => acc.employee_id === parseInt(employeeId, 10));
-        
+
         if (existing) {
           setHasAccount(existing.id !== null);
           const basicPayVal = existing.basic_pay || 0;
           const hraVal = existing.hra || 0;
-          const totalPay = basicPayVal + hraVal;
-          const comp = employeeData?.compliance;
-          
+          const unpaidLeavesVal = existing.unpaid_leaves || 0.0;
+          const calculatedUnpaidLeaveAmount = Math.floor(basicPayVal / 30) * unpaidLeavesVal;
+          const calculatedNetPayable = basicPayVal - calculatedUnpaidLeaveAmount;
+          const totalPay = calculatedNetPayable + hraVal;
+          const comp = employeeData?.compliance ? employeeData.compliance.trim().toUpperCase() : '';
+
           let calculatedPf = existing.pf;
           let calculatedTds = existing.tds;
-          
+
           if (comp === 'PF') {
             calculatedPf = parseFloat((totalPay * (currentConfig.pf_percentage / 100.0)).toFixed(2));
             calculatedTds = 0.0;
@@ -93,35 +99,38 @@ const EditAccountPage = () => {
             calculatedTds = 0.0;
           }
 
-          const totalLeavesVal = existing.total_leaves || 0.0;
-          const calculatedLd = Math.floor(basicPayVal / 30) * totalLeavesVal;
-          const calculatedNetPayable = basicPayVal - calculatedLd;
-          const incentivesVal = existing.incentives || 0;
-          const calculatedTotalNetPayable = calculatedNetPayable + incentivesVal;
+          const additionalIncentive = existing.additional_incentive || 0;
+          const clientIncentive = existing.client_incentive || 0;
+          const incentiveDeducted = existing.incentive_deducted || 0;
+          const recruiterIncentive = existing.candidate_incentives || 0;
+
+          const calculatedTotalNetPayable = calculatedNetPayable + recruiterIncentive;
           const deductionVal = existing.deduction_amount || 0;
-          const calculatedGross = calculatedTotalNetPayable - deductionVal;
-          const calculatedTotalGross = Math.floor(calculatedGross - calculatedPf - calculatedTds);
+          const calculatedGross = calculatedTotalNetPayable + additionalIncentive + clientIncentive - deductionVal;
+          const loanDeducted = existing.loan_deducted || 0;
+          const calculatedTotalGross = Math.floor(calculatedNetPayable + hraVal - calculatedPf - calculatedTds + additionalIncentive + clientIncentive - incentiveDeducted + recruiterIncentive - loanDeducted);
 
           setFormData({
             basic_pay: basicPayVal,
             hra: hraVal,
             loan_amount: existing.loan_amount || 0,
-            client_incentive: existing.client_incentive || 0,
+            client_incentive: clientIncentive,
             deduction_amount: deductionVal,
-            total_leaves: totalLeavesVal,
-            ld: calculatedLd,
+            unpaid_leaves: unpaidLeavesVal,
+            unpaid_leave_amount: calculatedUnpaidLeaveAmount,
             net_payable_salary: calculatedNetPayable,
             ctc_offered: existing.ctc_offered || 0,
-            incentives: incentivesVal,
+            incentives: existing.incentives || 0,
+            candidate_incentives: recruiterIncentive,
             client_total: existing.client_total || 0,
             total_net_payable_salary: calculatedTotalNetPayable,
             gross_salary: calculatedGross,
             pf: calculatedPf,
             tds: calculatedTds,
-            additional_incentive: existing.additional_incentive || 0,
-            incentive_deducted: existing.incentive_deducted || 0,
-            loan_deducted: existing.loan_deducted || 0,
-            total_gross_salary: calculatedTotalGross,
+            additional_incentive: additionalIncentive,
+            incentive_deducted: incentiveDeducted,
+            loan_deducted: loanDeducted,
+            net_salary_pay: calculatedTotalGross,
           });
         } else {
           setHasAccount(false);
@@ -131,7 +140,7 @@ const EditAccountPage = () => {
             ...prev,
             pf: 0.0,
             tds: 0.0,
-            total_gross_salary: 0,
+            net_salary_pay: 0,
           }));
         }
       } catch (err) {
@@ -149,6 +158,23 @@ const EditAccountPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+
+    // Live validation
+    let errorMsg = '';
+    if (value !== '') {
+      const numVal = parseFloat(value);
+      if (isNaN(numVal)) {
+        errorMsg = 'Must be a valid number';
+      } else if (numVal < 0) {
+        errorMsg = 'Value cannot be negative';
+      }
+    } else {
+      if (name === 'basic_pay') {
+        errorMsg = 'Basic Salary is required';
+      }
+    }
+    setErrors((prevErr) => ({ ...prevErr, [name]: errorMsg }));
+
     setFormData((prev) => {
       const parsedValue = value === '' ? '' : (['total_leaves', 'pf', 'tds'].includes(name) ? parseFloat(value) || 0.0 : parseInt(value, 10) || 0);
       const updated = {
@@ -156,32 +182,39 @@ const EditAccountPage = () => {
         [name]: parsedValue,
       };
 
-      // 1. Calculate basic_pay derived values (LD and Net Payable Salary)
-      const basicPayVal = name === 'basic_pay' 
-        ? (parsedValue === '' ? 0 : parsedValue) 
+      // 1. Calculate basic_pay derived values (Unpaid Leave Amount and Net Payable Salary)
+      const basicPayVal = name === 'basic_pay'
+        ? (parsedValue === '' ? 0 : parsedValue)
         : (prev.basic_pay || 0);
-        
-      const totalLeavesVal = prev.total_leaves || 0;
-      const calculatedLd = Math.floor(basicPayVal / 30) * totalLeavesVal;
-      updated.ld = calculatedLd;
-      updated.net_payable_salary = basicPayVal - calculatedLd;
 
-      // 2. total_net_payable_salary = net_payable_salary + incentives
-      const incentivesVal = prev.incentives || 0;
-      updated.total_net_payable_salary = updated.net_payable_salary + incentivesVal;
+      const unpaidLeavesVal = prev.unpaid_leaves || 0;
+      const calculatedUnpaidLeaveAmount = Math.floor(basicPayVal / 30) * unpaidLeavesVal;
+      updated.unpaid_leave_amount = calculatedUnpaidLeaveAmount;
+      updated.net_payable_salary = basicPayVal - calculatedUnpaidLeaveAmount;
 
-      // 3. gross_salary = total_net_payable_salary - deduction_amount
-      const deductionVal = name === 'deduction_amount' 
-        ? (parsedValue === '' ? 0 : parsedValue) 
+      // 2. Incentives are kept as recruiter incentives (from DB)
+      const recruiterIncentive = prev.candidate_incentives || 0;
+      updated.candidate_incentives = recruiterIncentive;
+      updated.total_net_payable_salary = updated.net_payable_salary + recruiterIncentive;
+
+      // 3. gross_salary = total_net_payable_salary + additional_incentive + client_incentive - deduction_amount
+      const additionalIncentive = name === 'additional_incentive'
+        ? (parsedValue === '' ? 0 : parsedValue)
+        : (prev.additional_incentive || 0);
+      const clientIncentive = name === 'client_incentive'
+        ? (parsedValue === '' ? 0 : parsedValue)
+        : (prev.client_incentive || 0);
+      const deductionVal = name === 'deduction_amount'
+        ? (parsedValue === '' ? 0 : parsedValue)
         : (prev.deduction_amount || 0);
-      updated.gross_salary = updated.total_net_payable_salary - deductionVal;
+      updated.gross_salary = updated.total_net_payable_salary + additionalIncentive + clientIncentive - deductionVal;
 
       // 4. Calculate PF and TDS based on compliance and basic/hra changes
-      const hraVal = name === 'hra' 
-        ? (parsedValue === '' ? 0 : parsedValue) 
+      const hraVal = name === 'hra'
+        ? (parsedValue === '' ? 0 : parsedValue)
         : (prev.hra || 0);
-      const totalPay = basicPayVal + hraVal;
-      const comp = employee?.compliance;
+      const totalPay = updated.net_payable_salary + hraVal;
+      const comp = employee?.compliance ? employee.compliance.trim().toUpperCase() : '';
 
       if (comp === 'PF') {
         updated.pf = parseFloat((totalPay * (config.pf_percentage / 100.0)).toFixed(2));
@@ -194,8 +227,24 @@ const EditAccountPage = () => {
         updated.tds = 0.0;
       }
 
-      // 5. total_gross_salary = gross_salary - pf - tds
-      updated.total_gross_salary = Math.floor(updated.gross_salary - updated.pf - updated.tds);
+      // 5. Net Salary Payout = Calculated Basic Pay + HRA - PF - TDS + Additional Incentive + Client Incentive - Incentive Deducted + Candidate Incentives - Loan Deducted
+      const loanDeducted = name === 'loan_deducted'
+        ? (parsedValue === '' ? 0 : parsedValue)
+        : (prev.loan_deducted || 0);
+      const incentiveDeducted = name === 'incentive_deducted'
+        ? (parsedValue === '' ? 0 : parsedValue)
+        : (prev.incentive_deducted || 0);
+      updated.net_salary_pay = Math.floor(
+        updated.net_payable_salary + 
+        hraVal - 
+        updated.pf - 
+        updated.tds + 
+        additionalIncentive + 
+        clientIncentive - 
+        incentiveDeducted + 
+        recruiterIncentive - 
+        loanDeducted
+      );
 
       return updated;
     });
@@ -203,12 +252,49 @@ const EditAccountPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate all numeric fields on submit
+    const newErrors = {};
+    const fieldsToValidate = (editType === 'baseline' ? [
+      { name: 'basic_pay', label: 'Basic Salary', required: true },
+      { name: 'hra', label: 'HRA' }
+    ] : [
+      { name: 'loan_amount', label: 'Loan Amount' },
+      { name: 'client_incentive', label: 'Client Incentive' },
+      { name: 'deduction_amount', label: 'Deduction Amount' },
+      { name: 'additional_incentive', label: 'Additional Incentive' },
+      { name: 'incentive_deducted', label: 'Incentive Deducted' },
+      { name: 'loan_deducted', label: 'Loan Deducted' }
+    ]);
+
+    fieldsToValidate.forEach((field) => {
+      const val = formData[field.name];
+      if (val === '' || val === undefined || val === null) {
+        if (field.required) {
+          newErrors[field.name] = `${field.label} is required`;
+        }
+      } else {
+        const numVal = parseFloat(val);
+        if (isNaN(numVal)) {
+          newErrors[field.name] = `${field.label} must be a valid number`;
+        } else if (numVal < 0) {
+          newErrors[field.name] = `${field.label} cannot be negative`;
+        }
+      }
+    });
+
+    if (Object.values(newErrors).some((err) => err)) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
     setSaving(true);
-    
+
     // Convert empty string values to default numeric values
     const sanitizedData = Object.keys(formData).reduce((acc, key) => {
       const val = formData[key];
-      acc[key] = val === '' ? (['total_leaves', 'pf', 'tds'].includes(key) ? 0.0 : 0) : val;
+      acc[key] = val === '' ? (['unpaid_leaves', 'pf', 'tds'].includes(key) ? 0.0 : 0) : val;
       return acc;
     }, {});
 
@@ -257,7 +343,7 @@ const EditAccountPage = () => {
       }
     >
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-6 max-w-5xl mx-auto">
-        
+
         {/* Profile Summary banner */}
         <div className="bg-slate-50 p-4 rounded-xl border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -279,116 +365,146 @@ const EditAccountPage = () => {
             {error}
           </div>
         )}
-        
+
         {/* Input Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {/* Basic Pay */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Basic Salary</label>
-              <input
-                type="number"
-                name="basic_pay"
-                value={formData.basic_pay}
-                onChange={handleInputChange}
-                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-                placeholder="Enter basic pay"
-                required
-              />
-            </div>
+            {editType === 'baseline' && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Basic Salary</label>
+                <input
+                  type="number"
+                  name="basic_pay"
+                  value={formData.basic_pay}
+                  onChange={handleInputChange}
+                  className={`border rounded-xl px-4 py-2.5 text-sm focus:ring-2 outline-none transition-all ${errors.basic_pay ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : 'border-gray-200 focus:border-blue-500 focus:ring-blue-100'
+                    }`}
+                  placeholder="Enter basic pay"
+                  required
+                />
+                {errors.basic_pay && <span className="text-xs text-red-500 font-medium">{errors.basic_pay}</span>}
+              </div>
+            )}
 
             {/* HRA */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">HRA</label>
-              <input
-                type="number"
-                name="hra"
-                value={formData.hra}
-                onChange={handleInputChange}
-                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-                placeholder="Enter HRA"
-              />
-            </div>
+            {editType === 'baseline' && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">HRA</label>
+                <input
+                  type="number"
+                  name="hra"
+                  value={formData.hra}
+                  onChange={handleInputChange}
+                  className={`border rounded-xl px-4 py-2.5 text-sm focus:ring-2 outline-none transition-all ${errors.hra ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : 'border-gray-200 focus:border-blue-500 focus:ring-blue-100'
+                    }`}
+                  placeholder="Enter HRA"
+                />
+                {errors.hra && <span className="text-xs text-red-500 font-medium">{errors.hra}</span>}
+              </div>
+            )}
 
             {/* Loan Amount */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Loan Amount</label>
-              <input
-                type="number"
-                name="loan_amount"
-                value={formData.loan_amount}
-                onChange={handleInputChange}
-                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-                placeholder="Enter loan amount"
-              />
-            </div>
+            {editType === 'payroll' && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Loan Amount</label>
+                <input
+                  type="number"
+                  name="loan_amount"
+                  value={formData.loan_amount}
+                  onChange={handleInputChange}
+                  className={`border rounded-xl px-4 py-2.5 text-sm focus:ring-2 outline-none transition-all ${errors.loan_amount ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : 'border-gray-200 focus:border-blue-500 focus:ring-blue-100'
+                    }`}
+                  placeholder="Enter loan amount"
+                />
+                {errors.loan_amount && <span className="text-xs text-red-500 font-medium">{errors.loan_amount}</span>}
+              </div>
+            )}
 
             {/* Client Incentive */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Client Incentive</label>
-              <input
-                type="number"
-                name="client_incentive"
-                value={formData.client_incentive}
-                onChange={handleInputChange}
-                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-                placeholder="Enter client incentive"
-              />
-            </div>
+            {editType === 'payroll' && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Client Incentive</label>
+                <input
+                  type="number"
+                  name="client_incentive"
+                  value={formData.client_incentive}
+                  onChange={handleInputChange}
+                  className={`border rounded-xl px-4 py-2.5 text-sm focus:ring-2 outline-none transition-all ${errors.client_incentive ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : 'border-gray-200 focus:border-blue-500 focus:ring-blue-100'
+                    }`}
+                  placeholder="Enter client incentive"
+                />
+                {errors.client_incentive && <span className="text-xs text-red-500 font-medium">{errors.client_incentive}</span>}
+              </div>
+            )}
 
             {/* Deduction Amount */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Deduction Amount</label>
-              <input
-                type="number"
-                name="deduction_amount"
-                value={formData.deduction_amount}
-                onChange={handleInputChange}
-                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-                placeholder="Enter deductions"
-              />
-            </div>
-
-
+            {editType === 'payroll' && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Deduction Amount</label>
+                <input
+                  type="number"
+                  name="deduction_amount"
+                  value={formData.deduction_amount}
+                  onChange={handleInputChange}
+                  className={`border rounded-xl px-4 py-2.5 text-sm focus:ring-2 outline-none transition-all ${errors.deduction_amount ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : 'border-gray-200 focus:border-blue-500 focus:ring-blue-100'
+                    }`}
+                  placeholder="Enter deductions"
+                />
+                {errors.deduction_amount && <span className="text-xs text-red-500 font-medium">{errors.deduction_amount}</span>}
+              </div>
+            )}
 
             {/* Additional Incentive */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Additional Incentive</label>
-              <input
-                type="number"
-                name="additional_incentive"
-                value={formData.additional_incentive}
-                onChange={handleInputChange}
-                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-                placeholder="Enter additional incentive"
-              />
-            </div>
+            {editType === 'payroll' && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Additional Incentive</label>
+                <input
+                  type="number"
+                  name="additional_incentive"
+                  value={formData.additional_incentive}
+                  onChange={handleInputChange}
+                  className={`border rounded-xl px-4 py-2.5 text-sm focus:ring-2 outline-none transition-all ${errors.additional_incentive ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : 'border-gray-200 focus:border-blue-500 focus:ring-blue-100'
+                    }`}
+                  placeholder="Enter additional incentive"
+                />
+                {errors.additional_incentive && <span className="text-xs text-red-500 font-medium">{errors.additional_incentive}</span>}
+              </div>
+            )}
 
             {/* Incentive Deducted */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Incentive Deducted</label>
-              <input
-                type="number"
-                name="incentive_deducted"
-                value={formData.incentive_deducted}
-                onChange={handleInputChange}
-                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-                placeholder="Enter incentive deducted"
-              />
-            </div>
+            {editType === 'payroll' && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Incentive Deducted</label>
+                <input
+                  type="number"
+                  name="incentive_deducted"
+                  value={formData.incentive_deducted}
+                  onChange={handleInputChange}
+                  className={`border rounded-xl px-4 py-2.5 text-sm focus:ring-2 outline-none transition-all ${errors.incentive_deducted ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : 'border-gray-200 focus:border-blue-500 focus:ring-blue-100'
+                    }`}
+                  placeholder="Enter incentive deducted"
+                />
+                {errors.incentive_deducted && <span className="text-xs text-red-500 font-medium">{errors.incentive_deducted}</span>}
+              </div>
+            )}
 
             {/* Loan Deducted */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Loan Deducted</label>
-              <input
-                type="number"
-                name="loan_deducted"
-                value={formData.loan_deducted}
-                onChange={handleInputChange}
-                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-                placeholder="Enter loan deducted"
-              />
-            </div>
+            {editType === 'payroll' && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Loan Deducted</label>
+                <input
+                  type="number"
+                  name="loan_deducted"
+                  value={formData.loan_deducted}
+                  onChange={handleInputChange}
+                  className={`border rounded-xl px-4 py-2.5 text-sm focus:ring-2 outline-none transition-all ${errors.loan_deducted ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : 'border-gray-200 focus:border-blue-500 focus:ring-blue-100'
+                    }`}
+                  placeholder="Enter loan deducted"
+                />
+                {errors.loan_deducted && <span className="text-xs text-red-500 font-medium">{errors.loan_deducted}</span>}
+              </div>
+            )}
           </div>
 
           {/* Form Actions Footer */}

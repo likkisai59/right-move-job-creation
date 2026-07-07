@@ -12,7 +12,7 @@ class Employee(Base):
     # Primary key — auto-incremented internal ID
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
 
-    # Auto-generated employee code e.g. EMP0001
+    # Auto-generated employee code e.g. RM0001
     employee_id = Column(String(50), unique=True, nullable=False, index=True)
 
     # Personal details
@@ -48,6 +48,9 @@ class Employee(Base):
 
     # Only filled when employee leaves — nullable by default
     last_working_date= Column(Date, nullable=True)
+
+    # Date of Employee Creation
+    date = Column(Date, nullable=True)
 
     # Relationships to the new Attendance module tables
     attendance_records = relationship("Attendance", back_populates="employee", cascade="all, delete-orphan")

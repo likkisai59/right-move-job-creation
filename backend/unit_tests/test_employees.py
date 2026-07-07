@@ -18,7 +18,7 @@ def test_employee_crud_and_filters(client: TestClient, db_session: Session):
     assert response.json()["success"] is True
     emp_id = response.json()["data"]["id"]
     emp_code = response.json()["data"]["employee_id"]
-    assert emp_code.startswith("EMP")
+    assert emp_code.startswith("RM")
 
     # 2. Get Employee Details
     get_res = client.get(f"/api/employees/{emp_id}")

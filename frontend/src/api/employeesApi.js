@@ -21,6 +21,7 @@ const mapToFrontend = (data) => {
     currentAddress: data.current_address,
     designation: data.designation,
     dateOfJoining: data.date_of_joining,
+    date: data.date,
     package: data.package,
     status: data.status,
     profileStatus: data.profile_status || 'Draft',
@@ -95,6 +96,7 @@ const mapToBackend = (data) => {
     currentAddress: 'current_address',
     designation: 'designation',
     dateOfJoining: 'date_of_joining',
+    date: 'date',
     package: 'package',
     status: 'status',
     profileStatusHr: 'profile_status_hr',
@@ -145,7 +147,7 @@ const mapToBackend = (data) => {
       // Special conversions
       if (frontKey === 'package' || frontKey === 'ctc') {
         val = (val !== null && val !== '') ? parseFloat(val) : null;
-      } else if (frontKey === 'dateOfJoining' || frontKey === 'lastWorkingDate' || frontKey === 'dateOfBirth') {
+      } else if (frontKey === 'dateOfJoining' || frontKey === 'lastWorkingDate' || frontKey === 'dateOfBirth' || frontKey === 'date') {
         val = val || null;
       } else if (frontKey === 'medicalCondition') {
         val = val || null;

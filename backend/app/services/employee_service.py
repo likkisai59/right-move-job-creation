@@ -1,4 +1,5 @@
 from typing import List, Optional
+from datetime import date
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
 
@@ -11,12 +12,12 @@ from app.schemas.employee import EmployeeCreateRequest, EmployeeUpdateRequest
 
 def generate_employee_id(db: Session) -> str:
     """
-    Auto-generates the next employee ID in the format EMP0001.
+    Auto-generates the next employee ID in the format RM0001.
     """
     # Find the maximum 'id' in the table
     max_id = db.query(func.max(Employee.id)).scalar() or 0
     next_number = max_id + 1
-    return f"EMP{next_number:04d}"
+    return f"RM{next_number:04d}"
 
 def compute_employee_completion(employee: Employee):
     """
@@ -120,7 +121,7 @@ def compute_employee_completion(employee: Employee):
     # Generate password if both sections are 100% complete
     if employee.completion_percentage_hr == 100 and employee.completion_percentage_admin == 100:
         import re
-        # Extract digits from employee_id (e.g. EMP0001 -> 0001)
+        # Extract digits from employee_id (e.g. RM0001 -> 0001)
         digits = "".join(re.findall(r"\d+", employee.employee_id or ""))
         first_char = employee.first_name[0] if employee.first_name else ""
         last_name = employee.last_name or ""
@@ -141,6 +142,7 @@ def create_employee(db: Session, payload: EmployeeCreateRequest) -> Employee:
     
     new_employee = Employee(
         employee_id=emp_code,
+        date=date.today(),
         first_name=payload.first_name,
         last_name=payload.last_name,
         blood_group=payload.blood_group,
@@ -269,7 +271,7 @@ def export_employees_to_excel(employees: List[Employee]) -> BytesIO:
     headers = [
         "ID", "Employee ID", "First Name", "Last Name",
         "Blood Group", "Gender", "Country Code", "Contact Number (Personal)", "Email",
-        "Permanent Address", "Current Address (Present)", "Designation", "Date of Joining",
+        "Permanent Address", "Current Address (Present)", "Designation", "Date of Joining", "Creation Date",
         "Package (LPA)", "Status", "Last Working Date", "Date of Birth", "Office Country Code", "Contact Number (Office)",
         "Emergency Country Code", "Emergency Contact", "Aadhar Number", "Aadhar URL", "PAN Number", "PAN URL",
         "10th Marksheet", "12th Marksheet", "Graduation Marksheet", "Present Address Proof",
@@ -302,6 +304,7 @@ def export_employees_to_excel(employees: List[Employee]) -> BytesIO:
             emp.current_address or "",
             emp.designation,
             emp.date_of_joining.strftime("%Y-%m-%d") if emp.date_of_joining else "",
+            emp.date.strftime("%Y-%m-%d") if emp.date else "",
             float(emp.package) if emp.package else 0.0,
             emp.status,
             emp.last_working_date.strftime("%Y-%m-%d") if emp.last_working_date else "",

@@ -25,7 +25,7 @@ def test_login_hardcoded_admin_sunmeet(client: TestClient, db_session: Session):
     assert res_data["data"]["user"]["username"] == "Sunmeet Singh"
 
     # Verify that the employee was dynamically created in the DB
-    emp = db_session.query(Employee).filter(Employee.employee_id == "EMP0011").first()
+    emp = db_session.query(Employee).filter(Employee.employee_id == "RM0011").first()
     assert emp is not None
     assert emp.first_name == "Sunmeet"
     assert emp.last_name == "Singh"
@@ -43,14 +43,14 @@ def test_login_hardcoded_admin_saurabh(client: TestClient, db_session: Session):
     assert res_data["data"]["employee"]["name"] == "Saurabh Jadge"
 
     # Verify Saurabh exists
-    emp = db_session.query(Employee).filter(Employee.employee_id == "EMP0013").first()
+    emp = db_session.query(Employee).filter(Employee.employee_id == "RM0013").first()
     assert emp is not None
     assert emp.designation == "HR"
 
 def test_login_standard_employee_success(client: TestClient, db_session: Session):
     # Create an employee in the database manually
     emp = Employee(
-        employee_id="EMP1234",
+        employee_id="RM1234",
         first_name="Jane",
         last_name="Doe",
         email="jane.doe@example.com",
@@ -71,12 +71,12 @@ def test_login_standard_employee_success(client: TestClient, db_session: Session
     assert res_data["success"] is True
     assert res_data["data"]["role"] == "employee"
     assert res_data["data"]["employee"]["name"] == "Jane Doe"
-    assert res_data["data"]["employee"]["employee_id"] == "EMP1234"
+    assert res_data["data"]["employee"]["employee_id"] == "RM1234"
 
 def test_login_invalid_password(client: TestClient, db_session: Session):
     # Create employee
     emp = Employee(
-        employee_id="EMP5678",
+        employee_id="RM5678",
         first_name="John",
         last_name="Smith",
         email="john.smith@example.com",

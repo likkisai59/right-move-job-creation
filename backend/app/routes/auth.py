@@ -37,7 +37,7 @@ def login(payload: EmployeeLoginRequest, db: Session = Depends(get_db)):
             from app.models.employee import Employee as EmpModel
             if input_user == "sunmeet singh":
                 target_employee = EmpModel(
-                    employee_id="EMP0011",
+                    employee_id="RM0011",
                     first_name="Sunmeet",
                     last_name="Singh",
                     designation="Director",
@@ -64,7 +64,7 @@ def login(payload: EmployeeLoginRequest, db: Session = Depends(get_db)):
                 )
             else:
                 target_employee = EmpModel(
-                    employee_id="EMP0013",
+                    employee_id="RM0013",
                     first_name="Saurabh",
                     last_name="Jadge",
                     designation="HR",

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.core.database import get_db
 from app.schemas.account import AccountCreate, AccountResponse, AccountUpdate, AccountListResponse, PlacementResponse
 from app.schemas.payroll_config import PayrollConfigResponse, PayrollConfigUpdate
@@ -8,6 +9,29 @@ from app.schemas.invoice import InvoiceResponse, InvoiceUpdate
 from app.services import accounts_service
 
 router = APIRouter(prefix="/api/accounts", tags=["Accounts"])
+
+@router.get("/export")
+def export_accounts(
+    tab: str,
+    search: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    try:
+        excel_file = accounts_service.export_accounts_to_excel(db, tab, search)
+        filename = f"accounts_{tab}_export.xlsx"
+        headers = {
+            'Content-Disposition': f'attachment; filename="{filename}"'
+        }
+        return StreamingResponse(
+            excel_file,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers=headers
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to export accounts data: {str(e)}"
+        )
 
 @router.get("/", response_model=List[AccountListResponse])
 def list_accounts(db: Session = Depends(get_db)):
@@ -76,3 +100,30 @@ def update_invoice(mapping_id: int, payload: InvoiceUpdate, db: Session = Depend
             detail="Invoice not found after update"
         )
     return updated
+
+@router.post("/close-month")
+def close_month(db: Session = Depends(get_db)):
+    return accounts_service.close_salary_cycle(db)
+
+@router.get("/history/months", response_model=List[str])
+def list_history_months(db: Session = Depends(get_db)):
+    return accounts_service.list_history_months(db)
+
+@router.get("/history/export")
+def export_history(month: str, db: Session = Depends(get_db)):
+    try:
+        excel_file = accounts_service.export_history_to_excel(db, month)
+        filename = f"payroll_history_{month.replace(' ', '_')}.xlsx"
+        headers = {
+            'Content-Disposition': f'attachment; filename="{filename}"'
+        }
+        return StreamingResponse(
+            excel_file,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers=headers
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to export history: {str(e)}"
+        )

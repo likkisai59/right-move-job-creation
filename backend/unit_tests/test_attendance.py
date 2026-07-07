@@ -10,7 +10,7 @@ from datetime import date
 def test_attendance_and_leave_workflow(client: TestClient, db_session: Session):
     # 1. Create a Manager and a Direct Report Employee
     manager = Employee(
-        employee_id="EMP1001",
+        employee_id="RM1001",
         first_name="Jane",
         last_name="Manager",
         email="jane.manager@example.com",
@@ -19,7 +19,7 @@ def test_attendance_and_leave_workflow(client: TestClient, db_session: Session):
         employee_password="ManagerPassword"
     )
     report = Employee(
-        employee_id="EMP1002",
+        employee_id="RM1002",
         first_name="Bob",
         last_name="Report",
         email="bob.report@example.com",

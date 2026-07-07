@@ -17,7 +17,8 @@ class InvoiceBase(BaseModel):
     received_amount: Optional[float] = 0.0
     balance_amount: Optional[float] = 0.0
     received_date: Optional[date] = None
-    status: Optional[str] = "Pending"
+    candidate_status: Optional[str] = None
+    billing_status: Optional[str] = "Pending"
 
 class InvoiceUpdate(BaseModel):
     invoice_number: Optional[str] = None
@@ -34,7 +35,8 @@ class InvoiceUpdate(BaseModel):
     received_amount: Optional[float] = None
     balance_amount: Optional[float] = None
     received_date: Optional[date] = None
-    status: Optional[str] = None
+    candidate_status: Optional[str] = None
+    billing_status: Optional[str] = None
 
 class InvoiceResponse(InvoiceBase):
     id: Optional[int] = None

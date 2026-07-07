@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Optional
-from datetime import date, datetime
+import datetime as dt
 from enum import Enum
 
 
@@ -23,7 +23,7 @@ class EmployeeBase(BaseModel):
     permanent_address: Optional[str] = None
     current_address: Optional[str] = None
     designation: Optional[str] = None
-    date_of_joining: Optional[date] = None
+    date_of_joining: Optional[dt.date] = None
     package: Optional[float] = None
     status: EmployeeStatus = EmployeeStatus.ACTIVE
     profile_status: Optional[str] = "Draft"
@@ -32,10 +32,11 @@ class EmployeeBase(BaseModel):
     completion_percentage_hr: Optional[int] = 0
     profile_status_admin: Optional[str] = "Draft"
     completion_percentage_admin: Optional[int] = 0
-    last_working_date: Optional[date] = None
+    last_working_date: Optional[dt.date] = None
+    date: Optional[dt.date] = None
 
     # New fields
-    date_of_birth: Optional[date] = None
+    date_of_birth: Optional[dt.date] = None
     countrycode_office_contact: Optional[str] = None
     contact_number_office: Optional[str] = None
     countrycode_emergency_contact: Optional[str] = None
@@ -102,17 +103,18 @@ class EmployeeUpdateRequest(BaseModel):
     permanent_address: Optional[str] = None
     current_address: Optional[str] = None
     designation: Optional[str] = None
-    date_of_joining: Optional[date] = None
+    date_of_joining: Optional[dt.date] = None
     package: Optional[float] = None
     status: Optional[EmployeeStatus] = None
     profile_status_hr: Optional[str] = None
     completion_percentage_hr: Optional[int] = None
     profile_status_admin: Optional[str] = None
     completion_percentage_admin: Optional[int] = None
-    last_working_date: Optional[date] = None
+    last_working_date: Optional[dt.date] = None
+    date: Optional[dt.date] = None
 
     # New fields
-    date_of_birth: Optional[date] = None
+    date_of_birth: Optional[dt.date] = None
     countrycode_office_contact: Optional[str] = None
     contact_number_office: Optional[str] = None
     countrycode_emergency_contact: Optional[str] = None

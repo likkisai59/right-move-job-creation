@@ -26,7 +26,8 @@ class Invoice(Base):
     received_amount = Column(Float, nullable=True, default=0.0)
     balance_amount = Column(Float, nullable=True, default=0.0)
     received_date = Column(Date, nullable=True)
-    status = Column(String(50), default="Pending") # Pending, Received, Not Served
+    candidate_status = Column(String(50), nullable=True)
+    billing_status = Column(String(50), default="Pending")
 
     # Relationship to JobCandidateMapping
     mapping = relationship("JobCandidateMapping", backref="invoice", uselist=False)

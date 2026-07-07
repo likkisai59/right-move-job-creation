@@ -44,7 +44,7 @@ def test_update_designation_cascade(client: TestClient, db_session: Session):
     db_session.commit()
 
     emp = Employee(
-        employee_id="EMP0099",
+        employee_id="RM0099",
         first_name="Alice",
         last_name="Wonder",
         email="alice@example.com",
@@ -102,7 +102,7 @@ def test_update_business_unit_cascade(client: TestClient, db_session: Session):
         business_unit="Old BU"
     )
     emp = Employee(
-        employee_id="EMP0098",
+        employee_id="RM0098",
         first_name="Charlie",
         last_name="Chaplin",
         email="charlie@example.com",

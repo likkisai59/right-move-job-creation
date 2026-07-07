@@ -155,3 +155,13 @@ export const EMPLOYEE_YES_NO_OPTIONS = [
   { value: 'Yes', label: 'Yes' },
   { value: 'No', label: 'No' }
 ];
+
+export const CANDIDATE_STATUS_OPTIONS = [
+  { value: 'Candidate served', label: 'Candidate served' },
+  { value: 'Candidate not served', label: 'Candidate not served' }
+];
+
+export const BILLING_STATUS_OPTIONS = [
+  { value: 'Pending', label: 'Pending' },
+  { value: 'Received', label: 'Received' }
+];

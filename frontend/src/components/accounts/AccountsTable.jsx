@@ -4,14 +4,14 @@ import Table from '../common/Table';
 import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
 
-const AccountsTable = ({ 
-  activeTab = 'baseline', 
-  data = [], 
-  loading = false, 
-  config = { pf_percentage: 12.0, tds_percentage: 10.0 }, 
-  onEdit, 
+const AccountsTable = ({
+  activeTab = 'baseline',
+  data = [],
+  loading = false,
+  config = { pf_percentage: 12.0, tds_percentage: 10.0 },
+  onEdit,
   onDelete,
-  onEditInvoice 
+  onEditInvoice
 }) => {
 
   const numberToWords = (num) => {
@@ -58,21 +58,21 @@ const AccountsTable = ({
       alert('Pop-up blocker is preventing opening the slip. Please allow pop-ups for this website.');
       return;
     }
-    
+
     const basicPay = row.basic_pay || 0;
     const incentives = row.incentives || 0;
     const grossEarnings = basicPay + incentives;
-    
+
     const pf = row.pf || 0;
     const tds = row.tds || 0;
     const ld = row.ld || 0;
     const otherDeduction = row.deduction_amount || 0;
     const totalDeductions = pf + tds + ld + otherDeduction;
     const netSalary = grossEarnings - totalDeductions;
-    
+
     const monthYear = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     const netWords = numberToWords(netSalary);
-    
+
     const htmlContent = `
       <html>
       <head>
@@ -178,7 +178,7 @@ const AccountsTable = ({
       </body>
       </html>
     `;
-    
+
     printWindow.document.write(htmlContent);
     printWindow.document.close();
   };
@@ -220,7 +220,7 @@ const AccountsTable = ({
         {
           key: 'date_of_joining',
           header: 'Date',
-          render: (_, row) => <span>{formatDate(row.employee?.date_of_joining)}</span>,
+          render: (_, row) => <span>{formatDate(row.employee?.date || row.employee?.date_of_joining)}</span>,
         },
         {
           key: 'employee_id',
@@ -249,11 +249,10 @@ const AccountsTable = ({
           key: 'compliance',
           header: 'Compliance',
           render: (_, row) => (
-            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-              row.employee?.compliance === 'PF' ? 'bg-indigo-50 text-indigo-700' :
-              row.employee?.compliance === 'TDS' ? 'bg-amber-50 text-amber-700' :
-              'bg-gray-100 text-gray-600'
-            }`}>
+            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${row.employee?.compliance === 'PF' ? 'bg-indigo-50 text-indigo-700' :
+                row.employee?.compliance === 'TDS' ? 'bg-amber-50 text-amber-700' :
+                  'bg-gray-100 text-gray-600'
+              }`}>
               {row.employee?.compliance || 'None'}
             </span>
           ),
@@ -270,7 +269,7 @@ const AccountsTable = ({
         },
         {
           key: 'pf_or_tds_percentage',
-          header: 'PF or TDS %',
+          header: 'PF or TDS Amount',
           render: (_, row) => {
             const comp = row.employee?.compliance;
             const basic = Number(row.basic_pay) || 0;
@@ -299,9 +298,8 @@ const AccountsTable = ({
           key: 'status',
           header: 'Status',
           render: (_, row) => (
-            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-              row.employee?.status === 'Active' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-            }`}>
+            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${row.employee?.status === 'Active' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+              }`}>
               {row.employee?.status || 'Inactive'}
             </span>
           ),
@@ -393,7 +391,7 @@ const AccountsTable = ({
         {
           key: 'date_of_joining',
           header: 'Date',
-          render: (_, row) => <span>{formatDate(row.employee?.date_of_joining)}</span>,
+          render: (_, row) => <span>{formatDate(row.employee?.date || row.employee?.date_of_joining)}</span>,
         },
         {
           key: 'employee_id',
@@ -454,12 +452,12 @@ const AccountsTable = ({
           render: (val) => <span className="text-rose-600">{formatCurrency(val)}</span>,
         },
         {
-          key: 'total_leaves',
+          key: 'unpaid_leaves',
           header: 'Unpaid Leaves',
           render: (val) => <span className="text-gray-600">{val || 0}</span>,
         },
         {
-          key: 'ld',
+          key: 'unpaid_leave_amount',
           header: 'Unpaid Leave Amount',
           render: (val) => <span className="text-rose-600">{formatCurrency(val)}</span>,
         },
@@ -472,7 +470,16 @@ const AccountsTable = ({
           key: 'net_salary_pay',
           header: 'Net Salary Payout',
           render: (_, row) => {
-            const netPay = row.basic_pay - row.ld + row.incentives + (row.additional_incentive || 0) + (row.client_incentive || 0) - row.pf - row.tds - (row.loan_deducted || 0) - (row.incentive_deducted || 0);
+            const basicPay = row.basic_pay || 0;
+            const unpaidLeaveAmount = row.unpaid_leave_amount || 0;
+            const calculatedBasicPay = basicPay - unpaidLeaveAmount;
+            const hra = row.hra || 0;
+            const additionalIncentive = row.additional_incentive || 0;
+            const clientIncentive = row.client_incentive || 0;
+            const incentiveDeducted = row.incentive_deducted || 0;
+            const calculatedIncentive = additionalIncentive + clientIncentive - incentiveDeducted;
+            const loanDeducted = row.loan_deducted || 0;
+            const netPay = calculatedBasicPay + hra + calculatedIncentive - loanDeducted;
             return <span className="text-emerald-700 font-extrabold text-sm">{formatCurrency(netPay)}</span>;
           },
         },
@@ -555,7 +562,7 @@ const AccountsTable = ({
             const invoiceDate = val ? new Date(val) : null;
             // Overdue indicator: if invoice date is more than 30 days old and status != 'Received'
             const isOverdue = invoiceDate && row.status !== 'Received' && (new Date() > new Date(invoiceDate.getTime() + 30 * 24 * 60 * 60 * 1000));
-            
+
             return (
               <div className="flex items-center gap-1.5">
                 <span>{formatDate(val)}</span>
@@ -633,11 +640,10 @@ const AccountsTable = ({
           key: 'status',
           header: 'Status',
           render: (val) => (
-            <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 w-fit ${
-              val === 'Received' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-              val === 'Not Served' ? 'bg-gray-100 text-gray-600 border border-gray-200' :
-              'bg-amber-50 text-amber-700 border border-amber-200 animate-pulse'
-            }`}>
+            <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 w-fit ${val === 'Received' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                val === 'Not Served' ? 'bg-gray-100 text-gray-600 border border-gray-200' :
+                  'bg-amber-50 text-amber-700 border border-amber-200 animate-pulse'
+              }`}>
               {val === 'Received' ? <CheckCircle size={10} /> : val === 'Pending' ? <Calendar size={10} /> : <HelpCircle size={10} />}
               {val}
             </span>
