@@ -170,6 +170,8 @@ def list_accounts(db: Session) -> List[Account]:
             )
             
             # Sync to DB if stored value is different
+            calculated_baseline_status = (50 if (account.basic_pay or 0) > 0 else 0) + (50 if (account.hra or 0) > 0 else 0)
+            
             if (account.unpaid_leaves != unpaid_leaves_sum or 
                 account.unpaid_leave_amount != calculated_unpaid_leave_amount or 
                 account.net_payable_salary != calculated_net_payable or
@@ -181,7 +183,8 @@ def list_accounts(db: Session) -> List[Account]:
                 account.pf != calculated_pf or
                 account.tds != calculated_tds or
                 account.net_salary_pay != calculated_total_gross or
-                account.calculated_basic_pay != calculated_net_payable):
+                account.calculated_basic_pay != calculated_net_payable or
+                getattr(account, 'baseline_status', 0) != calculated_baseline_status):
                 
                 account.unpaid_leaves = unpaid_leaves_sum
                 account.unpaid_leave_amount = calculated_unpaid_leave_amount
@@ -196,6 +199,8 @@ def list_accounts(db: Session) -> List[Account]:
                 account.tds = calculated_tds
                 account.net_salary_pay = calculated_total_gross
                 account.calculated_basic_pay = calculated_net_payable
+                if hasattr(account, 'baseline_status'):
+                    account.baseline_status = calculated_baseline_status
                 db.commit()
                 db.refresh(account)
             result.append(account)
@@ -248,7 +253,8 @@ def list_accounts(db: Session) -> List[Account]:
                 incentive_deducted=0,
                 loan_deducted=0,
                 net_salary_pay=calculated_total_gross,
-                calculated_basic_pay=0
+                calculated_basic_pay=0,
+                baseline_status=0
             )
             default_account.employee = emp
             result.append(default_account)
@@ -293,6 +299,7 @@ def create_account(db: Session, payload: AccountCreate) -> Account:
         new_account.tds = 0.0
         
     new_account.net_salary_pay = int((new_account.gross_salary or 0) - (new_account.pf or 0) - (new_account.tds or 0) - (new_account.loan_deducted or 0) - (new_account.incentive_deducted or 0))
+    new_account.baseline_status = (50 if (new_account.basic_pay or 0) > 0 else 0) + (50 if (new_account.hra or 0) > 0 else 0)
     
     db.add(new_account)
     db.commit()
@@ -339,6 +346,7 @@ def update_account(db: Session, employee_id: int, payload: AccountUpdate) -> Acc
             account.tds = 0.0
             
     account.net_salary_pay = int((account.gross_salary or 0) - (account.pf or 0) - (account.tds or 0) - (account.loan_deducted or 0) - (account.incentive_deducted or 0))
+    account.baseline_status = (50 if (account.basic_pay or 0) > 0 else 0) + (50 if (account.hra or 0) > 0 else 0)
 
     db.commit()
     db.refresh(account)
@@ -792,10 +800,57 @@ def close_salary_cycle(db: Session):
     Snapshots the current payroll calculations into PayrollHistory
     and resets active monthly variables for the next cycle.
     """
-    from app.models.account import PayrollHistory
+    from app.models.account import PayrollHistory, InvoiceHistory
     
     # Query all active accounts (list_accounts ensures they are computed & sync'd)
     accounts = list_accounts(db)
+    
+    # Common month year identifier for the closed cycle
+    _, default_end_date = get_current_salary_cycle_range(date.today(), date(2020, 1, 1))
+    common_cycle_month_year = default_end_date.strftime("%B %Y")
+    
+    # Snapshot active invoices to InvoiceHistory
+    db.query(InvoiceHistory).filter(InvoiceHistory.cycle_month_year == common_cycle_month_year).delete()
+    invoices = list_invoices(db)
+    for inv in invoices:
+        gross_val = inv.get("gross") or 0.0
+        cgst_val = inv.get("cgst") or 0.0
+        sgst_val = inv.get("sgst") or 0.0
+        igst_val = inv.get("igst") or 0.0
+        cgst_amt = gross_val * (cgst_val / 100.0)
+        sgst_amt = gross_val * (sgst_val / 100.0)
+        igst_amt = gross_val * (igst_val / 100.0)
+        total_gst = cgst_amt + sgst_amt + igst_amt
+        billable_amount = gross_val + total_gst
+        tds_deduction = igst_amt * 0.1
+        
+        hist_inv = InvoiceHistory(
+            job_candidate_mapping_id=inv.get("id"),
+            candidate_name=inv.get("candidate_name") or "—",
+            job_designation=inv.get("job_designation") or "—",
+            organization_name=inv.get("organization_name") or "—",
+            location=inv.get("location"),
+            offered_ctc=inv.get("offered_ctc") or 0.0,
+            billable_ctc=inv.get("billable_ctc") or 0.0,
+            invoice_number=inv.get("invoice_number") or "—",
+            invoice_date=inv.get("invoice_date"),
+            gst_number=inv.get("gst_number"),
+            gross=gross_val,
+            cgst=cgst_val,
+            sgst=sgst_val,
+            igst=igst_val,
+            total_gst=total_gst,
+            billable_amount=billable_amount,
+            tds_deduction=tds_deduction,
+            deduction=inv.get("deduction") or 0.0,
+            received_amount=inv.get("received_amount") or 0.0,
+            balance_amount=billable_amount - tds_deduction - (inv.get("deduction") or 0.0) - (inv.get("received_amount") or 0.0),
+            received_date=inv.get("received_date"),
+            candidate_status=inv.get("candidate_status"),
+            billing_status=inv.get("billing_status"),
+            cycle_month_year=common_cycle_month_year
+        )
+        db.add(hist_inv)
     
     for acc in accounts:
         joining_date = acc.employee.date or acc.employee.date_of_joining
@@ -919,6 +974,85 @@ def export_history_to_excel(db: Session, month_year: str):
             r.loan_amount,
             r.loan_deducted,
             r.net_salary_pay
+        ])
+        
+    # Auto-fit columns
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = openpyxl.utils.get_column_letter(col[0].column)
+        ws.column_dimensions[col_letter].width = max(max_len + 3, 10)
+        
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return output
+
+def export_billing_history_to_excel(db: Session, month_year: str):
+    """
+    Export organization billing history snapshots for a given month as an Excel file.
+    """
+    import openpyxl
+    from io import BytesIO
+    from app.models.account import InvoiceHistory
+    
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"Billing History"
+    
+    headers = [
+        "Month", "Candidate Joined Date", "Candidate Name", "Job Designation", 
+        "Organization Name", "Location", "Offered CTC", "Billable CTC", 
+        "Invoice Number", "Invoice Date", "GST Number", "Gross", 
+        "CGST Amount", "SGST Amount", "IGST Amount", "Total GST", 
+        "Billable Amount", "TDS Deduction", "Deduction", "Received Amount", 
+        "Balance Amount", "Received Date", "Candidate Status", "Billing Status"
+    ]
+    ws.append(headers)
+    
+    # Style Header
+    for cell in ws[1]:
+        cell.font = openpyxl.styles.Font(bold=True)
+        cell.fill = openpyxl.styles.PatternFill(start_color="CCE5FF", end_color="CCE5FF", fill_type="solid")
+        
+    records = db.query(InvoiceHistory).filter(
+        InvoiceHistory.cycle_month_year == month_year
+    ).all()
+    
+    for r in records:
+        formatted_joined = r.invoice_date.strftime("%d/%m/%Y") if r.invoice_date else "—"
+        formatted_invoice = r.invoice_date.strftime("%d/%m/%Y") if r.invoice_date else "—"
+        formatted_received = r.received_date.strftime("%d/%m/%Y") if r.received_date else "—"
+        
+        gross_val = r.gross or 0.0
+        cgst_amt = gross_val * ((r.cgst or 0.0) / 100.0)
+        sgst_amt = gross_val * ((r.sgst or 0.0) / 100.0)
+        igst_amt = gross_val * ((r.igst or 0.0) / 100.0)
+        
+        ws.append([
+            r.cycle_month_year,
+            formatted_joined,
+            r.candidate_name,
+            r.job_designation,
+            r.organization_name,
+            r.location or "—",
+            r.offered_ctc,
+            r.billable_ctc,
+            r.invoice_number,
+            formatted_invoice,
+            r.gst_number or "—",
+            gross_val,
+            cgst_amt,
+            sgst_amt,
+            igst_amt,
+            r.total_gst,
+            r.billable_amount,
+            r.tds_deduction,
+            r.deduction,
+            r.received_amount,
+            r.balance_amount,
+            formatted_received,
+            r.candidate_status or "Candidate served",
+            r.billing_status or "Pending"
         ])
         
     # Auto-fit columns

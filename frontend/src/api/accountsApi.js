@@ -113,3 +113,30 @@ export const exportHistory = async (month) => {
   link.remove();
   window.URL.revokeObjectURL(url);
 };
+
+// Export a past month's organization billing history as Excel
+export const exportBillingHistory = async (month) => {
+  const response = await api.get('/accounts/history/billing/export', {
+    params: { month },
+    responseType: 'blob'
+  });
+
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+
+  const contentDisposition = response.headers['content-disposition'];
+  let filename = `billing_history_${month.replace(/\s+/g, '_')}.xlsx`;
+  if (contentDisposition) {
+    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+    if (filenameMatch && filenameMatch.length === 2) {
+      filename = filenameMatch[1];
+    }
+  }
+
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+};

@@ -21,7 +21,8 @@ import {
   exportAccounts,
   closeMonth,
   fetchHistoryMonths,
-  exportHistory
+  exportHistory,
+  exportBillingHistory
 } from '../../api/accountsApi';
 
 const AccountsPage = () => {
@@ -46,6 +47,9 @@ const AccountsPage = () => {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [selectedHistoryMonth, setSelectedHistoryMonth] = useState('');
   const [downloadingHistory, setDownloadingHistory] = useState(false);
+  const [isBillingHistoryModalOpen, setIsBillingHistoryModalOpen] = useState(false);
+  const [selectedBillingHistoryMonth, setSelectedBillingHistoryMonth] = useState('');
+  const [downloadingBillingHistory, setDownloadingBillingHistory] = useState(false);
 
   const handleExportExcel = async () => {
     setExporting(true);
@@ -516,15 +520,26 @@ const AccountsPage = () => {
               Organization Billing
             </button>
           </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setIsHistoryModalOpen(true)}
-            icon={Download}
-            className="mb-1.5 shrink-0"
-          >
-            Download Payrolls
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsHistoryModalOpen(true)}
+              icon={Download}
+              className="mb-1.5 shrink-0"
+            >
+              Download salary payrolls
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsBillingHistoryModalOpen(true)}
+              icon={Download}
+              className="mb-1.5 shrink-0"
+            >
+              Download organization billings
+            </Button>
+          </div>
         </div>
 
         {/* Search Panel */}
@@ -805,6 +820,90 @@ const AccountsPage = () => {
                   }}
                   disabled={!selectedHistoryMonth}
                   loading={downloadingHistory}
+                  icon={Download}
+                >
+                  Download Excel
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── DOWNLOAD PAST BILLINGS MODAL ───────────────────────── */}
+      {isBillingHistoryModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-scale-up">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                <Download size={18} className="text-emerald-600" />
+                Download Past Billings
+              </h3>
+              <button
+                onClick={() => {
+                  setIsBillingHistoryModalOpen(false);
+                  setSelectedBillingHistoryMonth('');
+                }}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {historyMonths.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">
+                  No past billing records found. Close a cycle to see history.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Select Month & Year
+                  </label>
+                  <select
+                    value={selectedBillingHistoryMonth}
+                    onChange={(e) => setSelectedBillingHistoryMonth(e.target.value)}
+                    className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all"
+                  >
+                    <option value="">-- Select Month-Year --</option>
+                    {historyMonths.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setIsBillingHistoryModalOpen(false);
+                  setSelectedBillingHistoryMonth('');
+                }}
+              >
+                Cancel
+              </Button>
+              {historyMonths.length > 0 && (
+                <Button
+                  onClick={async () => {
+                    if (!selectedBillingHistoryMonth) {
+                      alert("Please select a month first.");
+                      return;
+                    }
+                    setDownloadingBillingHistory(true);
+                    try {
+                      await exportBillingHistory(selectedBillingHistoryMonth);
+                      setIsBillingHistoryModalOpen(false);
+                      setSelectedBillingHistoryMonth('');
+                    } catch (err) {
+                      alert("Failed to download billing for " + selectedBillingHistoryMonth);
+                    } finally {
+                      setDownloadingBillingHistory(false);
+                    }
+                  }}
+                  disabled={!selectedBillingHistoryMonth}
+                  loading={downloadingBillingHistory}
                   icon={Download}
                 >
                   Download Excel

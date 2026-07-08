@@ -189,6 +189,34 @@ const SalaryBaselineTab = ({ data = [], loading = false, config = { pf_percentag
       render: (val) => <span className="text-gray-500 text-sm font-medium">{val}</span>,
     },
     {
+      key: 'baseline_status',
+      header: 'Basic Pay & HRA Status',
+      render: (_, row) => {
+        let pct = 0;
+        if (row.basic_pay > 0) pct += 50;
+        if (row.hra > 0) pct += 50;
+        return (
+          <div className="flex flex-col gap-1 min-w-[120px]">
+            <div className="flex items-center justify-between">
+              <span className={`text-[10px] font-bold ${
+                pct === 100 ? 'text-emerald-600' : pct === 50 ? 'text-amber-655' : 'text-rose-500'
+              }`}>
+                {pct}% Complete
+              </span>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-300 ${
+                  pct === 100 ? 'bg-emerald-500' : pct === 50 ? 'bg-amber-500' : 'bg-rose-400'
+                }`} 
+                style={{ width: `${pct}%` }} 
+              />
+            </div>
+          </div>
+        );
+      },
+    },
+    {
       key: 'date_of_joining',
       header: 'Joining date',
       render: (_, row) => <span>{formatDate(row.employee?.date || row.employee?.date_of_joining)}</span>,

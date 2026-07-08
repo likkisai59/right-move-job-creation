@@ -24,6 +24,7 @@ class AccountBase(BaseModel):
     loan_deducted: int = 0
     net_salary_pay: int = 0
     calculated_basic_pay: int = 0
+    baseline_status: int = 0
 
 class AccountCreate(AccountBase):
     employee_id: int
@@ -50,6 +51,7 @@ class AccountUpdate(BaseModel):
     loan_deducted: Optional[int] = None
     net_salary_pay: Optional[int] = None
     calculated_basic_pay: Optional[int] = None
+    baseline_status: Optional[int] = None
 
 class AccountResponse(AccountBase):
     id: int

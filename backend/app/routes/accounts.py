@@ -127,3 +127,22 @@ def export_history(month: str, db: Session = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to export history: {str(e)}"
         )
+
+@router.get("/history/billing/export")
+def export_billing_history(month: str, db: Session = Depends(get_db)):
+    try:
+        excel_file = accounts_service.export_billing_history_to_excel(db, month)
+        filename = f"billing_history_{month.replace(' ', '_')}.xlsx"
+        headers = {
+            'Content-Disposition': f'attachment; filename="{filename}"'
+        }
+        return StreamingResponse(
+            excel_file,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers=headers
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to export billing history: {str(e)}"
+        )

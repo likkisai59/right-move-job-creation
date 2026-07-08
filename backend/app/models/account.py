@@ -34,6 +34,7 @@ class Account(Base):
     loan_deducted = Column(Integer, default=0, nullable=False)
     net_salary_pay = Column(Integer, default=0, nullable=False)
     calculated_basic_pay = Column(Integer, default=0, nullable=False)
+    baseline_status = Column(Integer, default=0, nullable=False)
 
     # Relationship to Employee
     employee = relationship("Employee", backref="account", uselist=False)
@@ -71,3 +72,38 @@ class PayrollHistory(Base):
 
     # Relationship to Employee
     employee = relationship("Employee", backref="payroll_histories")
+
+
+class InvoiceHistory(Base):
+    """
+    Table name: invoice_history
+    Stores snapshots of calculated invoices when a month/cycle is closed.
+    """
+    __tablename__ = "invoice_history"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    job_candidate_mapping_id = Column(Integer, nullable=False)
+    candidate_name = Column(String(255), nullable=False)
+    job_designation = Column(String(255), nullable=False)
+    organization_name = Column(String(255), nullable=False)
+    location = Column(String(255), nullable=True)
+    offered_ctc = Column(Float, default=0.0, nullable=False)
+    billable_ctc = Column(Float, default=0.0, nullable=False)
+    invoice_number = Column(String(100), nullable=False)
+    invoice_date = Column(Date, nullable=False)
+    gst_number = Column(String(100), nullable=True)
+    gross = Column(Float, default=0.0, nullable=False)
+    cgst = Column(Float, default=0.0, nullable=False)
+    sgst = Column(Float, default=0.0, nullable=False)
+    igst = Column(Float, default=0.0, nullable=False)
+    total_gst = Column(Float, default=0.0, nullable=False)
+    billable_amount = Column(Float, default=0.0, nullable=False)
+    tds_deduction = Column(Float, default=0.0, nullable=False)
+    deduction = Column(Float, default=0.0, nullable=False)
+    received_amount = Column(Float, default=0.0, nullable=False)
+    balance_amount = Column(Float, default=0.0, nullable=False)
+    received_date = Column(Date, nullable=True)
+    candidate_status = Column(String(100), nullable=True)
+    billing_status = Column(String(100), nullable=True)
+    cycle_month_year = Column(String(50), nullable=False)
+    exported_at = Column(DateTime, nullable=False, server_default=func.now())
