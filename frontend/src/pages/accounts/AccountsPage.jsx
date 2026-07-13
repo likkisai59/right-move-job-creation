@@ -51,6 +51,16 @@ const AccountsPage = () => {
   const [selectedBillingHistoryMonth, setSelectedBillingHistoryMonth] = useState('');
   const [downloadingBillingHistory, setDownloadingBillingHistory] = useState(false);
 
+  // Organization-wise invoice generator states
+  const [isGenerateInvoiceModalOpen, setIsGenerateInvoiceModalOpen] = useState(false);
+  const [selectedInvoiceOrg, setSelectedInvoiceOrg] = useState('');
+  const [invoiceOrgNumber, setInvoiceOrgNumber] = useState('');
+  const [invoiceOrgDate, setInvoiceOrgDate] = useState(new Date().toISOString().split('T')[0]);
+  const [invoiceOrgCgst, setInvoiceOrgCgst] = useState(0);
+  const [invoiceOrgSgst, setInvoiceOrgSgst] = useState(0);
+  const [invoiceOrgIgst, setInvoiceOrgIgst] = useState(18);
+  const [selectedInvoiceCandidates, setSelectedInvoiceCandidates] = useState([]);
+
   const handleExportExcel = async () => {
     setExporting(true);
     try {
@@ -88,6 +98,26 @@ const AccountsPage = () => {
     setSortField('');
     setSortOrder('desc');
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!selectedInvoiceOrg) {
+      setSelectedInvoiceCandidates([]);
+      return;
+    }
+    const orgInvoices = invoices.filter(inv => inv.organization_name === selectedInvoiceOrg);
+    setSelectedInvoiceCandidates(orgInvoices.map(inv => inv.id));
+    
+    if (orgInvoices.length > 0) {
+      const first = orgInvoices[0];
+      setInvoiceOrgCgst(first.cgst || 0);
+      setInvoiceOrgSgst(first.sgst || 0);
+      setInvoiceOrgIgst(first.igst || 18);
+      
+      const year = new Date().getFullYear();
+      const cleanName = selectedInvoiceOrg.replace(/[^a-zA-Z]/g, '').substring(0, 4).toUpperCase();
+      setInvoiceOrgNumber(`INV-${year}-${cleanName || 'RM'}-${Math.floor(100 + Math.random() * 900)}`);
+    }
+  }, [selectedInvoiceOrg, invoices]);
 
   // Configuration Modal State
   const [isConfigOpen, setIsConfigOpen] = useState(false);
@@ -437,6 +467,247 @@ const AccountsPage = () => {
     });
   };
 
+  const numberToWords = (num) => {
+    if (num <= 0) return 'Zero';
+    const a = [
+      '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+      'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
+    ];
+    const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    const helper = (n) => {
+      if (n < 20) return a[n];
+      if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + a[n % 10] : '');
+      return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' and ' + helper(n % 100) : '');
+    };
+    let result = '';
+    if (Math.floor(num / 10000000) > 0) {
+      result += helper(Math.floor(num / 10000000)) + ' Crore ';
+      num %= 10000000;
+    }
+    if (Math.floor(num / 100000) > 0) {
+      result += helper(Math.floor(num / 100000)) + ' Lakh ';
+      num %= 100000;
+    }
+    if (Math.floor(num / 1000) > 0) {
+      result += helper(Math.floor(num / 1000)) + ' Thousand ';
+      num %= 1000;
+    }
+    if (num > 0) {
+      result += helper(Math.floor(num));
+    }
+    return result.trim() + ' Only';
+  };
+
+  const handlePrintOrganizationInvoice = () => {
+    const chosenInvoices = invoices.filter(inv => selectedInvoiceCandidates.includes(inv.id));
+    if (chosenInvoices.length === 0) {
+      alert("Please select at least one candidate to include in the invoice.");
+      return;
+    }
+
+    const printWindow = window.open('', '_blank', 'width=850,height=950');
+    if (!printWindow) {
+      alert('Pop-up blocker is preventing opening the billing invoice. Please allow pop-ups for this website.');
+      return;
+    }
+
+    const subtotal = chosenInvoices.reduce((sum, row) => sum + (row.gross || 0), 0);
+    const cgstAmt = subtotal * (invoiceOrgCgst / 100.0);
+    const sgstAmt = subtotal * (invoiceOrgSgst / 100.0);
+    const igstAmt = subtotal * (invoiceOrgIgst / 100.0);
+    const totalGst = cgstAmt + sgstAmt + igstAmt;
+    const grandTotal = subtotal + totalGst;
+
+    const invoiceDateStr = invoiceOrgDate ? new Date(invoiceOrgDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-') : '—';
+    const grandTotalWords = numberToWords(Math.round(grandTotal));
+
+    const firstRow = chosenInvoices[0];
+    const receiverLocation = firstRow.location || '—';
+    const receiverGstin = firstRow.gst_number || '—';
+
+    const itemsHtml = chosenInvoices.map((row, index) => {
+      const dojStr = row.candidate_joined_date ? new Date(row.candidate_joined_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-') : '—';
+      return `
+        <tr>
+          <td class="text-center font-medium">${index + 1}</td>
+          <td class="font-bold text-slate-800">${row.candidate_name || '—'}</td>
+          <td class="font-medium">${row.job_designation || '—'}</td>
+          <td class="text-center">${dojStr}</td>
+          <td class="text-right font-mono font-bold">₹${Number(row.gross || 0).toLocaleString()}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const htmlContent = `
+      <html>
+      <head>
+        <title>Tax Invoice - ${invoiceOrgNumber || ''}</title>
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+        <style>
+          body { font-family: 'Outfit', 'Inter', sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #1e293b; }
+          .invoice-table th, .invoice-table td { border: 1px solid #cbd5e1; padding: 8px; }
+          @media print {
+            body { border: none !important; box-shadow: none !important; margin: 0 !important; padding: 1cm !important; }
+            .no-print { display: none !important; }
+          }
+        </style>
+      </head>
+      <body class="p-8 max-w-4xl mx-auto border border-slate-200 my-8 rounded-2xl shadow-xl bg-white relative">
+        <div class="absolute right-8 top-8 no-print">
+          <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-xl shadow-md text-xs flex items-center gap-1.5 transition-all">
+            Print Invoice / Save PDF
+          </button>
+        </div>
+
+        <!-- Supplier Logo & Header -->
+        <div class="flex justify-between items-start mb-6 mt-4">
+          <div>
+            <h1 class="text-lg font-bold text-slate-800 tracking-tight">RIGHT MOVE STAFFING SOLUTIONS PRIVATE LIMITED</h1>
+            <p class="text-xs text-slate-500 font-medium">T-313 Ashoka Mall, Bund Garden Road, Pune 411001</p>
+            <p class="text-xs text-slate-400">www.rightmoveconsultants.com</p>
+          </div>
+          <div class="text-right">
+            <span class="text-3xl font-black text-blue-600 tracking-tighter">rm</span>
+            <span class="text-[8px] font-extrabold text-slate-400 tracking-widest block uppercase mt-0.5">RIGHT MOVE</span>
+            <span class="text-[7px] font-semibold text-slate-400 tracking-wider block">STAFFING SOLUTIONS</span>
+          </div>
+        </div>
+
+        <h2 class="text-center text-sm font-bold text-slate-800 uppercase tracking-widest border border-slate-300 py-1.5 bg-slate-50 mb-4">TAX INVOICE</h2>
+
+        <!-- Details of Billed to vs Supplier -->
+        <div class="grid grid-cols-2 border border-slate-300 divide-x divide-slate-300 text-xs mb-4">
+          <div class="p-4 space-y-1.5">
+            <h3 class="font-bold text-slate-800 border-b pb-1 mb-2 uppercase tracking-wider text-[10px] text-slate-500">Details of Receiver (Billed To)</h3>
+            <p class="font-bold text-slate-900 text-sm">${selectedInvoiceOrg || '—'}</p>
+            <p class="text-slate-600">${receiverLocation}</p>
+            <p class="text-slate-700 font-medium mt-2"><span class="font-bold text-slate-500">State:</span> Maharashtra</p>
+            <p class="text-slate-700 font-medium"><span class="font-bold text-slate-500">State Code:</span> 27</p>
+            <p class="text-slate-900 font-bold font-mono text-blue-700 mt-2 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded w-fit"><span class="text-slate-500 font-semibold text-[10px] mr-1">GSTIN:</span>${receiverGstin}</p>
+          </div>
+          <div class="p-4 space-y-1.5">
+            <h3 class="font-bold text-slate-800 border-b pb-1 mb-2 uppercase tracking-wider text-[10px] text-slate-500">Details of Supplier</h3>
+            <p class="font-bold text-slate-900 text-sm">RIGHT MOVE STAFFING SOLUTIONS PVT LTD</p>
+            <p class="text-slate-600">T313, Ashoka Mall, Opp Hotel Sun And Sand,<br/>Bund Garden Road, Pune 411001</p>
+            <p class="text-slate-700 font-medium mt-2"><span class="font-bold text-slate-500">State:</span> Maharashtra</p>
+            <p class="text-slate-700 font-medium"><span class="font-bold text-slate-500">State Code:</span> 27</p>
+            <p class="text-slate-900 font-bold font-mono text-blue-700 mt-2 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded w-fit"><span class="text-slate-500 font-semibold text-[10px] mr-1">GSTIN:</span>27AAJCR0207N1Z8</p>
+          </div>
+        </div>
+
+        <p class="text-center font-bold text-slate-800 text-xs italic mb-4">"Original for recipient"</p>
+
+        <!-- Invoice Meta Grid -->
+        <table class="w-full border-collapse border border-slate-300 text-center text-xs mb-4">
+          <thead>
+            <tr class="bg-slate-50 font-bold text-slate-600">
+              <th class="border border-slate-300 py-2">Date</th>
+              <th class="border border-slate-300 py-2">Invoice No.</th>
+              <th class="border border-slate-300 py-2">PAN No.</th>
+              <th class="border border-slate-300 py-2">HSN / SAC Code</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="text-slate-800 font-medium">
+              <td class="border border-slate-300 py-2.5">${invoiceDateStr}</td>
+              <td class="border border-slate-300 py-2.5 font-bold font-mono text-blue-700">${invoiceOrgNumber || '—'}</td>
+              <td class="border border-slate-300 py-2.5 font-mono">AAJCR0207N</td>
+              <td class="border border-slate-300 py-2.5 font-mono">998512</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Main Items Table -->
+        <table class="w-full border-collapse border border-slate-300 text-xs text-left mb-4 invoice-table">
+          <thead>
+            <tr class="bg-slate-50 font-bold text-slate-600 text-center">
+              <th class="w-16">Sr. No.</th>
+              <th>Name</th>
+              <th>Designation</th>
+              <th class="w-28 text-center">DOJ</th>
+              <th class="w-36 text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+            <tr class="font-bold bg-slate-50/30 text-slate-800">
+              <td colspan="4" class="text-right">Total</td>
+              <td class="text-right font-mono text-slate-900">₹${Number(subtotal).toLocaleString()}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- GST Breakup Section -->
+        <div class="flex justify-end mb-4">
+          <table class="w-80 border-collapse border border-slate-300 text-xs invoice-table">
+            <thead>
+              <tr class="bg-slate-50 font-bold text-slate-600 text-center">
+                <th colspan="2">GST Breakup</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="font-medium text-slate-700">CGST ${invoiceOrgCgst}%</td>
+                <td class="text-right font-mono font-medium">${invoiceOrgCgst > 0 ? `₹${Number(cgstAmt.toFixed(2)).toLocaleString()}` : '—'}</td>
+              </tr>
+              <tr>
+                <td class="font-medium text-slate-700">SGST ${invoiceOrgSgst}%</td>
+                <td class="text-right font-mono font-medium">${invoiceOrgSgst > 0 ? `₹${Number(sgstAmt.toFixed(2)).toLocaleString()}` : '—'}</td>
+              </tr>
+              <tr>
+                <td class="font-medium text-slate-700">IGST ${invoiceOrgIgst}%</td>
+                <td class="text-right font-mono font-medium">${invoiceOrgIgst > 0 ? `₹${Number(igstAmt.toFixed(2)).toLocaleString()}` : '—'}</td>
+              </tr>
+              <tr class="bg-slate-50/50 font-bold text-slate-800">
+                <td>Total GST</td>
+                <td class="text-right font-mono">₹${Number(totalGst.toFixed(2)).toLocaleString()}</td>
+              </tr>
+              <tr class="bg-slate-100 font-extrabold text-slate-900 text-sm">
+                <td>Grand Total</td>
+                <td class="text-right font-mono text-blue-900">₹${Number(Math.round(grandTotal)).toLocaleString()}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Words and Bank Details -->
+        <div class="border border-slate-300 p-4 rounded-xl text-xs space-y-3 mb-8">
+          <p><span class="font-bold text-slate-500 uppercase tracking-wider">Amount in words:</span> <span class="font-bold text-slate-900">${grandTotalWords}</span></p>
+          <div class="border-t pt-2.5 grid grid-cols-2 gap-4">
+            <div>
+              <h4 class="font-bold text-slate-500 uppercase tracking-wider mb-1.5">Bank Details</h4>
+              <p class="font-medium text-slate-700"><span class="font-bold text-slate-500">Bank Name:</span> Kotak Mahindra Bank Ltd</p>
+              <p class="font-medium text-slate-700"><span class="font-bold text-slate-500">A/c Holder:</span> Right Move Staffing Solutions Pvt Ltd</p>
+              <p class="font-medium text-slate-700"><span class="font-bold text-slate-500">A/c Number:</span> 1000001313</p>
+              <p class="font-medium text-slate-700"><span class="font-bold text-slate-500">IFSC Code:</span> KKBK0001986</p>
+              <p class="font-medium text-slate-700"><span class="font-bold text-slate-500">Bank Add:</span> 266/B, Jawaharlal Nehru Rd, Bhawani Peth, Pune, Maharashtra 411042</p>
+            </div>
+            <div class="flex flex-col justify-end items-end text-right">
+              <div class="mb-4">
+                <span class="text-[9px] font-black text-slate-300 tracking-tighter block select-none">DIGITALLY SIGNED</span>
+                <span class="font-bold text-slate-700 text-sm tracking-tight block">GURPREET SINGH WALIA</span>
+                <span class="text-[8px] text-slate-400 block">Date: ${new Date().toLocaleDateString('en-GB')}</span>
+              </div>
+              <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-t pt-2 w-full">Authorised Signature and Stamp</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center border-t pt-5">
+          <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">RIGHT MOVE STAFFING SOLUTIONS PRIVATE LIMITED</p>
+          <p class="text-[8px] text-slate-400">T-313 Ashoka Mall, Bund Garden Road, Pune 411001 | www.rightmoveconsultants.com</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    setIsGenerateInvoiceModalOpen(false);
+    setSelectedInvoiceOrg('');
+  };
+
   const filteredData = getSortedAndFilteredData();
 
   return (
@@ -563,6 +834,16 @@ const AccountsPage = () => {
               setSortOrder(val.sortOrder);
             }}
           />
+          {activeTab === 'invoices' && (
+            <Button
+              variant="primary"
+              onClick={() => setIsGenerateInvoiceModalOpen(true)}
+              icon={FileText}
+              className="h-11 rounded-xl shrink-0 font-bold"
+            >
+              Generate Invoice
+            </Button>
+          )}
         </div>
 
         {error && (
@@ -909,6 +1190,149 @@ const AccountsPage = () => {
                   Download Excel
                 </Button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── GENERATE ORGANIZATION INVOICE MODAL ───────────────── */}
+      {isGenerateInvoiceModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-scale-up">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                <FileText size={18} className="text-blue-600" />
+                Generate Organization Invoice
+              </h3>
+              <button
+                onClick={() => {
+                  setIsGenerateInvoiceModalOpen(false);
+                  setSelectedInvoiceOrg('');
+                }}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              {/* Select Organization */}
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Select Organization
+                </label>
+                <select
+                  value={selectedInvoiceOrg}
+                  onChange={(e) => setSelectedInvoiceOrg(e.target.value)}
+                  className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all font-semibold"
+                >
+                  <option value="">-- Select Organization --</option>
+                  {[...new Set(invoices.map((inv) => inv.organization_name))].filter(Boolean).map((org) => (
+                    <option key={org} value={org}>{org}</option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedInvoiceOrg && (
+                <>
+                  {/* Invoice Details Row */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      label="Invoice Number"
+                      type="text"
+                      value={invoiceOrgNumber}
+                      onChange={(e) => setInvoiceOrgNumber(e.target.value)}
+                    />
+                    <Input
+                      label="Invoice Date"
+                      type="date"
+                      value={invoiceOrgDate}
+                      onChange={(e) => setInvoiceOrgDate(e.target.value)}
+                    />
+                  </div>
+
+                  {/* GST breakups */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <Input
+                      label="CGST (%)"
+                      type="number"
+                      step="0.1"
+                      value={invoiceOrgCgst}
+                      onChange={(e) => setInvoiceOrgCgst(Number(e.target.value))}
+                    />
+                    <Input
+                      label="SGST (%)"
+                      type="number"
+                      step="0.1"
+                      value={invoiceOrgSgst}
+                      onChange={(e) => setInvoiceOrgSgst(Number(e.target.value))}
+                    />
+                    <Input
+                      label="IGST (%)"
+                      type="number"
+                      step="0.1"
+                      value={invoiceOrgIgst}
+                      onChange={(e) => setInvoiceOrgIgst(Number(e.target.value))}
+                    />
+                  </div>
+
+                  {/* Candidates Checklist */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Select Candidates to Include
+                    </label>
+                    <div className="border border-gray-150 rounded-xl overflow-hidden divide-y divide-gray-100">
+                      {invoices.filter((inv) => inv.organization_name === selectedInvoiceOrg).map((cand) => {
+                        const isChecked = selectedInvoiceCandidates.includes(cand.id);
+                        return (
+                          <label
+                            key={cand.id}
+                            className="flex items-center gap-3 p-3 text-sm text-gray-700 hover:bg-slate-50 cursor-pointer transition-colors"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                if (isChecked) {
+                                  setSelectedInvoiceCandidates(prev => prev.filter(id => id !== cand.id));
+                                } else {
+                                  setSelectedInvoiceCandidates(prev => [...prev, cand.id]);
+                                }
+                              }}
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <div className="flex-1">
+                              <span className="font-semibold text-gray-800">{cand.candidate_name}</span>
+                              <span className="text-gray-400 text-xs mx-2">•</span>
+                              <span className="text-gray-500 text-xs">{cand.job_designation}</span>
+                            </div>
+                            <span className="font-bold text-gray-700 font-mono">₹{cand.gross?.toLocaleString()}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setIsGenerateInvoiceModalOpen(false);
+                  setSelectedInvoiceOrg('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handlePrintOrganizationInvoice}
+                disabled={!selectedInvoiceOrg || selectedInvoiceCandidates.length === 0}
+                icon={FileText}
+              >
+                Print Invoice
+              </Button>
             </div>
           </div>
         </div>

@@ -70,7 +70,7 @@ export const checkPermission = (action) => {
         return ['director', 'admin', 'hr', 'srmanager', 'manager', 'assistantmanager', 'asstmanager', 'teamlead'].includes(norm);
     }
     if (action === 'add_candidate') {
-        return ['atl', 'seniorexecutive', 'executive', 'trainee', 'intern'].includes(norm);
+        return ['director', 'admin', 'hr', 'srmanager', 'manager', 'assistantmanager', 'asstmanager', 'teamlead', 'atl', 'seniorexecutive', 'executive', 'trainee', 'intern'].includes(norm);
     }
     return true;
 };

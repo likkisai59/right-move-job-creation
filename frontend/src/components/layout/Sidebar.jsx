@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
+  Home,
   LayoutDashboard,
   Briefcase,
   Users,
@@ -14,6 +15,7 @@ import {
 import { APP_NAME, APP_SHORT } from '../../utils/constants';
 
 const NAV_ITEMS = [
+  { label: 'Home', path: '/home', icon: Home },
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { label: 'Jobs', path: '/jobs', icon: Briefcase },
   { label: 'Candidates', path: '/candidates', icon: Users },

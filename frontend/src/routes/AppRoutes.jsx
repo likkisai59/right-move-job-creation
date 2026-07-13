@@ -22,6 +22,7 @@ import SettingsPage from '../pages/SettingsPage';
 import LoginPage from '../pages/LoginPage';
 import AccountsPage from '../pages/accounts/AccountsPage';
 import EditAccountPage from '../pages/accounts/EditAccountPage';
+import HomePage from '../pages/HomePage';
 import { isAuthenticated, checkPermission } from '../api/authApi';
 
 // ── Attendance Portal Imports ────────────────────────────────
@@ -125,7 +126,8 @@ const AppRoutes = () => {
                 {/* Page content */}
                 <div className="flex-1 overflow-hidden flex flex-col">
                   <Routes>
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/" element={<Navigate to="/home" replace />} />
+                    <Route path="/home" element={<HomePage />} />
                     <Route path="/dashboard" element={<Dashboard />} />
 
                      {/* Jobs */}
