@@ -140,3 +140,30 @@ export const exportBillingHistory = async (month) => {
   link.remove();
   window.URL.revokeObjectURL(url);
 };
+
+// Export bank credit details as Excel (HDFC or ICICI)
+export const exportCreditDetails = async (bankName) => {
+  const response = await api.get('/accounts/credit/export', {
+    params: { bank_name: bankName },
+    responseType: 'blob'
+  });
+
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+
+  const contentDisposition = response.headers['content-disposition'];
+  let filename = `${bankName.toUpperCase()}_credit_details.xlsx`;
+  if (contentDisposition) {
+    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+    if (filenameMatch && filenameMatch.length === 2) {
+      filename = filenameMatch[1];
+    }
+  }
+
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+};

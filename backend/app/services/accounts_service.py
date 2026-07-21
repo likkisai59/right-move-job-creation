@@ -501,7 +501,8 @@ def list_invoices(db: Session) -> List[dict]:
             "organization_name": org.organization_name if org else job.company_name,
             "location": org.location if org else None,
             "offered_ctc": offered_ctc_val,
-            "gst_number": org.gst_number if org else None
+            "gst_number": org.gst_number if org else None,
+            "organization_id": org.organization_id if org else None
         })
         
     return invoices_list
@@ -800,7 +801,7 @@ def close_salary_cycle(db: Session):
     Snapshots the current payroll calculations into PayrollHistory
     and resets active monthly variables for the next cycle.
     """
-    from app.models.account import PayrollHistory, InvoiceHistory
+    from app.models.account import PayrollCalculationsHistory, OrganizationBillingHistory, CandidatesHiredForOrganizationsHistory
     
     # Query all active accounts (list_accounts ensures they are computed & sync'd)
     accounts = list_accounts(db)
@@ -809,8 +810,29 @@ def close_salary_cycle(db: Session):
     _, default_end_date = get_current_salary_cycle_range(date.today(), date(2020, 1, 1))
     common_cycle_month_year = default_end_date.strftime("%B %Y")
     
-    # Snapshot active invoices to InvoiceHistory
-    db.query(InvoiceHistory).filter(InvoiceHistory.cycle_month_year == common_cycle_month_year).delete()
+    # Snapshot active placements to CandidatesHiredForOrganizationsHistory
+    db.query(CandidatesHiredForOrganizationsHistory).filter(CandidatesHiredForOrganizationsHistory.cycle_month_year == common_cycle_month_year).delete()
+    placements = list_placements(db)
+    for pl in placements:
+        hist_pl = CandidatesHiredForOrganizationsHistory(
+            approval_date=pl.get("approval_date"),
+            candidate_code=pl.get("candidate_code"),
+            candidate_name=pl.get("candidate_name") or "—",
+            organization_id=pl.get("organization_id"),
+            organization_name=pl.get("organization_name") or "—",
+            location=pl.get("location"),
+            job_designation=pl.get("job_designation") or "—",
+            incentive=pl.get("incentive") or 0.0,
+            rate_card=pl.get("rate_card"),
+            band=pl.get("band"),
+            employee_id=pl.get("employee_id"),
+            employee_name=pl.get("employee_name"),
+            cycle_month_year=common_cycle_month_year
+        )
+        db.add(hist_pl)
+
+    # Snapshot active invoices to OrganizationBillingHistory
+    db.query(OrganizationBillingHistory).filter(OrganizationBillingHistory.cycle_month_year == common_cycle_month_year).delete()
     invoices = list_invoices(db)
     for inv in invoices:
         gross_val = inv.get("gross") or 0.0
@@ -824,7 +846,7 @@ def close_salary_cycle(db: Session):
         billable_amount = gross_val + total_gst
         tds_deduction = igst_amt * 0.1
         
-        hist_inv = InvoiceHistory(
+        hist_inv = OrganizationBillingHistory(
             job_candidate_mapping_id=inv.get("id"),
             candidate_name=inv.get("candidate_name") or "—",
             job_designation=inv.get("job_designation") or "—",
@@ -871,13 +893,13 @@ def close_salary_cycle(db: Session):
         )
         
         # Remove any existing snapshot for this employee/month to prevent duplicates
-        db.query(PayrollHistory).filter(
-            PayrollHistory.employee_id == acc.employee_id,
-            PayrollHistory.cycle_month_year == cycle_month_year
+        db.query(PayrollCalculationsHistory).filter(
+            PayrollCalculationsHistory.employee_id == acc.employee_id,
+            PayrollCalculationsHistory.cycle_month_year == cycle_month_year
         ).delete()
         
         # Insert snapshot
-        history_entry = PayrollHistory(
+        history_entry = PayrollCalculationsHistory(
             employee_id=acc.employee_id,
             employee_name=f"{acc.employee.first_name} {acc.employee.last_name}".strip(),
             cycle_start_date=start_date,
@@ -915,8 +937,8 @@ def list_history_months(db: Session) -> List[str]:
     """
     List all unique months saved in payroll history.
     """
-    from app.models.account import PayrollHistory
-    results = db.query(PayrollHistory.cycle_month_year).distinct().all()
+    from app.models.account import PayrollCalculationsHistory
+    results = db.query(PayrollCalculationsHistory.cycle_month_year).distinct().all()
     # Flat list
     months = [r[0] for r in results if r[0]]
     # Sort months chronologically by parsing them
@@ -933,7 +955,7 @@ def export_history_to_excel(db: Session, month_year: str):
     """
     import openpyxl
     from io import BytesIO
-    from app.models.account import PayrollHistory
+    from app.models.account import PayrollCalculationsHistory
     
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -952,8 +974,8 @@ def export_history_to_excel(db: Session, month_year: str):
         cell.font = openpyxl.styles.Font(bold=True)
         cell.fill = openpyxl.styles.PatternFill(start_color="CCE5FF", end_color="CCE5FF", fill_type="solid")
         
-    history_records = db.query(PayrollHistory).filter(
-        PayrollHistory.cycle_month_year == month_year
+    history_records = db.query(PayrollCalculationsHistory).filter(
+        PayrollCalculationsHistory.cycle_month_year == month_year
     ).all()
     
     for r in history_records:
@@ -993,7 +1015,7 @@ def export_billing_history_to_excel(db: Session, month_year: str):
     """
     import openpyxl
     from io import BytesIO
-    from app.models.account import InvoiceHistory
+    from app.models.account import OrganizationBillingHistory
     
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -1014,8 +1036,8 @@ def export_billing_history_to_excel(db: Session, month_year: str):
         cell.font = openpyxl.styles.Font(bold=True)
         cell.fill = openpyxl.styles.PatternFill(start_color="CCE5FF", end_color="CCE5FF", fill_type="solid")
         
-    records = db.query(InvoiceHistory).filter(
-        InvoiceHistory.cycle_month_year == month_year
+    records = db.query(OrganizationBillingHistory).filter(
+        OrganizationBillingHistory.cycle_month_year == month_year
     ).all()
     
     for r in records:
@@ -1057,9 +1079,136 @@ def export_billing_history_to_excel(db: Session, month_year: str):
         
     # Auto-fit columns
     for col in ws.columns:
-        max_len = max(len(str(cell.value or '')) for cell in col)
+      max_len = max(len(str(cell.value or '')) for cell in col)
+      col_letter = openpyxl.utils.get_column_letter(col[0].column)
+      ws.column_dimensions[col_letter].width = max(max_len + 3, 10)
+        
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return output
+
+def export_bank_credit_details(db: Session, bank_name: str):
+    """
+    Export bank credit details of employees to Excel depending on the chosen bank:
+    - HDFC: employees where compliance == None (or empty) using 28 HDFC columns format
+    - ICICI: employees where compliance == PF or compliance == TDS
+    """
+    import openpyxl
+    from io import BytesIO
+    
+    # Sync and fetch all accounts (this keeps calculations up to date in DB)
+    active_accounts = list_accounts(db)
+    
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"{bank_name} Credit Details"
+    
+    if bank_name.upper() == "HDFC":
+        headers = [
+            'Transaction Type', 'Blank', 'Beneficiary Account Number', 'Instrument Amount', 
+            'Beneficiary Name', 'Blank', 'Blank', 'Blank', 'Blank', 'Blank', 
+            'Blank', 'Blank', 'Instruction Reference Number', 'Customer Reference Number', 
+            'Payment details 1', 'Blank', 'Blank', 'Blank', 'Blank', 'Blank', 
+            'Blank', 'Blank', 'DATE - DD/MM/YYYY', 'Blank', 'IFC Code', 'Blank', 
+            'Blank', 'Beneficiary email id'
+        ]
+    else:
+        # ICICI
+        headers = [
+            "Debit Ac No", "Beneficiary Ac No", "Beneficiary Name", "Amt", "Pay Mod", 
+            "Date", "IFSC", "Payable Location", "Print Location", "Bene Mobile No.", 
+            "Bene Email ID", "Bene add1", "Bene add2", "Bene add3", "Bene add4", 
+            "Add Details 1", "Add Details 2", "Add Details 3", "Add Details 4", 
+            "Add Details 5", "Reamrks"
+        ]
+        
+    ws.append(headers)
+    
+    # Style Header
+    for cell in ws[1]:
+        cell.font = openpyxl.styles.Font(bold=True)
+        cell.fill = openpyxl.styles.PatternFill(start_color="CCE5FF", end_color="CCE5FF", fill_type="solid")
+        
+    for acc in active_accounts:
+        emp = acc.employee
+        if not emp:
+            continue
+            
+        comp = (emp.compliance or "").strip().upper()
+        match = False
+        if bank_name.upper() == "HDFC":
+            if comp in ("", "NONE", "NULL"):
+                match = True
+        elif bank_name.upper() == "ICICI":
+            if comp in ("PF", "TDS"):
+                match = True
+                
+        if match:
+            fullname = f"{emp.first_name or ''} {emp.last_name or ''}".strip() or "—"
+            today_str = date.today().strftime("%d/%m/%Y")
+            if bank_name.upper() == "HDFC":
+                ws.append([
+                    "NEFT",                               # Transaction Type
+                    "",                                   # Blank
+                    emp.bank_account_number or "",        # Beneficiary Account Number
+                    acc.net_salary_pay or 0,              # Instrument Amount
+                    fullname,                             # Beneficiary Name
+                    "",                                   # Blank
+                    "",                                   # Blank
+                    "",                                   # Blank
+                    "",                                   # Blank
+                    "",                                   # Blank
+                    "",                                   # Blank
+                    "",                                   # Blank
+                    f"REF-{emp.employee_id or emp.id}",   # Instruction Reference Number
+                    f"CUST-{emp.employee_id or emp.id}",  # Customer Reference Number
+                    "Salary Payout",                      # Payment details 1
+                    "",                                   # Blank
+                    "",                                   # Blank
+                    "",                                   # Blank
+                    "",                                   # Blank
+                    "",                                   # Blank
+                    "",                                   # Blank
+                    "",                                   # Blank
+                    today_str,                            # DATE - DD/MM/YYYY
+                    "",                                   # Blank
+                    emp.bank_ifsc_code or "",             # IFC Code
+                    "",                                   # Blank
+                    "",                                   # Blank
+                    emp.email or ""                       # Beneficiary email id
+                ])
+            else:
+                ws.append([
+                    "",                                   # Debit Ac No
+                    emp.bank_account_number or "",        # Beneficiary Ac No
+                    fullname,                             # Beneficiary Name
+                    acc.net_salary_pay or 0,              # Amt
+                    "NEFT",                               # Pay Mod
+                    today_str,                            # Date
+                    emp.bank_ifsc_code or "",             # IFSC
+                    "",                                   # Payable Location
+                    "",                                   # Print Location
+                    emp.contact_number or "",             # Bene Mobile No.
+                    emp.email or "",                      # Bene Email ID
+                    "",                                   # Bene add1
+                    "",                                   # Bene add2
+                    "",                                   # Bene add3
+                    "",                                   # Bene add4
+                    "Salary Payout",                      # Add Details 1
+                    "",                                   # Add Details 2
+                    "",                                   # Add Details 3
+                    "",                                   # Add Details 4
+                    "",                                   # Add Details 5
+                    "Salary"                              # Reamrks
+                ])
+                
+    # Auto-fit columns
+    for col in ws.columns:
+        vals = [str(cell.value or '') for cell in col]
+        max_len = max(len(v) for v in vals) if vals else 0
         col_letter = openpyxl.utils.get_column_letter(col[0].column)
-        ws.column_dimensions[col_letter].width = max(max_len + 3, 10)
+        ws.column_dimensions[col_letter].width = max(max_len + 3, 15)
         
     output = BytesIO()
     wb.save(output)

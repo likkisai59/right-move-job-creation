@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
-from datetime import date
+from datetime import date as dt_date
 
 class AccountBase(BaseModel):
     basic_pay: int = 0
@@ -66,8 +66,8 @@ class EmployeeShortInfo(BaseModel):
     first_name: Optional[str] = ""
     last_name: Optional[str] = ""
     compliance: Optional[str] = ""
-    date_of_joining: Optional[date] = None
-    date: Optional[date] = None
+    date_of_joining: Optional[dt_date] = None
+    date: Optional[dt_date] = None
     ctc: Optional[float] = None
     status: Optional[str] = ""
     pan_number: Optional[str] = ""
@@ -86,7 +86,7 @@ class AccountListResponse(AccountBase):
     }
 
 class PlacementResponse(BaseModel):
-    approval_date: Optional[date] = None
+    approval_date: Optional[dt_date] = None
     candidate_code: str
     candidate_name: str
     organization_id: Optional[str] = None

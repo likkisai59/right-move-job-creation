@@ -40,12 +40,12 @@ class Account(Base):
     employee = relationship("Employee", backref="account", uselist=False)
 
 
-class PayrollHistory(Base):
+class PayrollCalculationsHistory(Base):
     """
-    Table name: payroll_history
+    Table name: payroll_calculations_history
     Stores snapshots of calculated salaries when a month/cycle is closed.
     """
-    __tablename__ = "payroll_history"
+    __tablename__ = "payroll_calculations_history"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False)
@@ -71,15 +71,15 @@ class PayrollHistory(Base):
     exported_at = Column(DateTime, nullable=False, server_default=func.now())
 
     # Relationship to Employee
-    employee = relationship("Employee", backref="payroll_histories")
+    employee = relationship("Employee", backref="payroll_calculations_histories")
 
 
-class InvoiceHistory(Base):
+class OrganizationBillingHistory(Base):
     """
-    Table name: invoice_history
+    Table name: organization_billing_history
     Stores snapshots of calculated invoices when a month/cycle is closed.
     """
-    __tablename__ = "invoice_history"
+    __tablename__ = "organization_billing_history"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     job_candidate_mapping_id = Column(Integer, nullable=False)
@@ -105,5 +105,29 @@ class InvoiceHistory(Base):
     received_date = Column(Date, nullable=True)
     candidate_status = Column(String(100), nullable=True)
     billing_status = Column(String(100), nullable=True)
+    cycle_month_year = Column(String(50), nullable=False)
+    exported_at = Column(DateTime, nullable=False, server_default=func.now())
+
+
+class CandidatesHiredForOrganizationsHistory(Base):
+    """
+    Table name: candidates_hired_for_organizations_history
+    Stores snapshots of placements when a month/cycle is closed.
+    """
+    __tablename__ = "candidates_hired_for_organizations_history"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    approval_date = Column(Date, nullable=True)
+    candidate_code = Column(String(50), nullable=True)
+    candidate_name = Column(String(255), nullable=False)
+    organization_id = Column(String(50), nullable=True)
+    organization_name = Column(String(255), nullable=True)
+    location = Column(String(255), nullable=True)
+    job_designation = Column(String(255), nullable=True)
+    incentive = Column(Float, default=0.0, nullable=True)
+    rate_card = Column(String(50), nullable=True)
+    band = Column(String(50), nullable=True)
+    employee_id = Column(String(50), nullable=True)
+    employee_name = Column(String(255), nullable=True)
     cycle_month_year = Column(String(50), nullable=False)
     exported_at = Column(DateTime, nullable=False, server_default=func.now())

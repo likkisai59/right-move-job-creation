@@ -50,6 +50,7 @@ class InvoiceResponse(InvoiceBase):
     location: Optional[str] = None
     offered_ctc: Optional[float] = 0.0
     gst_number: Optional[str] = None
+    organization_id: Optional[str] = None
 
     model_config = {
         "from_attributes": True

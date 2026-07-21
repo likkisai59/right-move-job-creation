@@ -146,3 +146,22 @@ def export_billing_history(month: str, db: Session = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to export billing history: {str(e)}"
         )
+
+@router.get("/credit/export")
+def export_credit_details(bank_name: str, db: Session = Depends(get_db)):
+    try:
+        excel_file = accounts_service.export_bank_credit_details(db, bank_name)
+        filename = f"{bank_name.upper()}_credit_details.xlsx"
+        headers = {
+            'Content-Disposition': f'attachment; filename="{filename}"'
+        }
+        return StreamingResponse(
+            excel_file,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers=headers
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to export bank credit details: {str(e)}"
+        )

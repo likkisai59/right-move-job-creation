@@ -4,6 +4,7 @@ import Table from '../../components/common/Table';
 import EmptyState from '../../components/common/EmptyState';
 
 const OrganizationBillingTab = ({ data = [], loading = false, onEditInvoice }) => {
+  const formatCurrency = (val) => {
     return val !== undefined && val !== null ? `₹${Number(val).toLocaleString()}` : '₹0';
   };
 

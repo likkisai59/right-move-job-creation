@@ -22,7 +22,8 @@ import {
   closeMonth,
   fetchHistoryMonths,
   exportHistory,
-  exportBillingHistory
+  exportBillingHistory,
+  exportCreditDetails
 } from '../../api/accountsApi';
 
 const AccountsPage = () => {
@@ -50,6 +51,11 @@ const AccountsPage = () => {
   const [isBillingHistoryModalOpen, setIsBillingHistoryModalOpen] = useState(false);
   const [selectedBillingHistoryMonth, setSelectedBillingHistoryMonth] = useState('');
   const [downloadingBillingHistory, setDownloadingBillingHistory] = useState(false);
+
+  // Bank Credit details export states
+  const [isCreditModalOpen, setIsCreditModalOpen] = useState(false);
+  const [selectedCreditBank, setSelectedCreditBank] = useState('');
+  const [exportingCredit, setExportingCredit] = useState(false);
 
   // Organization-wise invoice generator states
   const [isGenerateInvoiceModalOpen, setIsGenerateInvoiceModalOpen] = useState(false);
@@ -112,12 +118,51 @@ const AccountsPage = () => {
       setInvoiceOrgCgst(first.cgst || 0);
       setInvoiceOrgSgst(first.sgst || 0);
       setInvoiceOrgIgst(first.igst || 18);
-      
-      const year = new Date().getFullYear();
-      const cleanName = selectedInvoiceOrg.replace(/[^a-zA-Z]/g, '').substring(0, 4).toUpperCase();
-      setInvoiceOrgNumber(`INV-${year}-${cleanName || 'RM'}-${Math.floor(100 + Math.random() * 900)}`);
     }
   }, [selectedInvoiceOrg, invoices]);
+
+  // Sync Invoice Number dynamically whenever Organization or Invoice Date changes!
+  useEffect(() => {
+    if (!selectedInvoiceOrg) return;
+    
+    // Find the first invoice of this organization to get the organization_id code
+    const orgInvoices = invoices.filter(inv => inv.organization_name === selectedInvoiceOrg);
+    let orgId = '';
+    if (orgInvoices.length > 0) {
+      const first = orgInvoices[0];
+      if (first.organization_id) {
+        orgId = first.organization_id;
+      } else if (first.invoice_number) {
+        const invParts = first.invoice_number.split('-');
+        if (invParts.length >= 2) {
+          orgId = invParts[1];
+        }
+      }
+    }
+    
+    // Fallback if not found
+    if (!orgId) {
+      orgId = selectedInvoiceOrg.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    }
+    
+    let dateStr = '';
+    if (invoiceOrgDate) {
+      const parts = invoiceOrgDate.split('-'); // e.g. ["2026", "07", "19"]
+      if (parts.length === 3) {
+        dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`; // "19-07-2026"
+      }
+    }
+    
+    if (!dateStr) {
+      const now = new Date();
+      const day = String(now.getDate()).padStart(2, '0');
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const year = now.getFullYear();
+      dateStr = `${day}-${month}-${year}`;
+    }
+    
+    setInvoiceOrgNumber(`INV-${orgId}-${dateStr}`);
+  }, [selectedInvoiceOrg, invoiceOrgDate, invoices]);
 
   // Configuration Modal State
   const [isConfigOpen, setIsConfigOpen] = useState(false);
@@ -716,7 +761,7 @@ const AccountsPage = () => {
       subtitle="Manage your employee accounting details, salary baseline structure, placements, payroll runs, and invoices."
       actions={
         <div className="flex items-center gap-3">
-          {activeTab === 'payroll' && (
+          {['placements', 'payroll', 'invoices'].includes(activeTab) && (
             <Button
               variant="danger"
               onClick={handleCloseMonth}
@@ -752,8 +797,8 @@ const AccountsPage = () => {
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-6">
 
         {/* Tab Selector & Download History */}
-        <div className="flex justify-between items-center border-b border-gray-100 pb-px gap-4">
-          <div className="flex gap-2 overflow-x-auto">
+        <div className="flex flex-col xl:flex-row xl:justify-between xl:items-center border-b border-gray-100 pb-3 gap-4">
+          <div className="flex gap-2 overflow-x-auto pb-2 xl:pb-0">
             <button
               onClick={() => setActiveTab('baseline')}
               className={`px-4 py-2.5 font-semibold text-sm transition-all border-b-2 shrink-0 ${activeTab === 'baseline'
@@ -791,13 +836,13 @@ const AccountsPage = () => {
               Organization Billing
             </button>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 justify-start xl:justify-end">
             <Button
               variant="secondary"
               size="sm"
               onClick={() => setIsHistoryModalOpen(true)}
               icon={Download}
-              className="mb-1.5 shrink-0"
+              className="shrink-0"
             >
               Download salary payrolls
             </Button>
@@ -806,9 +851,18 @@ const AccountsPage = () => {
               size="sm"
               onClick={() => setIsBillingHistoryModalOpen(true)}
               icon={Download}
-              className="mb-1.5 shrink-0"
+              className="shrink-0"
             >
               Download organization billings
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsCreditModalOpen(true)}
+              icon={Download}
+              className="shrink-0"
+            >
+              Export Credit Details
             </Button>
           </div>
         </div>
@@ -1332,6 +1386,87 @@ const AccountsPage = () => {
                 icon={FileText}
               >
                 Print Invoice
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── EXPORT CREDIT DETAILS MODAL ───────────────────────── */}
+      {isCreditModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-scale-up">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                <Download size={18} className="text-blue-600" />
+                Export Credit Details
+              </h3>
+              <button
+                onClick={() => {
+                  setIsCreditModalOpen(false);
+                  setSelectedCreditBank('');
+                }}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="space-y-3">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Select Bank (Export Rules)
+                </label>
+                <select
+                  value={selectedCreditBank}
+                  onChange={(e) => setSelectedCreditBank(e.target.value)}
+                  className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all font-semibold"
+                >
+                  <option value="">-- Select Bank --</option>
+                  <option value="HDFC">HDFC Bank (Compliance: None)</option>
+                  <option value="ICICI">ICICI Bank (Compliance: PF/TDS)</option>
+                </select>
+              </div>
+
+              {selectedCreditBank && (
+                <div className="bg-blue-50/50 rounded-xl p-3.5 border border-blue-100 text-xs text-blue-800 leading-relaxed">
+                  <strong>Exporting to Excel:</strong> Beneficiary Name, Account Number, IFSC Code, and Net Payout amount for all employees matching the <strong>{selectedCreditBank}</strong> compliance filter.
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setIsCreditModalOpen(false);
+                  setSelectedCreditBank('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!selectedCreditBank) {
+                    alert("Please select a bank first.");
+                    return;
+                  }
+                  setExportingCredit(true);
+                  try {
+                    await exportCreditDetails(selectedCreditBank);
+                    setIsCreditModalOpen(false);
+                    setSelectedCreditBank('');
+                  } catch (err) {
+                    alert("Failed to export credit details for " + selectedCreditBank);
+                  } finally {
+                    setExportingCredit(false);
+                  }
+                }}
+                disabled={!selectedCreditBank}
+                loading={exportingCredit}
+                icon={Download}
+              >
+                Export Excel
               </Button>
             </div>
           </div>
