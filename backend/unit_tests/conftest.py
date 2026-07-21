@@ -17,7 +17,7 @@ from app.main import app
 from app.models import (
     job_requirement, candidate, candidate_edit_history, organization,
     job_candidate, employee, attendance as attendance_model, leave as leave_model,
-    designation, business_unit, work_mode, exit_type
+    designation, business_unit, work_mode, exit_type, account
 )
 
 # Test Database URL

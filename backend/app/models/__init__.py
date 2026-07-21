@@ -5,6 +5,6 @@ from .candidate import Candidate
 from .job_candidate import JobCandidateMapping
 from .attendance import Attendance
 from .leave import Leave
-from .account import Account, PayrollCalculationsHistory, OrganizationBillingHistory
+from .account import Account, PayrollCalculationsHistory, OrganizationBillingHistory, CandidatesHiredForOrganizationsHistory
 from .payroll_config import PayrollConfig
 from .invoice import Invoice
