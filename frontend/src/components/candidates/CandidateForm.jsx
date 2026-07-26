@@ -679,7 +679,10 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
             <div className="flex-1">
               <Input
                 type="tel"
+                inputMode="numeric"
                 placeholder="Enter phone number"
+                onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
+                onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
                 error={errors.phone?.message}
                 {...register('phone', {
                   required: 'Phone number is required',
@@ -701,7 +704,10 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
         <Input
           label="Alternative Contact Number"
           type="tel"
+          inputMode="numeric"
           placeholder="Enter alternative contact (optional)"
+          onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
+          onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
           error={errors.alternativePhone?.message}
           {...register('alternativePhone', {
             pattern: { value: /^[0-9]{8,15}$/, message: 'Enter 8-15 digits' },

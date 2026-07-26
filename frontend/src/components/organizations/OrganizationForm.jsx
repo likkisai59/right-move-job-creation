@@ -257,6 +257,9 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
                   label="Contact Number"
                   placeholder="Enter phone number"
                   icon={Phone}
+                  inputMode="numeric"
+                  onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
+                  onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
                   error={errors.contact_number?.message}
                   {...register('contact_number', {
                     pattern: { value: /^\d+$/, message: 'Only numeric input allowed' },
@@ -352,6 +355,9 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
                   label="POC Contact"
                   placeholder="Enter POC phone number"
                   icon={Phone}
+                  inputMode="numeric"
+                  onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
+                  onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
                   error={errors.poc_contact?.message}
                   {...register('poc_contact', {
                     pattern: { value: /^\d+$/, message: 'Only numeric input allowed' },

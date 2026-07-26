@@ -642,7 +642,10 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                                 <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Salary</label>
                                 <input 
                                   type="text" 
+                                  inputMode="numeric"
                                   placeholder="e.g. 500000"
+                                  onKeyDown={(e) => { if (!/[0-9.]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
+                                  onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d*\.?\d*$/.test(paste)) e.preventDefault(); }}
                                   value={editForm.salary_offered} 
                                   onChange={(e) => setEditForm({...editForm, salary_offered: e.target.value})}
                                   className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.salary_offered ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
@@ -665,7 +668,10 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                                   <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Incentive</label>
                                   <input 
                                     type="text" 
+                                    inputMode="numeric"
                                     placeholder="e.g. 5000"
+                                    onKeyDown={(e) => { if (!/[0-9.]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
+                                    onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d*\.?\d*$/.test(paste)) e.preventDefault(); }}
                                     value={editForm.incentive} 
                                     onChange={(e) => setEditForm({...editForm, incentive: e.target.value})}
                                     className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.incentive ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
