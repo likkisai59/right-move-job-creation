@@ -349,7 +349,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   useEffect(() => {
     if (initialData?.reportingTo && allEmployees.length > 0) {
       const managerName = initialData.reportingTo.trim().toLowerCase();
-      const foundManager = allEmployees.find(emp => 
+      const foundManager = allEmployees.find(emp =>
         `${emp.firstName} ${emp.lastName}`.trim().toLowerCase() === managerName
       );
       if (foundManager && foundManager.designation) {
@@ -364,12 +364,12 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   useEffect(() => {
     if (selectedReportingDesignation && allEmployees.length > 0) {
       const options = allEmployees
-        .filter(emp => 
-          emp.designation === selectedReportingDesignation && 
+        .filter(emp =>
+          emp.designation === selectedReportingDesignation &&
           (emp.status === 'Active' || `${emp.firstName} ${emp.lastName}`.trim() === initialData?.reportingTo)
         )
         .map(emp => `${emp.firstName} ${emp.lastName}`.trim());
-      
+
       const currentVal = getValues('reportingTo');
       if (currentVal && !options.includes(currentVal)) {
         setValue('reportingTo', '');
@@ -380,8 +380,8 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   }, [selectedReportingDesignation, allEmployees, setValue, getValues, initialData]);
 
   const reportingManagerOptions = allEmployees
-    .filter(emp => 
-      emp.designation === selectedReportingDesignation && 
+    .filter(emp =>
+      emp.designation === selectedReportingDesignation &&
       (emp.status === 'Active' || `${emp.firstName} ${emp.lastName}`.trim() === initialData?.reportingTo)
     )
     .map(emp => {
@@ -429,7 +429,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     if (currentStatus === 'Inactive') {
       hrMandatoryFields.push('lastWorkingDate');
     }
-    
+
     // Reporting details are not required if designation is "Director"
     const selectedDes = formValues.designation;
     if (!selectedDes || selectedDes.toLowerCase().trim() !== 'director') {
@@ -569,11 +569,10 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             setStep(1);
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`px-5 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] border ${
-            step === 1 || step === 2
-              ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200'
-              : 'bg-white border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-          }`}
+          className={`px-5 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] border ${step === 1 || step === 2
+            ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200'
+            : 'bg-white border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}
         >
           HR
         </button>
@@ -583,11 +582,10 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             setStep(3);
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`px-5 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] border ${
-            step === 3
-              ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200'
-              : 'bg-white border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-          }`}
+          className={`px-5 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] border ${step === 3
+            ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200'
+            : 'bg-white border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}
         >
           ADMIN
         </button>
@@ -662,9 +660,12 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                 <div className="flex-1">
                   <Input
                     type="tel"
+                    inputMode="numeric"
                     placeholder="Enter personal phone number"
                     error={errors.contactNumber?.message}
-                    {...register('contactNumber', { required: 'Personal contact number is required' })}
+                    onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
+                    onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
+                    {...register('contactNumber', { required: 'Personal contact number is required', pattern: { value: /^[0-9]+$/, message: 'Only numbers are allowed' } })}
                     disabled={isHrDisabled}
                   />
                 </div>
@@ -684,9 +685,12 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                 <div className="flex-1">
                   <Input
                     type="tel"
+                    inputMode="numeric"
                     placeholder="Enter office phone number"
                     error={errors.contactNumberOffice?.message}
-                    {...register('contactNumberOffice', { required: 'Office contact number is required' })}
+                    onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
+                    onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
+                    {...register('contactNumberOffice', { required: 'Office contact number is required', pattern: { value: /^[0-9]+$/, message: 'Only numbers are allowed' } })}
                     disabled={isHrDisabled}
                   />
                 </div>
@@ -706,9 +710,12 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                 <div className="flex-1">
                   <Input
                     type="tel"
+                    inputMode="numeric"
                     placeholder="Enter emergency contact number"
                     error={errors.emergencyContactNumber?.message}
-                    {...register('emergencyContactNumber', { required: 'Emergency contact number is required' })}
+                    onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
+                    onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
+                    {...register('emergencyContactNumber', { required: 'Emergency contact number is required', pattern: { value: /^[0-9]+$/, message: 'Only numbers are allowed' } })}
                     disabled={isHrDisabled}
                   />
                 </div>
@@ -726,7 +733,11 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
               label="Aadhar Card Number"
               placeholder="Enter 12-digit Aadhar number"
               required
+              inputMode="numeric"
+              maxLength={12}
               error={errors.aadharNumber?.message}
+              onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
+              onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
               {...register('aadharNumber', {
                 required: 'Aadhar number is required',
                 pattern: { value: /^\d{12}$/, message: 'Aadhar number must be exactly 12 digits' }
@@ -752,13 +763,18 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
 
             <Input
               label="PAN Card Number"
-              placeholder="Enter 10-character PAN number"
+              placeholder="Enter 10-character PAN number (e.g. DAHPN8767B)"
               required
+              maxLength={10}
               error={errors.panNumber?.message}
+              onKeyDown={(e) => { if (!/[A-Za-z0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
+              onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^[A-Za-z0-9]+$/.test(paste)) e.preventDefault(); }}
               {...register('panNumber', {
                 required: 'PAN number is required',
-                pattern: { value: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i, message: 'Invalid PAN card format' }
+                pattern: { value: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, message: 'Invalid PAN format. Example: DAHPN8767B' },
+                setValueAs: (v) => v ? v.toUpperCase() : v
               })}
+              onChange={(e) => { e.target.value = e.target.value.toUpperCase(); }}
               disabled={isHrDisabled}
             />
 
@@ -1097,23 +1113,33 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
               label="Bank Account Number"
               placeholder="Enter bank account number"
               required
+              inputMode="numeric"
               error={errors.bankAccountNumber?.message}
-              {...register('bankAccountNumber', { required: 'Bank account number is required' })}
+              onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
+              onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
+              {...register('bankAccountNumber', {
+                required: 'Bank account number is required',
+                pattern: { value: /^[0-9]+$/, message: 'Only numbers are allowed' }
+              })}
               disabled={isHrDisabled}
             />
 
             <Input
               label="Bank IFSC Code"
-              placeholder="Enter bank IFSC code"
+              placeholder="Enter bank IFSC code (e.g. SBIN0001234)"
               required
               error={errors.bankIfscCode?.message}
+              onKeyDown={(e) => { if (!/[A-Za-z0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
+              onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^[A-Za-z0-9]+$/.test(paste)) e.preventDefault(); }}
               {...register('bankIfscCode', {
                 required: 'Bank IFSC code is required',
                 pattern: {
-                  value: /^[A-Z]{4}0[A-Z0-9]{6}$/i,
+                  value: /^[A-Z]{4}0[A-Z0-9]{6}$/,
                   message: 'Invalid IFSC code format (e.g. SBIN0001234)'
-                }
+                },
+                setValueAs: (v) => v ? v.toUpperCase() : v
               })}
+              onChange={(e) => { e.target.value = e.target.value.toUpperCase(); }}
               disabled={isHrDisabled}
             />
           </div>
