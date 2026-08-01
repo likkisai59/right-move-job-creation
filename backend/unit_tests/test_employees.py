@@ -145,6 +145,10 @@ def test_employee_password_generation_on_100_percent_completion(client: TestClie
     assert emp_data["completion_percentage_hr"] == 100
     assert emp_data["completion_percentage_admin"] == 100
     assert emp_data["employee_password"] is not None
-    # Password format: first_char + last_name + "@" + digits
-    # SConnor@XXXX
-    assert emp_data["employee_password"].startswith("SConnor@")
+    # Password is stored as a bcrypt hash (starts with $2b$)
+    assert emp_data["employee_password"].startswith("$2b$") or emp_data["employee_password"].startswith("$2a$")
+    from app.core.security import verify_password
+    # Extract digits from employee_id (e.g. RM0001 -> 0001)
+    import re
+    digits = "".join(re.findall(r"\d+", emp_data["employee_id"]))
+    assert verify_password(f"SConnor@{digits}", emp_data["employee_password"])

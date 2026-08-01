@@ -118,15 +118,18 @@ def compute_employee_completion(employee: Employee):
     else:
         employee.profile_status = "Draft"
 
-    # Generate password if both sections are 100% complete
+    # Generate bcrypt hashed password if both sections are 100% complete
     if employee.completion_percentage_hr == 100 and employee.completion_percentage_admin == 100:
         import re
+        from app.core.security import get_password_hash
         # Extract digits from employee_id (e.g. RM0001 -> 0001)
         digits = "".join(re.findall(r"\d+", employee.employee_id or ""))
         first_char = employee.first_name[0] if employee.first_name else ""
         last_name = employee.last_name or ""
         # Format: first_char + last_name + "@" + digits
-        employee.employee_password = f"{first_char}{last_name}@{digits}"
+        raw_password = f"{first_char}{last_name}@{digits}"
+        # Store as bcrypt hash for security
+        employee.employee_password = get_password_hash(raw_password)
     else:
         employee.employee_password = None
         

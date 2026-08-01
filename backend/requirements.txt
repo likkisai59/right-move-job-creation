@@ -42,3 +42,5 @@ uvicorn==0.30.6
 
 python-docx
 PyPDF2
+bcrypt==5.0.0
+passlib==1.7.4

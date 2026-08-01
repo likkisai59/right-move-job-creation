@@ -94,6 +94,7 @@ def login(payload: EmployeeLoginRequest, db: Session = Depends(get_db)):
             db.refresh(target_employee)
     else:
         # Fallback to standard database verification
+        from app.core.security import verify_password
         employees = db.query(Employee).all()
         for emp in employees:
             if not emp.first_name or not emp.last_name:
@@ -101,9 +102,9 @@ def login(payload: EmployeeLoginRequest, db: Session = Depends(get_db)):
                 
             db_full = f"{emp.first_name} {emp.last_name}".strip().lower()
             
-            # Verify password matches ONLY employee_password (if generated)
+            # Verify password using bcrypt hash (with fallback for legacy plain text)
             is_pass_valid = False
-            if emp.employee_password and emp.employee_password.strip() == input_pass:
+            if emp.employee_password and verify_password(input_pass, emp.employee_password):
                 is_pass_valid = True
 
             if db_full == input_user and is_pass_valid:
