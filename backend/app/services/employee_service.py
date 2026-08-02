@@ -12,11 +12,20 @@ from app.schemas.employee import EmployeeCreateRequest, EmployeeUpdateRequest
 
 def generate_employee_id(db: Session) -> str:
     """
-    Auto-generates the next employee ID in the format RM0001.
+    Auto-generates the next employee ID in the format RM0001
+    by analyzing all existing employee_id string codes in DB.
     """
-    # Find the maximum 'id' in the table
-    max_id = db.query(func.max(Employee.id)).scalar() or 0
-    next_number = max_id + 1
+    import re
+    employees = db.query(Employee.employee_id).all()
+    max_num = 0
+    for (emp_id,) in employees:
+        if emp_id:
+            digits = re.findall(r"\d+", emp_id)
+            if digits:
+                num = int(digits[0])
+                if num > max_num:
+                    max_num = num
+    next_number = max_num + 1
     return f"RM{next_number:04d}"
 
 def compute_employee_completion(employee: Employee):

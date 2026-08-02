@@ -75,7 +75,9 @@ async def parse_resume_endpoint(file: UploadFile = File(...)):
         return JSONResponse(status_code=500, content={"success": False, "message": "An internal error occurred while parsing the resume."})
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+from app.core.security import require_roles
+
+@router.post("", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles(["admin", "hr", "director", "teamlead", "atl", "executive", "trainee", "intern"]))])
 async def add_candidate(
     # ── Personal Details ──────────────────────────────────
     first_name: str = Form(...),

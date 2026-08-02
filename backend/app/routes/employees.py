@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query, File, UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import Optional
 import traceback
 import os
@@ -137,11 +138,13 @@ def upload_employee_file(file: UploadFile = File(...)):
 # CREATE EMPLOYEE
 # ─────────────────────────────────────────────────────────────
 
-@router.post("")
+from app.core.security import require_roles
+
+@router.post("", dependencies=[Depends(require_roles(["admin", "hr", "director"]))])
 def create_employee(payload: EmployeeCreateRequest, db: Session = Depends(get_db)):
     """
     POST /api/employees
-    Creates a new employee record.
+    Creates a new employee record. Allowed roles: HR, Admin, Director.
     """
     try:
         employee = employee_service.create_employee(db, payload)
@@ -149,9 +152,13 @@ def create_employee(payload: EmployeeCreateRequest, db: Session = Depends(get_db
             status_code=201,
             content=success_response("Employee created successfully", {"id": employee.id, "employee_id": employee.employee_id})
         )
+    except IntegrityError as exc:
+        db.rollback()
+        return JSONResponse(status_code=400, content=error_response("An employee with this Employee ID or details already exists. Please try again."))
     except Exception as exc:
+        db.rollback()
         traceback.print_exc()
-        return JSONResponse(status_code=500, content=error_response(str(exc)))
+        return JSONResponse(status_code=500, content=error_response("Failed to create employee record. Please try again."))
 
 # ─────────────────────────────────────────────────────────────
 # EXPORT EMPLOYEES
