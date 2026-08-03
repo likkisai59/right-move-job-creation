@@ -1,6 +1,7 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from typing import Optional
 import datetime as dt
+import re
 from enum import Enum
 
 
@@ -77,6 +78,48 @@ class EmployeeBase(BaseModel):
     google_sheet_configured: Optional[str] = None
     whatsapp_business_configured: Optional[str] = None
     employee_password: Optional[str] = None
+
+    # ─────────────────────────────────────────────────────────────
+    # DUAL-LAYER BACKEND VALIDATORS
+    # ─────────────────────────────────────────────────────────────
+
+    @field_validator('contact_number', 'contact_number_office', 'emergency_contact_number', mode='before')
+    @classmethod
+    def validate_phone_numbers(cls, v):
+        if v and str(v).strip():
+            val = str(v).strip()
+            if not re.match(r"^\d{10}$", val):
+                raise ValueError("Phone number must be exactly 10 digits")
+        return v
+
+    @field_validator('aadhar_number', mode='before')
+    @classmethod
+    def validate_aadhar_number(cls, v):
+        if v and str(v).strip():
+            val = str(v).strip()
+            if not re.match(r"^\d{12}$", val):
+                raise ValueError("Aadhar number must be exactly 12 digits")
+        return v
+
+    @field_validator('pan_number', mode='before')
+    @classmethod
+    def validate_pan_number(cls, v):
+        if v and str(v).strip():
+            val = str(v).strip().upper()
+            if not re.match(r"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", val):
+                raise ValueError("Invalid PAN format. Example: DAHPN8767B")
+            return val
+        return v
+
+    @field_validator('bank_ifsc_code', mode='before')
+    @classmethod
+    def validate_ifsc_code(cls, v):
+        if v and str(v).strip():
+            val = str(v).strip().upper()
+            if not re.match(r"^[A-Z]{4}0[A-Z0-9]{6}$", val):
+                raise ValueError("Invalid IFSC code format (e.g. SBIN0001234)")
+            return val
+        return v
 
 
 class EmployeeCreateRequest(EmployeeBase):

@@ -51,6 +51,14 @@ const FormFileUpload = ({ label, required, value, onChange, error, disabled }) =
     const file = e.target.files[0];
     if (!file) return;
 
+    // Validate file format (PDF / Image)
+    const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
+    const fileExt = file.name.split('.').pop().toLowerCase();
+    if (!allowedExtensions.includes(fileExt)) {
+      setLocalError('Invalid file format. Only PDF, JPG, JPEG, and PNG files are allowed.');
+      return;
+    }
+
     if (file.size > 5 * 1024 * 1024) {
       setLocalError('File size must not exceed 5MB.');
       return;
@@ -106,7 +114,7 @@ const FormFileUpload = ({ label, required, value, onChange, error, disabled }) =
           type="file"
           className="hidden"
           onChange={handleFileChange}
-          accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+          accept=".pdf,.jpg,.jpeg,.png"
           disabled={disabled}
         />
 
@@ -601,7 +609,11 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
               placeholder="Enter first name"
               required
               error={errors.firstName?.message}
-              {...register('firstName', { required: 'First name is required' })}
+              onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
+              {...register('firstName', {
+                required: 'First name is required',
+                pattern: { value: /^[A-Za-z\s'-]+$/, message: 'Only alphabetic characters allowed' }
+              })}
               disabled={isHrDisabled}
             />
 
@@ -610,7 +622,11 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
               placeholder="Enter last name"
               required
               error={errors.lastName?.message}
-              {...register('lastName', { required: 'Last name is required' })}
+              onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
+              {...register('lastName', {
+                required: 'Last name is required',
+                pattern: { value: /^[A-Za-z\s'-]+$/, message: 'Only alphabetic characters allowed' }
+              })}
               disabled={isHrDisabled}
             />
 
@@ -634,8 +650,22 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
               label="Date of Birth"
               type="date"
               required
+              max={new Date().toISOString().split('T')[0]}
+              min="1950-01-01"
               error={errors.dateOfBirth?.message}
-              {...register('dateOfBirth', { required: 'Date of birth is required' })}
+              {...register('dateOfBirth', {
+                required: 'Date of birth is required',
+                validate: (val) => {
+                  if (!val) return 'Date of birth is required';
+                  const date = new Date(val);
+                  const year = date.getFullYear();
+                  const today = new Date();
+                  if (isNaN(date.getTime()) || year < 1950 || date > today || year > today.getFullYear()) {
+                    return 'Please enter a valid Date of Birth';
+                  }
+                  return true;
+                }
+              })}
               disabled={isHrDisabled}
             />
 
@@ -643,7 +673,15 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
               label="Email Address"
               type="email"
               placeholder="e.g. john.doe@example.com"
-              {...register('email')}
+              required
+              error={errors.email?.message}
+              {...register('email', {
+                required: 'Email address is required',
+                pattern: {
+                  value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                  message: 'Enter a valid email address (e.g. user@example.com)'
+                }
+              })}
               disabled={isHrDisabled}
             />
 
@@ -661,11 +699,15 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                   <Input
                     type="tel"
                     inputMode="numeric"
-                    placeholder="Enter personal phone number"
+                    placeholder="Enter 10-digit phone number"
+                    maxLength={10}
                     error={errors.contactNumber?.message}
                     onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
                     onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
-                    {...register('contactNumber', { required: 'Personal contact number is required', pattern: { value: /^[0-9]+$/, message: 'Only numbers are allowed' } })}
+                    {...register('contactNumber', {
+                      required: 'Personal contact number is required',
+                      pattern: { value: /^\d{10}$/, message: 'Phone number must be exactly 10 digits' }
+                    })}
                     disabled={isHrDisabled}
                   />
                 </div>
@@ -686,11 +728,15 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                   <Input
                     type="tel"
                     inputMode="numeric"
-                    placeholder="Enter office phone number"
+                    placeholder="Enter 10-digit office phone number"
+                    maxLength={10}
                     error={errors.contactNumberOffice?.message}
                     onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
                     onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
-                    {...register('contactNumberOffice', { required: 'Office contact number is required', pattern: { value: /^[0-9]+$/, message: 'Only numbers are allowed' } })}
+                    {...register('contactNumberOffice', {
+                      required: 'Office contact number is required',
+                      pattern: { value: /^\d{10}$/, message: 'Office contact number must be exactly 10 digits' }
+                    })}
                     disabled={isHrDisabled}
                   />
                 </div>
@@ -711,11 +757,15 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                   <Input
                     type="tel"
                     inputMode="numeric"
-                    placeholder="Enter emergency contact number"
+                    placeholder="Enter 10-digit emergency contact number"
+                    maxLength={10}
                     error={errors.emergencyContactNumber?.message}
                     onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
                     onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
-                    {...register('emergencyContactNumber', { required: 'Emergency contact number is required', pattern: { value: /^[0-9]+$/, message: 'Only numbers are allowed' } })}
+                    {...register('emergencyContactNumber', {
+                      required: 'Emergency contact number is required',
+                      pattern: { value: /^\d{10}$/, message: 'Emergency contact number must be exactly 10 digits' }
+                    })}
                     disabled={isHrDisabled}
                   />
                 </div>
@@ -930,8 +980,21 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
               label="Date of Joining"
               type="date"
               required
+              min="1990-01-01"
+              max="2035-12-31"
               error={errors.dateOfJoining?.message}
-              {...register('dateOfJoining', { required: 'Date of joining is required' })}
+              {...register('dateOfJoining', {
+                required: 'Date of joining is required',
+                validate: (val) => {
+                  if (!val) return 'Date of joining is required';
+                  const date = new Date(val);
+                  const year = date.getFullYear();
+                  if (isNaN(date.getTime()) || year < 1990 || year > 2035) {
+                    return 'Please enter a valid Date of Joining';
+                  }
+                  return true;
+                }
+              })}
               disabled={isHrDisabled}
             />
 
@@ -960,7 +1023,10 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             <Input
               label="Last Company Name"
               placeholder="Enter last company name"
-              {...register('lastCompanyName')}
+              error={errors.lastCompanyName?.message}
+              {...register('lastCompanyName', {
+                pattern: { value: /^(?!\d+$)[A-Za-z0-9\s&.,'-]+$/, message: 'Company name cannot be purely numeric' }
+              })}
               disabled={isHrDisabled}
             />
 
@@ -1105,21 +1171,26 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
               placeholder="Enter bank name"
               required
               error={errors.bankName?.message}
-              {...register('bankName', { required: 'Bank name is required' })}
+              onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
+              {...register('bankName', {
+                required: 'Bank name is required',
+                pattern: { value: /^[A-Za-z\s.-]+$/, message: 'Only alphabetic characters allowed' }
+              })}
               disabled={isHrDisabled}
             />
 
             <Input
               label="Bank Account Number"
-              placeholder="Enter bank account number"
+              placeholder="Enter bank account number (9-18 digits)"
               required
               inputMode="numeric"
+              maxLength={18}
               error={errors.bankAccountNumber?.message}
               onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
               onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
               {...register('bankAccountNumber', {
                 required: 'Bank account number is required',
-                pattern: { value: /^[0-9]+$/, message: 'Only numbers are allowed' }
+                pattern: { value: /^\d{9,18}$/, message: 'Bank account number must be 9 to 18 digits' }
               })}
               disabled={isHrDisabled}
             />
@@ -1128,6 +1199,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
               label="Bank IFSC Code"
               placeholder="Enter bank IFSC code (e.g. SBIN0001234)"
               required
+              maxLength={11}
               error={errors.bankIfscCode?.message}
               onKeyDown={(e) => { if (!/[A-Za-z0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
               onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^[A-Za-z0-9]+$/.test(paste)) e.preventDefault(); }}
