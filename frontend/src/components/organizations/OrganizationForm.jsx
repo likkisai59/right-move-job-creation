@@ -188,6 +188,7 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
                 error={errors.organization_name?.message}
                 {...register('organization_name', {
                   required: 'Organization name is required',
+                  pattern: { value: /^(?!\d+$)[A-Za-z0-9\s&.,'-]+$/, message: 'Organization name cannot be purely numeric' },
                   onBlur: handleCheckDuplicates
                 })}
               />
@@ -255,15 +256,15 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
               <div className="md:col-span-3">
                 <Input
                   label="Contact Number"
-                  placeholder="Enter phone number"
+                  placeholder="Enter 10-digit phone number"
                   icon={Phone}
                   inputMode="numeric"
+                  maxLength={10}
                   onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
                   onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
                   error={errors.contact_number?.message}
                   {...register('contact_number', {
-                    pattern: { value: /^\d+$/, message: 'Only numeric input allowed' },
-                    minLength: { value: 10, message: 'Minimum 10 digits required' }
+                    pattern: { value: /^\d{10}$/, message: 'Phone number must be exactly 10 digits' }
                   })}
                 />
               </div>
@@ -353,15 +354,15 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
               <div className="md:col-span-3">
                 <Input
                   label="POC Contact"
-                  placeholder="Enter POC phone number"
+                  placeholder="Enter 10-digit POC phone number"
                   icon={Phone}
                   inputMode="numeric"
+                  maxLength={10}
                   onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
                   onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
                   error={errors.poc_contact?.message}
                   {...register('poc_contact', {
-                    pattern: { value: /^\d+$/, message: 'Only numeric input allowed' },
-                    minLength: { value: 10, message: 'Minimum 10 digits required' }
+                    pattern: { value: /^\d{10}$/, message: 'Phone number must be exactly 10 digits' }
                   })}
                 />
               </div>
@@ -374,7 +375,7 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
                 icon={Mail}
                 error={errors.poc_email_id?.message}
                 {...register('poc_email_id', {
-                  pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email address' }
+                  pattern: { value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, message: 'Enter a valid email address (e.g. poc@company.com)' }
                 })}
               />
             </div>
@@ -416,7 +417,7 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
                     </label>
                     <FileUpload
                       value={field.value ? { name: field.value.split('/').pop(), url: field.value } : null}
-                      accept=".pdf,.doc,.docx"
+                      accept=".pdf,.jpg,.jpeg,.png"
                       title="Drag & drop your contract document here"
                       subtitle="or click to browse"
                       onFileSelect={(file) => handleContractUpload(file, field.onChange)}

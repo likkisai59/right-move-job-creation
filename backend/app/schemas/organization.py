@@ -36,6 +36,26 @@ class OrganizationCreate(BaseModel):
             raise ValueError(f"Invalid status. Allowed: {', '.join(allowed)}")
         return v
 
+    @field_validator("contact_number", "poc_contact", mode="before")
+    @classmethod
+    def validate_org_phone(cls, v):
+        if v and str(v).strip():
+            val = str(v).strip()
+            import re
+            if not re.match(r"^\d{10}$", val):
+                raise ValueError("Phone number must be exactly 10 digits")
+        return v
+
+    @field_validator("poc_email_id", mode="before")
+    @classmethod
+    def validate_org_email(cls, v):
+        if v and str(v).strip():
+            val = str(v).strip()
+            import re
+            if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", val):
+                raise ValueError("Enter a valid email address")
+        return v
+
     @model_validator(mode='after')
     def validate_dates(self) -> 'OrganizationCreate':
         if self.contract_signed_date and self.contract_end_date:

@@ -232,7 +232,10 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
           label="External SPOC"
           placeholder="Enter External SPOC Name"
           error={errors.externalSpoc?.message}
-          {...register('externalSpoc')}
+          onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
+          {...register('externalSpoc', {
+            pattern: { value: /^[A-Za-z\s'-]+$/, message: 'Only alphabetic characters allowed' }
+          })}
         />
 
         {/* External SPOC Email */}
@@ -244,7 +247,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
           {...register('externalSpocEmailId', {
             pattern: {
               value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-              message: 'Invalid email format'
+              message: 'Enter a valid email address (e.g. spoc@company.com)'
             }
           })}
         />

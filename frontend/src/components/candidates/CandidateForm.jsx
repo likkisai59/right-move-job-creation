@@ -600,9 +600,10 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           placeholder="Enter first name"
           required
           error={errors.firstName?.message}
+          onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
           {...register('firstName', {
             required: 'First name is required',
-            pattern: { value: /^[A-Za-z ]+$/, message: 'Name should contain only alphabets' },
+            pattern: { value: /^[A-Za-z\s'-]+$/, message: 'Only alphabetic characters allowed' },
             validate: value => value.trim().length > 0 || 'Name cannot be empty',
             onBlur: () => handleCheckDuplicates('name'),
           })}
@@ -615,9 +616,10 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
             placeholder="Enter last name"
             required
             error={errors.lastName?.message}
+            onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
             {...register('lastName', {
               required: 'Last name is required',
-              pattern: { value: /^[A-Za-z ]+$/, message: 'Name should contain only alphabets' },
+              pattern: { value: /^[A-Za-z\s'-]+$/, message: 'Only alphabetic characters allowed' },
               validate: value => value.trim().length > 0 || 'Name cannot be empty',
               onBlur: () => handleCheckDuplicates('name'),
             })}
@@ -640,7 +642,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
             error={errors.email?.message}
             {...register('email', {
               required: 'Email is required',
-              pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email address' },
+              pattern: { value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, message: 'Enter a valid email address (e.g. user@example.com)' },
               onBlur: () => handleCheckDuplicates('email'),
             })}
           />
@@ -659,7 +661,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           placeholder="Enter alternative email (optional)"
           error={errors.alternativeEmail?.message}
           {...register('alternativeEmail', {
-            pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email address' },
+            pattern: { value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, message: 'Enter a valid email address (e.g. user@example.com)' },
           })}
         />
 
@@ -680,13 +682,14 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
               <Input
                 type="tel"
                 inputMode="numeric"
-                placeholder="Enter phone number"
+                placeholder="Enter 10-digit phone number"
+                maxLength={10}
                 onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
                 onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
                 error={errors.phone?.message}
                 {...register('phone', {
                   required: 'Phone number is required',
-                  pattern: { value: /^[0-9]{8,15}$/, message: 'Enter 8-15 digits' },
+                  pattern: { value: /^\d{10}$/, message: 'Phone number must be exactly 10 digits' },
                   onBlur: () => handleCheckDuplicates('phone'),
                 })}
               />
@@ -705,12 +708,13 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           label="Alternative Contact Number"
           type="tel"
           inputMode="numeric"
-          placeholder="Enter alternative contact (optional)"
+          placeholder="Enter alternative 10-digit phone (optional)"
+          maxLength={10}
           onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
           onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
           error={errors.alternativePhone?.message}
           {...register('alternativePhone', {
-            pattern: { value: /^[0-9]{8,15}$/, message: 'Enter 8-15 digits' },
+            pattern: { value: /^\d{10}$/, message: 'Phone number must be exactly 10 digits' },
           })}
         />
 
@@ -754,7 +758,9 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           label="Current Company"
           placeholder="Enter current company"
           error={errors.currentCompany?.message}
-          {...register('currentCompany')}
+          {...register('currentCompany', {
+            pattern: { value: /^(?!\d+$)[A-Za-z0-9\s&.,'-]+$/, message: 'Company name cannot be purely numeric' }
+          })}
         />
 
         {/* Current Designation */}
@@ -808,6 +814,8 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           <Input
             label="LWD (Last Working Day)"
             type="date"
+            min="1990-01-01"
+            max="2035-12-31"
             required={isLwdMandatory}
             error={errors.lwd?.message}
             {...register('lwd', { required: isLwdMandatory ? 'Last working day is required' : false })}

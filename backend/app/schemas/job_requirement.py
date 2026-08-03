@@ -97,6 +97,28 @@ class JobCreateRequest(BaseModel):
     assigned_to: str = Field(..., min_length=1, description="Name of the assigned recruiter")
     created_by: Optional[str] = Field(default=None, description="Name of the creator")
 
+    @field_validator("external_spoc", mode="before")
+    @classmethod
+    def validate_spoc_name(cls, v):
+        if v and str(v).strip():
+            val = str(v).strip()
+            import re
+            if not re.match(r"^[A-Za-z\s'-]+$", val):
+                raise ValueError("External SPOC name must contain only alphabetic characters")
+            return val
+        return v
+
+    @field_validator("external_spoc_email_id", mode="before")
+    @classmethod
+    def validate_spoc_email(cls, v):
+        if v and str(v).strip():
+            val = str(v).strip()
+            import re
+            if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", val):
+                raise ValueError("Enter a valid email address for External SPOC")
+            return val
+        return v
+
     @field_validator("company_name", "assigned_to", mode="before")
     @classmethod
     def strip_strings(cls, v: str) -> str:

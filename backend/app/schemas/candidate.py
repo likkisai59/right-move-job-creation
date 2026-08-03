@@ -64,8 +64,8 @@ class CandidateCreateRequest(BaseModel):
     @classmethod
     def validate_email(cls, v: str) -> str:
         v = v.strip()
-        if not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", v):
-            raise ValueError("Enter a valid email address")
+        if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", v):
+            raise ValueError("Enter a valid email address (e.g. user@example.com)")
         return v
 
     @field_validator('alternative_email')
@@ -73,7 +73,7 @@ class CandidateCreateRequest(BaseModel):
     def validate_alternative_email(cls, v: Optional[str]) -> Optional[str]:
         if v:
             v = v.strip()
-            if v and not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", v):
+            if v and not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", v):
                 raise ValueError("Enter a valid alternative email address")
         return v or None
 
@@ -81,8 +81,8 @@ class CandidateCreateRequest(BaseModel):
     @classmethod
     def validate_phone(cls, v: str) -> str:
         v = v.strip()
-        if not re.match(r"^[0-9]{8,15}$", v):
-            raise ValueError("Phone number must be 8-15 digits")
+        if not re.match(r"^\d{10}$", v):
+            raise ValueError("Phone number must be exactly 10 digits")
         return v
 
     @field_validator('alternative_contact_number')
@@ -90,8 +90,8 @@ class CandidateCreateRequest(BaseModel):
     def validate_alt_phone(cls, v: Optional[str]) -> Optional[str]:
         if v:
             v = v.strip()
-            if v and not re.match(r"^[0-9]{8,15}$", v):
-                raise ValueError("Alternative contact number must be 8-15 digits")
+            if v and not re.match(r"^\d{10}$", v):
+                raise ValueError("Alternative contact number must be exactly 10 digits")
         return v or None
 
     @field_validator('business_unit')
