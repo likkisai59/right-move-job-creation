@@ -18,12 +18,13 @@ import OrganizationEditPage from '../pages/organizations/OrganizationEditPage';
 import EmployeeListPage from '../pages/employees/EmployeeListPage';
 import AddEmployeePage from '../pages/employees/AddEmployeePage';
 import EditEmployeePage from '../pages/employees/EditEmployeePage';
-import SettingsPage from '../pages/SettingsPage';
+import SettingsPage from '../pages/settings/SettingsPage';
+import PendingRolePage from '../pages/PendingRolePage';
 import LoginPage from '../pages/LoginPage';
 import AccountsPage from '../pages/accounts/AccountsPage';
 import EditAccountPage from '../pages/accounts/EditAccountPage';
 import HomePage from '../pages/HomePage';
-import { isAuthenticated, checkPermission } from '../api/authApi';
+import { isAuthenticated, checkPermission, getSystemRole } from '../api/authApi';
 
 // ── Attendance Portal Imports ────────────────────────────────
 import AttendanceLoginPage from '../pages/attendance/AttendanceLoginPage';
@@ -38,6 +39,10 @@ import AssignedTasks from '../pages/attendance/AssignedTasks';
 const ProtectedRoute = ({ children }) => {
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
+  }
+  const role = getSystemRole();
+  if (role === 'unassigned') {
+    return <PendingRolePage />;
   }
   return children;
 };

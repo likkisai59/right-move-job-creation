@@ -100,6 +100,14 @@ export const CANDIDATE_STATUS_COLORS = {
   hired: 'teal',
 };
 
+export const ALLOWED_RESUME_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+];
+
+export const MAX_RESUME_SIZE_MB = 5;
+
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
 
 export const COUNTRY_CODES = [

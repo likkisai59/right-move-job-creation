@@ -18,7 +18,7 @@ import { fetchDesignations } from '../../api/designationsApi';
 import { fetchBusinessUnits } from '../../api/businessUnitsApi';
 import { fetchWorkModes } from '../../api/workModesApi';
 import { uploadEmployeeFile, fetchEmployees } from '../../api/employeesApi';
-import { getCurrentUser } from '../../api/authApi';
+import { getCurrentUser, getSystemRole } from '../../api/authApi';
 
 const SectionTitle = ({ children }) => (
   <div className="mb-5">
@@ -162,14 +162,15 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   const [businessUnits, setBusinessUnits] = useState([]);
   const [workModes, setWorkModes] = useState([]);
 
-  // Access check: Admin vs HR
-  const currentUser = getCurrentUser();
-  const userRoleOrDesignation = (currentUser?.role || '').toLowerCase();
-  const isUserAdmin = userRoleOrDesignation === 'admin' || userRoleOrDesignation.includes('admin') || userRoleOrDesignation.includes('director');
+  // Access check based on System Role (3-Stage Onboarding)
+  const systemRole = getSystemRole();
+  const isHrRole = systemRole === 'hr';
+  const isAdminUserRole = systemRole === 'admin_user';
+  const isSuperAdminOrAdminAdmin = systemRole === 'super_admin' || systemRole === 'admin_admin';
 
-  // Restrictions logic
-  const isHrDisabled = isUserAdmin;
-  const isAdminDisabled = !isUserAdmin;
+  // Restrictions logic: HR role edits HR form; Admin User role edits Admin form; Super Admin edits both.
+  const isHrDisabled = isAdminUserRole && !isSuperAdminOrAdminAdmin;
+  const isAdminDisabled = isHrRole && !isSuperAdminOrAdminAdmin;
 
   const {
     register,

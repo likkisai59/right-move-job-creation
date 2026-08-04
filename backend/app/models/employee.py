@@ -38,6 +38,9 @@ class Employee(Base):
     profile_status= Column(Enum('Draft', 'In Progress', 'Completed', name='employee_profile_status'), nullable=False, default="Draft")
     completion_percentage = Column(Integer, nullable=False, default=0)
 
+    # System RBAC Role (unassigned, user, leader, hr, admin_user, admin_admin, super_admin)
+    system_role = Column(String(50), nullable=False, default="unassigned")
+
     # HR completion tracking
     profile_status_hr = Column(Enum('Draft', 'In Progress', 'Completed', name='employee_profile_status_hr'), nullable=False, default="Draft")
     completion_percentage_hr = Column(Integer, nullable=False, default=0)

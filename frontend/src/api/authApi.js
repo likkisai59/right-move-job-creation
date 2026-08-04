@@ -59,18 +59,43 @@ export const getUserDesignation = () => {
     return '';
 };
 
-export const checkPermission = (action) => {
-    const designation = getUserDesignation();
-    const norm = (designation || '').toLowerCase().trim().replace(/[\s\.-]+/g, '');
-    
-    if (action === 'add_employee') {
-        return ['director', 'admin', 'hr'].includes(norm);
+export const getSystemRole = () => {
+    const user = localStorage.getItem('user');
+    if (user) {
+        try {
+            const userData = JSON.parse(user);
+            if (userData.system_role) return userData.system_role.toLowerCase().trim();
+        } catch (e) {}
     }
-    if (action === 'add_organization' || action === 'add_job') {
-        return ['director', 'admin', 'hr', 'srmanager', 'manager', 'assistantmanager', 'asstmanager', 'teamlead'].includes(norm);
+    const designation = getUserDesignation().toLowerCase().trim().replace(/[\s\.-]+/g, '');
+    if (designation.includes('director')) return 'super_admin';
+    if (designation.includes('admin')) return 'admin_admin';
+    if (designation.includes('hr')) return 'hr';
+    if (designation.includes('tl') || designation.includes('lead')) return 'leader';
+    if (designation.includes('executive') || designation.includes('recruiter')) return 'user';
+    return 'unassigned';
+};
+
+export const checkPermission = (action) => {
+    const role = getSystemRole();
+
+    if (role === 'unassigned') return false;
+    if (role === 'super_admin' || role === 'admin_admin') return true;
+
+    if (action === 'add_employee') {
+        return ['hr', 'admin_user', 'super_admin'].includes(role);
+    }
+    if (action === 'add_organization') {
+        return ['admin_user', 'admin_admin', 'super_admin'].includes(role);
+    }
+    if (action === 'add_job') {
+        return ['user', 'leader', 'admin_user', 'admin_admin', 'super_admin'].includes(role);
     }
     if (action === 'add_candidate') {
-        return ['director', 'admin', 'hr', 'srmanager', 'manager', 'assistantmanager', 'asstmanager', 'teamlead', 'atl', 'seniorexecutive', 'executive', 'trainee', 'intern'].includes(norm);
+        return ['user', 'leader', 'admin_user', 'super_admin'].includes(role);
+    }
+    if (action === 'view_settings') {
+        return ['admin_admin', 'super_admin'].includes(role);
     }
     return true;
 };

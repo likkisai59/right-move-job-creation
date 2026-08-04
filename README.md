@@ -42,17 +42,18 @@ A modern, comprehensive Recruitment Operations Management System (ROMS) and Appl
 - **Automated Duplicate Detection:** Real-time database checks preventing duplicate candidate entries via Name, Email, or Phone Number validation.
 - **Form State Management:** Robust input control, automatically sanitizing values, calculating variable CTCs, and strictly managing blank defaults (e.g., Business Unit) for superior data integrity.
 
-### 5. 👥 Employee & HR Operations
+### 5. 👥 Employee & HR Operations (3-Stage Onboarding)
 - Dynamic management of internal employees and recruiters.
-- **Save as Draft & Profile Completeness:** Allows recruiters/HR to save partial employee records as "Drafts" bypassing strict validation, computing and visualizing a real-time Profile Completion Percentage in the list tables.
+- **3-Stage Enterprise Onboarding:** Enforces strict role boundaries where `HR` role populates HR details, `Admin User` role populates CTC/Compliance details, and `Super Admin` / `Admin Admin` assigns system roles in `/settings`.
+- **Save as Draft & Profile Completeness:** Allows recruiters/HR to save partial employee records as "Drafts" bypassing strict validation, computing and visualizing real-time Profile Completion Percentages.
 
-### 6. ⚙️ Settings & Administration Configurations
-- Scalable configuration modules controlling dropdowns and organizational structures:
-  - **Business Units**
-  - **Designations**
-  - **Work Modes**
-  - **Exit Types**
-- Supports full CRUD capabilities, activity toggling (Active/Inactive), and automated timestamp tracking.
+### 6. ⚙️ Dynamic 7-Role RBAC & Settings Module
+- Enterprise 7-System Role Access Control Matrix (`User`, `Leader`, `HR`, `Admin User`, `Admin Admin`, `Super Admin`, `Unassigned`).
+- **Settings Dashboard (`/settings`):** Role Assignment Management UI for Super Admin and Admin Admin to search employees and assign/change System Roles in real time.
+- **Visual Permission Matrix Grid:** Interactive live permission viewer mapping role privileges across Candidate, Job, Organization, RMEP, Employee, Accounts, and Settings modules.
+- **Zero-Trust Default Security:** Newly registered or unassigned employees receive 0% module access until assigned a role by an Administrator.
+- **`libphonenumber-js` Phone Validation:** Google's official ITU international phone validation library integrated across Employee, Candidate, and Organization forms.
+- **Flexible Login:** Login authentication supports Employee ID (`RM0011`, `RM0013`), Full Name, or Email Address using salted `bcrypt` password verification.
 
 ### 7. 📄 PDF Annotation & Evaluation Pipeline (Specialized Module)
 - **Question Paper & Student Analysis:** Backend architecture built to evaluate student answer sheets against predefined question paper structures.

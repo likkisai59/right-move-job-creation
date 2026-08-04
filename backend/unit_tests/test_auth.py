@@ -3,14 +3,12 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from app.models.employee import Employee
 
-def test_login_username_format_error(client: TestClient):
-    # Username must be "Firstname Lastname" (must contain a space)
+def test_login_empty_username_or_password(client: TestClient):
     response = client.post("/api/auth/login", json={
-        "username": "Sunmeet",
+        "username": "",
         "password": "somepassword"
     })
     assert response.status_code == 401
-    assert "Invalid username format" in response.json()["message"]
 
 def test_login_hardcoded_admin_sunmeet(client: TestClient, db_session: Session):
     response = client.post("/api/auth/login", json={

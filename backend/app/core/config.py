@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     APP_NAME: str = "Right Move CRM"
     APP_ENV: str = "development"
     
+    # Initial Super Admin Seed Credentials
+    SUPERADMIN_SUNMEET_PASS: str = "SSingh@0011"
+    SUPERADMIN_SAURABH_PASS: str = "SJadge@0013"
+
     # Gemini API Key (Using VITE_ prefix as it's shared with frontend in .env)
     VITE_GEMINI_API_KEY: Optional[str] = None
 

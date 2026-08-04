@@ -13,6 +13,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { APP_NAME, APP_SHORT } from '../../utils/constants';
+import { getSystemRole } from '../../api/authApi';
 
 const NAV_ITEMS = [
   { label: 'Home', path: '/home', icon: Home },
@@ -27,6 +28,19 @@ const NAV_ITEMS = [
 ];
 
 const Sidebar = ({ collapsed, onToggle }) => {
+  const role = getSystemRole();
+
+  const filteredNavItems = NAV_ITEMS.filter(({ label }) => {
+    if (role === 'unassigned') return label === 'Home';
+    if (role === 'super_admin') return true;
+    if (role === 'admin_admin') return label !== 'Dashboard';
+    if (role === 'admin_user') return ['Home', 'Jobs', 'Candidates', 'Organizations', 'Employees', 'RMEP', 'Accounts'].includes(label);
+    if (role === 'hr') return ['Home', 'Jobs', 'Candidates', 'Organizations', 'Employees', 'RMEP'].includes(label);
+    if (role === 'leader') return ['Home', 'Jobs', 'Candidates', 'RMEP'].includes(label);
+    if (role === 'user') return ['Home', 'Jobs', 'Candidates', 'RMEP'].includes(label);
+    return ['Home', 'Jobs', 'Candidates', 'RMEP'].includes(label);
+  });
+
   return (
     <aside
       className={[
@@ -70,7 +84,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
 
       {/* Nav items */}
       <nav className="flex flex-col gap-1 px-2 flex-1">
-        {NAV_ITEMS.map(({ label, path, icon: Icon }) => (
+        {filteredNavItems.map(({ label, path, icon: Icon }) => (
           <NavLink
             key={path}
             to={path}

@@ -106,6 +106,76 @@ async def lifespan(app: FastAPI):
             db.commit()
             logger.info("✓ Seeded default exit types to database")
             
+        # Seed Initial Super Admin Accounts
+        from app.models.employee import Employee
+        from app.core.security import get_password_hash
+
+        sunmeet = db.query(Employee).filter(Employee.employee_id == "RM0011").first()
+        if not sunmeet:
+            sunmeet = Employee(
+                employee_id="RM0011",
+                first_name="Sunmeet",
+                last_name="Singh",
+                designation="Director",
+                system_role="super_admin",
+                status="Active",
+                profile_status="Completed",
+                completion_percentage=100,
+                profile_status_hr="Completed",
+                completion_percentage_hr=100,
+                profile_status_admin="Completed",
+                completion_percentage_admin=100,
+                gender="Male",
+                blood_group="O+",
+                email="sunmeet980@gmail.com",
+                contact_number="9999999999",
+                bank_name="State Bank Of India",
+                bank_account_number="1234567890",
+                bank_ifsc_code="SBIN0001234",
+                assigned_business_unit="IT",
+                reporting_to="Self",
+                work_mode="Office",
+                ctc=25.0,
+                compliance="TDS",
+                employee_password=get_password_hash(settings.SUPERADMIN_SUNMEET_PASS)
+            )
+            db.add(sunmeet)
+            db.commit()
+            logger.info("✓ Seeded Sunmeet Singh super admin account")
+
+        saurabh = db.query(Employee).filter(Employee.employee_id == "RM0013").first()
+        if not saurabh:
+            saurabh = Employee(
+                employee_id="RM0013",
+                first_name="Saurabh",
+                last_name="Jadge",
+                designation="HR",
+                system_role="super_admin",
+                status="Active",
+                profile_status="Completed",
+                completion_percentage=100,
+                profile_status_hr="Completed",
+                completion_percentage_hr=100,
+                profile_status_admin="Completed",
+                completion_percentage_admin=100,
+                gender="Male",
+                blood_group="A+",
+                email="saurabh123@gmail.com",
+                contact_number="8888888888",
+                bank_name="State Bank Of India",
+                bank_account_number="0987654321",
+                bank_ifsc_code="SBIN0001234",
+                assigned_business_unit="HR",
+                reporting_to="Sunmeet Singh",
+                work_mode="Office",
+                ctc=8.0,
+                compliance="TDS",
+                employee_password=get_password_hash(settings.SUPERADMIN_SAURABH_PASS)
+            )
+            db.add(saurabh)
+            db.commit()
+            logger.info("✓ Seeded Saurabh Jadge super admin account")
+            
     except Exception as e:
         db.rollback()
         logger.warning(f"⚠️ Warning: Failed to seed default data: {e}")
@@ -147,6 +217,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from app.routes import settings as settings_router
+
 # ── Register Routers ──────────────────────────────────────────
 app.include_router(jobs.router)
 app.include_router(candidates.router)
@@ -159,6 +231,7 @@ app.include_router(business_unit_router.router)
 app.include_router(work_mode_router.router)
 app.include_router(exit_type_router.router)
 app.include_router(accounts_router.router)
+app.include_router(settings_router.router)
 
 # ── Static Files ──────────────────────────────────────────────
 # Ensure uploads directory exists
