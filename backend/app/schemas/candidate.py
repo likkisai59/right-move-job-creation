@@ -115,6 +115,15 @@ class CandidateCreateRequest(BaseModel):
             raise ValueError(f"Notice period must be one of: {', '.join(sorted(VALID_NOTICE_PERIODS))}")
         return v
 
+    @field_validator('current_location', 'employment_location')
+    @classmethod
+    def validate_locations(cls, v: Optional[str]) -> Optional[str]:
+        if v:
+            v = v.strip()
+            if v and re.match(r"^\d+$", v):
+                raise ValueError("Location cannot be purely numeric")
+        return v or None
+
     @model_validator(mode='after')
     def validate_fresher_experience(self) -> 'CandidateCreateRequest':
         total_exp = self.total_experience

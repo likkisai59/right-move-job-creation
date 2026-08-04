@@ -11,7 +11,8 @@ import {
   EMPLOYEE_BLOOD_GROUP_OPTIONS,
   COUNTRY_CODES,
   EMPLOYEE_COMPLIANCE_OPTIONS,
-  EMPLOYEE_YES_NO_OPTIONS
+  EMPLOYEE_YES_NO_OPTIONS,
+  getPhoneValidationRules
 } from '../../utils/constants';
 import { fetchDesignations } from '../../api/designationsApi';
 import { fetchBusinessUnits } from '../../api/businessUnitsApi';
@@ -367,6 +368,22 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   }, [initialData, allEmployees, setValue]);
 
   const selectedReportingDesignation = watch('reportingDesignation');
+  const selectedPersonalCountry = watch('countryCode') || '+91';
+  const selectedOfficeCountry = watch('countrycodeOfficeContact') || '+91';
+  const selectedEmergencyCountry = watch('countrycodeEmergencyContact') || '+91';
+
+  // Re-trigger validation when country code dropdown changes
+  useEffect(() => {
+    if (getValues('contactNumber')) trigger('contactNumber');
+  }, [selectedPersonalCountry, trigger, getValues]);
+
+  useEffect(() => {
+    if (getValues('contactNumberOffice')) trigger('contactNumberOffice');
+  }, [selectedOfficeCountry, trigger, getValues]);
+
+  useEffect(() => {
+    if (getValues('emergencyContactNumber')) trigger('emergencyContactNumber');
+  }, [selectedEmergencyCountry, trigger, getValues]);
 
   // Clear reportingTo if it is not in the filtered manager options
   useEffect(() => {
@@ -699,14 +716,14 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                   <Input
                     type="tel"
                     inputMode="numeric"
-                    placeholder="Enter 10-digit phone number"
-                    maxLength={10}
+                    placeholder={`Enter phone number`}
+                    maxLength={getPhoneValidationRules(selectedPersonalCountry).maxLength}
                     error={errors.contactNumber?.message}
                     onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
                     onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
                     {...register('contactNumber', {
                       required: 'Personal contact number is required',
-                      pattern: { value: /^\d{10}$/, message: 'Phone number must be exactly 10 digits' }
+                      ...getPhoneValidationRules(selectedPersonalCountry)
                     })}
                     disabled={isHrDisabled}
                   />
@@ -728,14 +745,14 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                   <Input
                     type="tel"
                     inputMode="numeric"
-                    placeholder="Enter 10-digit office phone number"
-                    maxLength={10}
+                    placeholder={`Enter office phone number`}
+                    maxLength={getPhoneValidationRules(selectedOfficeCountry).maxLength}
                     error={errors.contactNumberOffice?.message}
                     onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
                     onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
                     {...register('contactNumberOffice', {
                       required: 'Office contact number is required',
-                      pattern: { value: /^\d{10}$/, message: 'Office contact number must be exactly 10 digits' }
+                      ...getPhoneValidationRules(selectedOfficeCountry)
                     })}
                     disabled={isHrDisabled}
                   />
@@ -757,14 +774,14 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                   <Input
                     type="tel"
                     inputMode="numeric"
-                    placeholder="Enter 10-digit emergency contact number"
-                    maxLength={10}
+                    placeholder={`Enter emergency contact number`}
+                    maxLength={getPhoneValidationRules(selectedEmergencyCountry).maxLength}
                     error={errors.emergencyContactNumber?.message}
                     onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
                     onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
                     {...register('emergencyContactNumber', {
                       required: 'Emergency contact number is required',
-                      pattern: { value: /^\d{10}$/, message: 'Emergency contact number must be exactly 10 digits' }
+                      ...getPhoneValidationRules(selectedEmergencyCountry)
                     })}
                     disabled={isHrDisabled}
                   />
@@ -775,7 +792,10 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             <Input
               label="Medical Condition (If Any)"
               placeholder="e.g. Asthma, Diabetes (Optional)"
-              {...register('medicalCondition')}
+              error={errors.medicalCondition?.message}
+              {...register('medicalCondition', {
+                pattern: { value: /^(?!\d+$)[A-Za-z0-9\s&.,'()-]+$/, message: 'Medical condition cannot be purely numeric' }
+              })}
               disabled={isHrDisabled}
             />
 

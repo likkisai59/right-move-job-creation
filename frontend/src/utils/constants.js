@@ -100,13 +100,8 @@ export const CANDIDATE_STATUS_COLORS = {
   hired: 'teal',
 };
 
-export const ALLOWED_RESUME_TYPES = [
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-];
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
 
-export const MAX_RESUME_SIZE_MB = 5;
 export const COUNTRY_CODES = [
   { value: '+91', label: '+91 (India)' },
   { value: '+1', label: '+1 (USA)' },
@@ -117,6 +112,52 @@ export const COUNTRY_CODES = [
   { value: '+1-CA', label: '+1 (Canada)' },
   { value: '+49', label: '+49 (Germany)' },
 ];
+
+export const PHONE_LENGTH_MAP = {
+  '+91': { min: 10, max: 10, label: '10 digits' },
+  '+1': { min: 10, max: 10, label: '10 digits' },
+  '+1-CA': { min: 10, max: 10, label: '10 digits' },
+  '+44': { min: 10, max: 11, label: '10 to 11 digits' },
+  '+971': { min: 9, max: 9, label: '9 digits' },
+  '+65': { min: 8, max: 8, label: '8 digits' },
+  '+61': { min: 9, max: 10, label: '9 to 10 digits' },
+  '+49': { min: 10, max: 11, label: '10 to 11 digits' },
+};
+
+export const getPhoneValidationRules = (code = '+91') => {
+  const normalizedCode = code ? code.replace('-CA', '') : '+91';
+  const config = PHONE_LENGTH_MAP[code] || { min: 7, max: 15, label: '7 to 15 digits' };
+  return {
+    maxLength: config.max,
+    minLength: {
+      value: config.min,
+      message: `Phone number must be ${config.label} for ${code}`
+    },
+    validate: (value) => {
+      if (!value) return true;
+      const cleanVal = String(value).trim();
+      if (!/^\d+$/.test(cleanVal)) {
+        return 'Only numeric characters allowed';
+      }
+      if (cleanVal.length < config.min || cleanVal.length > config.max) {
+        return `Phone number must be ${config.label} for ${code}`;
+      }
+      const fullNumber = cleanVal.startsWith('+') ? cleanVal : `${normalizedCode}${cleanVal}`;
+      try {
+        const phoneNumber = parsePhoneNumberFromString(fullNumber);
+        if (!phoneNumber || !phoneNumber.isPossible()) {
+          return `Invalid phone number structure for ${code}`;
+        }
+        if (!phoneNumber.isValid()) {
+          return `Invalid phone number or area code for ${code}`;
+        }
+        return true;
+      } catch (err) {
+        return `Invalid phone number format for ${code}`;
+      }
+    }
+  };
+};
 
 // ─────────────────────────────────────────────────────────────
 // EMPLOYEE CONSTANTS

@@ -12,6 +12,7 @@ import {
   EDUCATION_OPTIONS,
   COUNTRY_CODES,
   SOURCE_OPTIONS,
+  getPhoneValidationRules,
 } from '../../utils/constants';
 import { fetchBusinessUnits } from '../../api/businessUnitsApi';
 import { checkDuplicateCandidate, parseResume } from '../../api/candidatesApi';
@@ -79,6 +80,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
     reset,
     setValue,
     getValues,
+    trigger,
     watch,
     setError,
     clearErrors,
@@ -109,6 +111,13 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
   const noticePeriod = watch('noticePeriod');
   const currentCTC = watch('currentCTC');
   const fixedCTC = watch('fixedCTC');
+  const selectedCountryCode = watch('countryCode') || '+91';
+
+  // Re-trigger phone validation when country code changes
+  useEffect(() => {
+    if (getValues('phone')) trigger('phone');
+    if (getValues('alternativePhone')) trigger('alternativePhone');
+  }, [selectedCountryCode, trigger, getValues]);
 
   // ── Recruiter logic ────────────────────────────────────────────────────
   useEffect(() => {
@@ -682,14 +691,14 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
               <Input
                 type="tel"
                 inputMode="numeric"
-                placeholder="Enter 10-digit phone number"
-                maxLength={10}
+                placeholder="Enter phone number"
+                maxLength={getPhoneValidationRules(selectedCountryCode).maxLength}
                 onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
                 onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
                 error={errors.phone?.message}
                 {...register('phone', {
                   required: 'Phone number is required',
-                  pattern: { value: /^\d{10}$/, message: 'Phone number must be exactly 10 digits' },
+                  ...getPhoneValidationRules(selectedCountryCode),
                   onBlur: () => handleCheckDuplicates('phone'),
                 })}
               />
@@ -708,13 +717,13 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           label="Alternative Contact Number"
           type="tel"
           inputMode="numeric"
-          placeholder="Enter alternative 10-digit phone (optional)"
-          maxLength={10}
+          placeholder="Enter alternative phone (optional)"
+          maxLength={getPhoneValidationRules(selectedCountryCode).maxLength}
           onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
           onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
           error={errors.alternativePhone?.message}
           {...register('alternativePhone', {
-            pattern: { value: /^\d{10}$/, message: 'Phone number must be exactly 10 digits' },
+            ...getPhoneValidationRules(selectedCountryCode)
           })}
         />
 
@@ -724,7 +733,10 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           placeholder="Enter current location"
           required
           error={errors.currentLocation?.message}
-          {...register('currentLocation', { required: 'Current location is required' })}
+          {...register('currentLocation', {
+            required: 'Current location is required',
+            pattern: { value: /^(?!\d+$)[A-Za-z0-9\s.,'-]+$/, message: 'Location cannot be purely numeric' }
+          })}
         />
 
         {/* Highest Qualification */}
@@ -827,7 +839,9 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           label="Employment Location"
           placeholder="Enter employment location (optional)"
           error={errors.employmentLocation?.message}
-          {...register('employmentLocation')}
+          {...register('employmentLocation', {
+            pattern: { value: /^(?!\d+$)[A-Za-z0-9\s.,'-]+$/, message: 'Employment location cannot be purely numeric' }
+          })}
         />
 
         {/* Current CTC */}

@@ -164,7 +164,17 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
           type="date"
           required
           error={errors.date?.message}
-          {...register('date', { required: 'Date is required' })}
+          {...register('date', {
+            required: 'Date is required',
+            validate: (val) => {
+              if (!val) return 'Date is required';
+              const date = new Date(val);
+              if (isNaN(date.getTime()) || date.getFullYear() < 2000 || date.getFullYear() > 2035) {
+                return 'Please select a valid date';
+              }
+              return true;
+            }
+          })}
         />
 
         {/* Organization Name */}
@@ -278,7 +288,10 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
                   placeholder="Enter job title"
                   required
                   error={errors.requirements?.[index]?.job_title?.message}
-                  {...register(`requirements.${index}.job_title`, { required: 'Job title is required' })}
+                  {...register(`requirements.${index}.job_title`, {
+                    required: 'Job title is required',
+                    pattern: { value: /^(?!\d+$)[A-Za-z0-9\s&.,'()-]+$/, message: 'Job title cannot be purely numeric' }
+                  })}
                 />
 
                 {/* Budget */}
@@ -406,7 +419,10 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
                     <Input
                       label="Job Location"
                       placeholder="e.g. Bangalore"
-                      {...register(`requirements.${index}.location`)}
+                      error={errors.requirements?.[index]?.location?.message}
+                      {...register(`requirements.${index}.location`, {
+                        pattern: { value: /^(?!\d+$)[A-Za-z0-9\s.,'-]+$/, message: 'Job location cannot be purely numeric' }
+                      })}
                     />
                     <Input
                       label="Required Skills"

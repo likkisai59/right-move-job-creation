@@ -6,6 +6,7 @@ import Button from '../common/Button';
 import Select from '../common/Select';
 import FileUpload from '../common/FileUpload';
 import { checkDuplicateOrganization, uploadOrganizationContract } from '../../api/organizationsApi';
+import { getPhoneValidationRules } from '../../utils/constants';
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
@@ -35,6 +36,8 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
     control,
     formState: { errors },
     watch,
+    trigger,
+    getValues,
     setError,
     clearErrors,
     reset,
@@ -96,6 +99,17 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
 
   const organizationName = watch('organization_name');
   const signedDate = watch('contract_signed_date');
+  const selectedCountryCode = watch('country_code') || '+91';
+  const selectedPocCountryCode = watch('poc_country_code') || '+91';
+
+  // Re-trigger phone validation when country code dropdown changes
+  useEffect(() => {
+    if (getValues('contact_number')) trigger('contact_number');
+  }, [selectedCountryCode, trigger, getValues]);
+
+  useEffect(() => {
+    if (getValues('poc_contact')) trigger('poc_contact');
+  }, [selectedPocCountryCode, trigger, getValues]);
 
   const handleCheckDuplicates = async () => {
     if (!organizationName || organizationName.trim().length === 0) {
@@ -206,7 +220,9 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
                 label="Location"
                 placeholder="e.g. Bangalore, India"
                 error={errors.location?.message}
-                {...register('location')}
+                {...register('location', {
+                  pattern: { value: /^(?!\d+$)[A-Za-z0-9\s.,'-]+$/, message: 'Location cannot be purely numeric' }
+                })}
               />
               <Input
                 label="GST Number"
@@ -256,15 +272,15 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
               <div className="md:col-span-3">
                 <Input
                   label="Contact Number"
-                  placeholder="Enter 10-digit phone number"
+                  placeholder="Enter phone number"
                   icon={Phone}
                   inputMode="numeric"
-                  maxLength={10}
+                  maxLength={getPhoneValidationRules(selectedCountryCode).maxLength}
                   onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
                   onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
                   error={errors.contact_number?.message}
                   {...register('contact_number', {
-                    pattern: { value: /^\d{10}$/, message: 'Phone number must be exactly 10 digits' }
+                    ...getPhoneValidationRules(selectedCountryCode)
                   })}
                 />
               </div>
@@ -354,15 +370,15 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
               <div className="md:col-span-3">
                 <Input
                   label="POC Contact"
-                  placeholder="Enter 10-digit POC phone number"
+                  placeholder="Enter POC phone number"
                   icon={Phone}
                   inputMode="numeric"
-                  maxLength={10}
+                  maxLength={getPhoneValidationRules(selectedPocCountryCode).maxLength}
                   onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
                   onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
                   error={errors.poc_contact?.message}
                   {...register('poc_contact', {
-                    pattern: { value: /^\d{10}$/, message: 'Phone number must be exactly 10 digits' }
+                    ...getPhoneValidationRules(selectedPocCountryCode)
                   })}
                 />
               </div>
