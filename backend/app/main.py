@@ -127,8 +127,14 @@ async def lifespan(app: FastAPI):
                 completion_percentage_admin=100,
                 gender="Male",
                 blood_group="O+",
+                country_code="+91",
                 email="sunmeet980@gmail.com",
                 contact_number="9999999999",
+                date_of_joining="2024-01-01",
+                date_of_birth="1990-01-01",
+                date="2024-01-01",
+                permanent_address="Hyderabad",
+                current_address="Hyderabad",
                 bank_name="State Bank Of India",
                 bank_account_number="1234567890",
                 bank_ifsc_code="SBIN0001234",
@@ -142,6 +148,10 @@ async def lifespan(app: FastAPI):
             db.add(sunmeet)
             db.commit()
             logger.info("✓ Seeded Sunmeet Singh super admin account")
+        else:
+            sunmeet.employee_password = get_password_hash(settings.SUPERADMIN_SUNMEET_PASS)
+            sunmeet.system_role = "super_admin"
+            db.commit()
 
         saurabh = db.query(Employee).filter(Employee.employee_id == "RM0013").first()
         if not saurabh:
@@ -160,8 +170,14 @@ async def lifespan(app: FastAPI):
                 completion_percentage_admin=100,
                 gender="Male",
                 blood_group="A+",
+                country_code="+91",
                 email="saurabh123@gmail.com",
                 contact_number="8888888888",
+                date_of_joining="2024-01-01",
+                date_of_birth="1990-01-01",
+                date="2024-01-01",
+                permanent_address="Hyderabad",
+                current_address="Hyderabad",
                 bank_name="State Bank Of India",
                 bank_account_number="0987654321",
                 bank_ifsc_code="SBIN0001234",
@@ -175,6 +191,10 @@ async def lifespan(app: FastAPI):
             db.add(saurabh)
             db.commit()
             logger.info("✓ Seeded Saurabh Jadge super admin account")
+        else:
+            saurabh.employee_password = get_password_hash(settings.SUPERADMIN_SAURABH_PASS)
+            saurabh.system_role = "super_admin"
+            db.commit()
             
     except Exception as e:
         db.rollback()

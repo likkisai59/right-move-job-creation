@@ -94,14 +94,13 @@ const LoginPage = () => {
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <Input
-                label="Full Name (Firstname Lastname)"
-                placeholder="e.g. Saurabh Jadge"
+                label="Employee ID"
+                placeholder="Enter Employee ID (e.g. RM0011)"
                 icon={User}
                 required
                 error={errors.username?.message}
                 {...register('username', { 
-                  required: 'Full name is required',
-                  validate: value => value.trim().split(/\s+/).length >= 2 || 'Please enter both Firstname and Lastname'
+                  required: 'Employee ID is required'
                 })}
               />
 
