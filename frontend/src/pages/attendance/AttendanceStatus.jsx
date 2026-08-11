@@ -16,6 +16,8 @@ const STATUS_CONFIG = {
   FT: { label: 'Future',   short: '',  bg: 'bg-white',       text: 'text-gray-200',    border: 'border-gray-100'    },
 };
 
+import { getCurrentEmployee } from '../../api/authApi';
+
 const AttendanceStatus = () => {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -24,7 +26,7 @@ const AttendanceStatus = () => {
   const [holidaysList, setHolidaysList] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const employee = JSON.parse(localStorage.getItem('employee_data') || '{}');
+  const employee = getCurrentEmployee();
 
   useEffect(() => {
     const fetchHistory = async () => {

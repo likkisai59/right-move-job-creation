@@ -54,7 +54,15 @@ api.interceptors.response.use(
     }
 
     // Use backend message if available, otherwise fall back to status-code mapping
-    const backendMessage = error.response?.data?.message || error.response?.data?.detail;
+    let backendMessage = error.response?.data?.message || error.response?.data?.detail;
+    
+    // Safely convert arrays (e.g. FastAPI validation lists) or objects to strings
+    if (Array.isArray(backendMessage)) {
+      backendMessage = backendMessage.map(err => err.msg || JSON.stringify(err)).join(', ');
+    } else if (typeof backendMessage === 'object' && backendMessage !== null) {
+      backendMessage = JSON.stringify(backendMessage);
+    }
+
     const friendlyMessage = backendMessage || HTTP_ERROR_MESSAGES[status] || 'Something went wrong. Please try again.';
 
     // Dispatch toast for all non-401 errors (401 handled by login page)

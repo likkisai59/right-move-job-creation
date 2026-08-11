@@ -5,12 +5,11 @@ import {
   ClipboardList, PieChart, UserCircle, ArrowLeft, CheckSquare, Clock, Briefcase
 } from 'lucide-react';
 import { FEATURE_FLAGS } from '../../config/features';
+import { getCurrentEmployee } from '../../api/authApi';
 
 const AttendancePortalLayout = () => {
   const navigate = useNavigate();
-  const empData = JSON.parse(localStorage.getItem('employee_data') || '{}');
-  const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-  const employee = empData.id ? empData : userData;
+  const employee = getCurrentEmployee();
   const [showToast, setShowToast] = useState(false);
 
   const handleComingSoon = () => {

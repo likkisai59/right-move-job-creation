@@ -6,6 +6,8 @@ import {
 import { getPendingLeaves, updateLeaveStatus, getTeamAttendance, saveApprovalsConfig } from '../../api/attendanceApi';
 import { fetchDesignations } from '../../api/designationsApi';
 
+import { getCurrentEmployee } from '../../api/authApi';
+
 const ManageApprovals = () => {
   const [activeTab, setActiveTab] = useState('leaves'); // 'leaves', 'attendance', 'config', 'holidays'
   const [leaves, setLeaves] = useState([]);
@@ -21,7 +23,7 @@ const ManageApprovals = () => {
   const [globalHolidays, setGlobalHolidays] = useState([]);
   const [configSubmitting, setConfigSubmitting] = useState(false);
 
-  const employee = JSON.parse(localStorage.getItem('employee_data') || '{}');
+  const employee = getCurrentEmployee();
   const managerName = employee.name || '';
   const isDirector = employee.name && (
     employee.name.trim().toLowerCase() === 'sunmeet singh' ||

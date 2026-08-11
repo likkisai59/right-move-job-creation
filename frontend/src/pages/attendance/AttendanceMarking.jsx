@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CalendarCheck, Info, CheckCircle2, Save, AlertCircle } from 'lucide-react';
 import { markAttendance, getAttendanceHistory } from '../../api/attendanceApi';
 import { FEATURE_FLAGS } from '../../config/features';
+import { getCurrentEmployee } from '../../api/authApi';
 
 const AttendanceMarking = () => {
   const formatDate = (date) => {
@@ -12,7 +13,7 @@ const AttendanceMarking = () => {
     return `${d}/${m}/${y}`;
   };
 
-  const employee = JSON.parse(localStorage.getItem('employee_data') || '{}');
+  const employee = getCurrentEmployee();
   const [weekData, setWeekData] = useState({}); // { '2024-05-10': 'P', ... }
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);

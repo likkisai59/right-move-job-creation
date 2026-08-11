@@ -37,6 +37,31 @@ export const getCurrentUser = () => {
     return null;
 };
 
+export const getCurrentEmployee = () => {
+    const employee = localStorage.getItem('employee_data');
+    if (employee) {
+        try {
+            return JSON.parse(employee);
+        } catch (e) {}
+    }
+    const user = localStorage.getItem('user');
+    if (user) {
+        try {
+            const userData = JSON.parse(user);
+            return {
+                id: userData.id,
+                employee_id: userData.employee_id,
+                name: userData.username,
+                designation: userData.role,
+                email: userData.email,
+                contact: userData.contact || 'N/A',
+                system_role: userData.system_role
+            };
+        } catch (e) {}
+    }
+    return {};
+};
+
 export const getUserDesignation = () => {
     const user = localStorage.getItem('user');
     const employee = localStorage.getItem('employee_data');

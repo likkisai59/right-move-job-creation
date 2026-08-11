@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ClipboardList, Plus, Clock, CheckCircle2, XCircle, Calendar, ShieldAlert } from 'lucide-react';
 import { applyLeave, getLeaveHistory, getLeaveConfig } from '../../api/attendanceApi';
 
+import { getCurrentEmployee } from '../../api/authApi';
+
 const LeaveManagement = () => {
   const [showForm, setShowForm] = useState(false);
   const [leaves, setLeaves] = useState([]);
@@ -17,7 +19,7 @@ const LeaveManagement = () => {
   const [endDate, setEndDate] = useState('');
   const [reason, setReason] = useState('');
 
-  const employee = JSON.parse(localStorage.getItem('employee_data') || '{}');
+  const employee = getCurrentEmployee();
   const employeeId = employee.id;
 
   const fetchLeavesAndConfig = async () => {
