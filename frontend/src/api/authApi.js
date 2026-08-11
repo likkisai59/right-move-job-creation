@@ -60,6 +60,7 @@ export const getUserDesignation = () => {
 };
 
 export const getSystemRole = () => {
+    // 1. Admin/Director login → stored as 'user'
     const user = localStorage.getItem('user');
     if (user) {
         try {
@@ -67,6 +68,15 @@ export const getSystemRole = () => {
             if (userData.system_role) return userData.system_role.toLowerCase().trim();
         } catch (e) {}
     }
+    // 2. Employee login → stored as 'employee_data'
+    const employee = localStorage.getItem('employee_data');
+    if (employee) {
+        try {
+            const empData = JSON.parse(employee);
+            if (empData.system_role) return empData.system_role.toLowerCase().trim();
+        } catch (e) {}
+    }
+    // 3. Fallback: derive from designation
     const designation = getUserDesignation().toLowerCase().trim().replace(/[\s\.-]+/g, '');
     if (designation.includes('director')) return 'super_admin';
     if (designation.includes('admin')) return 'admin_admin';

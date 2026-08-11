@@ -20,6 +20,22 @@ import { fetchWorkModes } from '../../api/workModesApi';
 import { uploadEmployeeFile, fetchEmployees } from '../../api/employeesApi';
 import { getCurrentUser, getSystemRole } from '../../api/authApi';
 
+// ─────────────────────────────────────────────────────────────
+// MANDATORY_HR_FIELDS: Single source of truth for HR form validation.
+// Used in both register({required}) AND handleHrSubmit trigger().
+// Add/remove fields here to update validation everywhere at once.
+// ─────────────────────────────────────────────────────────────
+const MANDATORY_HR_FIELDS = [
+  'firstName', 'lastName', 'gender', 'dateOfBirth', 'email',
+  'contactNumber', 'contactNumberOffice', 'emergencyContactNumber',
+  'currentAddress', 'presentAddressProofUrl', 'permanentAddress', 'permanentAddressProofUrl',
+  'aadharNumber', 'aadharUrl', 'panNumber', 'panUrl',
+  'marksheet10thUrl', 'marksheet12thUrl', 'marksheetGraduationUrl', 'photoUrl',
+  'dateOfJoining', 'resumeUrl', 'designation', 'assignedBusinessUnit',
+  'workMode', 'ctc', 'compliance',
+  'bankName', 'bankAccountNumber', 'bankIfscCode'
+];
+
 const SectionTitle = ({ children }) => (
   <div className="mb-5">
     <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100 pb-2.5">
@@ -405,15 +421,19 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     }
   }, [selectedReportingDesignation, allEmployees, setValue, getValues, initialData]);
 
-  const reportingManagerOptions = allEmployees
-    .filter(emp =>
-      emp.designation === selectedReportingDesignation &&
-      (emp.status === 'Active' || `${emp.firstName} ${emp.lastName}`.trim() === initialData?.reportingTo)
-    )
-    .map(emp => {
-      const name = `${emp.firstName} ${emp.lastName}`.trim();
-      return { value: name, label: name };
-    });
+  const reportingManagerOptions = Array.from(
+    new Map(
+      allEmployees
+        .filter(emp =>
+          emp.designation === selectedReportingDesignation &&
+          (emp.status === 'Active' || `${emp.firstName} ${emp.lastName}`.trim() === initialData?.reportingTo)
+        )
+        .map(emp => {
+          const name = `${emp.firstName} ${emp.lastName}`.trim();
+          return [name, { value: name, label: name }];
+        })
+    ).values()
+  );
 
   // Format dates correctly for input type="date" if initialData is passed
   useEffect(() => {
@@ -484,30 +504,39 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     const values = getValues();
     const payload = {};
 
-    if (isUserAdmin) {
-      // Admin only submits admin fields
-      const adminFields = [
-        'systemAssigned', 'simCardAssigned', 'emailIdConfigured',
-        'linkedinConfigured', 'googleSheetConfigured', 'whatsappBusinessConfigured'
-      ];
+    const hrFields = [
+      'firstName', 'lastName', 'bloodGroup', 'gender', 'countryCode', 'contactNumber', 'email',
+      'permanentAddress', 'currentAddress', 'designation', 'dateOfJoining', 'package', 'status',
+      'lastWorkingDate', 'dateOfBirth', 'countrycodeOfficeContact', 'contactNumberOffice',
+      'countrycodeEmergencyContact', 'emergencyContactNumber', 'aadharNumber', 'aadharUrl',
+      'panNumber', 'panUrl', 'marksheet10thUrl', 'marksheet12thUrl', 'marksheetGraduationUrl',
+      'presentAddressProofUrl', 'permanentAddressProofUrl', 'photoUrl', 'medicalCondition',
+      'resumeUrl', 'salarySlipsUrl', 'offerLetterUrl', 'lastCompanyName', 'bankName',
+      'bankAccountNumber', 'bankIfscCode', 'assignedBusinessUnit', 'reportingTo', 'workMode',
+      'ctc', 'compliance'
+    ];
+
+    const adminFields = [
+      'systemAssigned', 'simCardAssigned', 'emailIdConfigured',
+      'linkedinConfigured', 'googleSheetConfigured', 'whatsappBusinessConfigured'
+    ];
+
+    if (isSuperAdminOrAdminAdmin) {
+      // Super Admin / Admin Admin submit both HR + Admin fields
+      [...hrFields, ...adminFields].forEach(field => {
+        if (values[field] !== undefined) {
+          payload[field] = values[field];
+        }
+      });
+    } else if (isAdminUserRole) {
+      // Admin User submits only admin fields
       adminFields.forEach(field => {
         if (values[field] !== undefined) {
           payload[field] = values[field];
         }
       });
     } else {
-      // HR submits all HR fields
-      const hrFields = [
-        'firstName', 'lastName', 'bloodGroup', 'gender', 'countryCode', 'contactNumber', 'email',
-        'permanentAddress', 'currentAddress', 'designation', 'dateOfJoining', 'package', 'status',
-        'lastWorkingDate', 'dateOfBirth', 'countrycodeOfficeContact', 'contactNumberOffice',
-        'countrycodeEmergencyContact', 'emergencyContactNumber', 'aadharNumber', 'aadharUrl',
-        'panNumber', 'panUrl', 'marksheet10thUrl', 'marksheet12thUrl', 'marksheetGraduationUrl',
-        'presentAddressProofUrl', 'permanentAddressProofUrl', 'photoUrl', 'medicalCondition',
-        'resumeUrl', 'salarySlipsUrl', 'offerLetterUrl', 'lastCompanyName', 'bankName',
-        'bankAccountNumber', 'bankIfscCode', 'assignedBusinessUnit', 'reportingTo', 'workMode',
-        'ctc', 'compliance'
-      ];
+      // HR submits HR fields
       hrFields.forEach(field => {
         if (values[field] !== undefined) {
           payload[field] = values[field];
@@ -519,18 +548,18 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
 
   const handleHrSubmit = async () => {
     if (isHrDisabled) return;
-    const fieldsToValidate = [
-      'firstName', 'lastName', 'gender', 'dateOfBirth',
-      'contactNumber', 'contactNumberOffice', 'emergencyContactNumber',
-      'currentAddress', 'presentAddressProofUrl', 'permanentAddress', 'permanentAddressProofUrl',
-      'aadharNumber', 'aadharUrl', 'panNumber', 'panUrl',
-      'marksheet10thUrl', 'marksheet12thUrl', 'marksheetGraduationUrl', 'photoUrl',
-      'dateOfJoining', 'resumeUrl', 'designation', 'assignedBusinessUnit',
-      'reportingDesignation', 'reportingTo', 'workMode', 'ctc', 'compliance',
-      'bankName', 'bankAccountNumber', 'bankIfscCode'
-    ];
+    // Use MANDATORY_HR_FIELDS as single source of truth — matches register({required}) above
+    const fieldsToValidate = [...MANDATORY_HR_FIELDS];
     if (currentStatus === 'Inactive') {
       fieldsToValidate.push('lastWorkingDate');
+    }
+    // Only validate reporting fields if managers are available for the selected designation
+    if (reportingManagerOptions.length > 0) {
+      fieldsToValidate.push('reportingDesignation');
+      fieldsToValidate.push('reportingTo');
+    } else if (selectedReportingDesignation) {
+      // Designation selected but no managers exist — still validate the designation field
+      fieldsToValidate.push('reportingDesignation');
     }
     const isValid = await trigger(fieldsToValidate);
     if (isValid) {
@@ -1146,11 +1175,20 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             {selectedReportingDesignation && (
               <Select
                 label="Reporting To (Manager)"
-                placeholder={reportingManagerOptions.length > 0 ? "Select manager" : "No active employees with this designation"}
+                placeholder={
+                  reportingManagerOptions.length > 0
+                    ? "Select manager"
+                    : "No active employees with this designation — skip or add later"
+                }
                 options={reportingManagerOptions}
-                required
+                required={reportingManagerOptions.length > 0}
                 error={errors.reportingTo?.message}
-                {...register('reportingTo', { required: 'Reporting manager is required' })}
+                {...register('reportingTo', {
+                  required:
+                    reportingManagerOptions.length > 0
+                      ? 'Reporting manager is required'
+                      : false
+                })}
                 disabled={isHrDisabled || reportingManagerOptions.length === 0}
               />
             )}

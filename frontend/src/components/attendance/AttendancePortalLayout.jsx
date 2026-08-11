@@ -8,7 +8,9 @@ import { FEATURE_FLAGS } from '../../config/features';
 
 const AttendancePortalLayout = () => {
   const navigate = useNavigate();
-  const employee = JSON.parse(localStorage.getItem('employee_data') || '{}');
+  const empData = JSON.parse(localStorage.getItem('employee_data') || '{}');
+  const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+  const employee = empData.id ? empData : userData;
   const [showToast, setShowToast] = useState(false);
 
   const handleComingSoon = () => {
@@ -27,13 +29,15 @@ const AttendancePortalLayout = () => {
   const handleSignOut = () => {
     localStorage.removeItem('employee_token');
     localStorage.removeItem('employee_data');
-    navigate('/attendance-login');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user_data');
+    navigate('/login');
   };
 
   const isManager = (emp) => {
     if (!emp) return false;
     const nameNormalized = (emp.name || '').toLowerCase().trim();
-    if (nameNormalized === 'sunmeet singh') return true;
+    if (nameNormalized === 'sunmeet singh' || ['super_admin', 'admin_admin', 'admin_user'].includes(emp.system_role)) return true;
     const designation = emp.designation || '';
     const normalized = designation.toLowerCase().trim().replace(/[\s\.-]+/g, '');
     return ['teamlead', 'assistantmanager', 'asstmanager', 'manager', 'seniormanager', 'srmanager', 'director'].includes(normalized);

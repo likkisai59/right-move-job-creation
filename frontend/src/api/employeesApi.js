@@ -30,7 +30,7 @@ const mapToFrontend = (data) => {
     completionPercentageHr: data.completion_percentage_hr || 0,
     profileStatusAdmin: data.profile_status_admin || 'Draft',
     completionPercentageAdmin: data.completion_percentage_admin || 0,
-    employeePassword: data.employee_password,
+    // employeePassword is intentionally excluded — bcrypt hashes are write-only and must never be sent to frontend
     lastWorkingDate: data.last_working_date,
 
     // New fields
@@ -65,6 +65,7 @@ const mapToFrontend = (data) => {
     // Reporting & Compliance Details
     assignedBusinessUnit: data.assigned_business_unit,
     reportingTo: data.reporting_to,
+    reportingDesignation: data.reporting_designation || '',  // pre-populate from backend if available
     workMode: data.work_mode,
     ctc: data.ctc,
     compliance: data.compliance,
@@ -103,7 +104,7 @@ const mapToBackend = (data) => {
     completionPercentageHr: 'completion_percentage_hr',
     profileStatusAdmin: 'profile_status_admin',
     completionPercentageAdmin: 'completion_percentage_admin',
-    employeePassword: 'employee_password',
+    // employeePassword excluded from mapToBackend — backend manages password hashing internally
     lastWorkingDate: 'last_working_date',
     dateOfBirth: 'date_of_birth',
     countrycodeOfficeContact: 'countrycode_office_contact',

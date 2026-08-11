@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     SUPERADMIN_SUNMEET_PASS: str = "SSingh@0011"
     SUPERADMIN_SAURABH_PASS: str = "SJadge@0013"
 
+    # JWT Authentication
+    JWT_SECRET_KEY: str = "3070498a58a74e2d93e1a0b3c53a65ce85cbd17488a7de44ab38c96c53a65ce8"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = 480
+
     # Gemini API Key (Using VITE_ prefix as it's shared with frontend in .env)
     VITE_GEMINI_API_KEY: Optional[str] = None
 

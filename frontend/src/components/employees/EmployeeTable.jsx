@@ -55,7 +55,7 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
     },
     {
       key: 'ctc',
-      header: 'CTC',
+      header: 'CTC(LPA)',
       render: (val) => <span className="text-gray-600 text-sm">{val ? `₹${val.toLocaleString()}` : '—'}</span>,
     },
     {
@@ -81,7 +81,7 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
         let colors = 'bg-gray-100 text-gray-600 border border-gray-200';
         if (val === 'In Progress') colors = 'bg-amber-50 text-amber-600 border border-amber-200';
         else if (val === 'Completed') colors = 'bg-emerald-50 text-emerald-600 border border-emerald-200';
-        
+
         return (
           <div className="flex flex-col gap-1.5 w-28">
             <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-bold ${colors} w-fit`}>
@@ -89,8 +89,8 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
             </span>
             <div className="flex items-center gap-2">
               <div className="h-1.5 flex-1 bg-gray-100 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-emerald-500' : pct > 0 ? 'bg-amber-500' : 'bg-gray-300'}`} 
+                <div
+                  className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-emerald-500' : pct > 0 ? 'bg-amber-500' : 'bg-gray-300'}`}
                   style={{ width: `${pct}%` }}
                 />
               </div>
@@ -109,7 +109,7 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
         let colors = 'bg-gray-100 text-gray-600 border border-gray-200';
         if (val === 'In Progress') colors = 'bg-amber-50 text-amber-600 border border-amber-200';
         else if (val === 'Completed') colors = 'bg-emerald-50 text-emerald-600 border border-emerald-200';
-        
+
         return (
           <div className="flex flex-col gap-1.5 w-28">
             <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-bold ${colors} w-fit`}>
@@ -117,8 +117,8 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
             </span>
             <div className="flex items-center gap-2">
               <div className="h-1.5 flex-1 bg-gray-100 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-emerald-500' : pct > 0 ? 'bg-amber-500' : 'bg-gray-300'}`} 
+                <div
+                  className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-emerald-500' : pct > 0 ? 'bg-amber-500' : 'bg-gray-300'}`}
                   style={{ width: `${pct}%` }}
                 />
               </div>
@@ -131,11 +131,21 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
     {
       key: 'employeePassword',
       header: 'Employee Password',
-      render: (val) => {
-        if (!val) return <span className="text-gray-400 text-sm">—</span>;
+      render: (_, row) => {
+        // Password is generated only when both HR and Admin sections are 100% complete
+        const isComplete = row.completionPercentageHr === 100 && row.completionPercentageAdmin === 100;
+        if (!isComplete) {
+          return <span className="text-gray-400 text-sm">—</span>;
+        }
+        // Derive password using the same formula as backend employee_service.py:
+        // Format: {FirstNameInitial}{LastName}@{EmployeeIDDigits}
+        const firstChar = (row.firstName || '')[0] || '';
+        const lastName = row.lastName || '';
+        const digits = (row.employeeId || '').replace(/\D/g, '');
+        const derivedPassword = `${firstChar}${lastName}@${digits}`;
         return (
-          <span className="font-mono text-xs text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-200">
-            {val}
+          <span className="font-mono text-xs text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-200 select-all cursor-text">
+            {derivedPassword}
           </span>
         );
       },

@@ -21,85 +21,8 @@ def login(payload: EmployeeLoginRequest, db: Session = Depends(get_db)):
         )
 
     target_employee = None
-    from app.core.security import verify_password, get_password_hash
+    from app.core.security import verify_password, create_access_token
     from app.core.config import settings
-
-    # Ensure bootstrap super admin accounts exist in DB and passwords/roles are synced
-    if input_user in ["rm0011", "sunmeet singh", "rm0013", "saurabh jadge"]:
-        target_id = "RM0011" if "11" in input_user or "sunmeet" in input_user else "RM0013"
-        target_pass = settings.SUPERADMIN_SUNMEET_PASS if target_id == "RM0011" else settings.SUPERADMIN_SAURABH_PASS
-        existing = db.query(Employee).filter(Employee.employee_id == target_id).first()
-        if not existing:
-            if target_id == "RM0011":
-                new_emp = Employee(
-                    employee_id="RM0011",
-                    first_name="Sunmeet",
-                    last_name="Singh",
-                    gender="Male",
-                    blood_group="O+",
-                    country_code="+91",
-                    contact_number="9999999999",
-                    email="sunmeet980@gmail.com",
-                    designation="Director",
-                    system_role="super_admin",
-                    status="Active",
-                    profile_status="Completed",
-                    completion_percentage=100,
-                    profile_status_hr="Completed",
-                    completion_percentage_hr=100,
-                    profile_status_admin="Completed",
-                    completion_percentage_admin=100,
-                    date_of_joining="2024-01-01",
-                    date_of_birth="1990-01-01",
-                    date="2024-01-01",
-                    permanent_address="Hyderabad",
-                    current_address="Hyderabad",
-                    assigned_business_unit="IT",
-                    reporting_to="Self",
-                    work_mode="Office",
-                    ctc=25.0,
-                    compliance="TDS",
-                    employee_password=get_password_hash(target_pass)
-                )
-            else:
-                new_emp = Employee(
-                    employee_id="RM0013",
-                    first_name="Saurabh",
-                    last_name="Jadge",
-                    gender="Male",
-                    blood_group="A+",
-                    country_code="+91",
-                    contact_number="8888888888",
-                    email="saurabh123@gmail.com",
-                    designation="HR",
-                    system_role="super_admin",
-                    status="Active",
-                    profile_status="Completed",
-                    completion_percentage=100,
-                    profile_status_hr="Completed",
-                    completion_percentage_hr=100,
-                    profile_status_admin="Completed",
-                    completion_percentage_admin=100,
-                    date_of_joining="2024-01-01",
-                    date_of_birth="1990-01-01",
-                    date="2024-01-01",
-                    permanent_address="Hyderabad",
-                    current_address="Hyderabad",
-                    assigned_business_unit="HR",
-                    reporting_to="Sunmeet Singh",
-                    work_mode="Office",
-                    ctc=8.0,
-                    compliance="TDS",
-                    employee_password=get_password_hash(target_pass)
-                )
-            db.add(new_emp)
-            db.commit()
-        else:
-            # Sync password and system_role for bootstrap superadmin accounts if outdated/unhashed
-            if not existing.employee_password or not verify_password(input_pass, existing.employee_password):
-                existing.employee_password = get_password_hash(target_pass)
-                existing.system_role = "super_admin"
-                db.commit()
 
     # Search employee by Employee ID (e.g. RM0011) primary match, or full name / email fallback
     for emp in db.query(Employee).all():
@@ -125,11 +48,18 @@ def login(payload: EmployeeLoginRequest, db: Session = Depends(get_db)):
         desig_lower = (target_employee.designation or "").strip().lower()
         is_admin = "admin" in desig_lower or "director" in desig_lower
 
+        # Create real JWT token
+        token_payload = {
+            "sub": target_employee.employee_id,
+            "role": user_system_role
+        }
+        jwt_token = create_access_token(data=token_payload)
+
         if is_admin:
             return JSONResponse(
                 status_code=status.HTTP_200_OK,
                 content=success_response("Admin login successful", {
-                    "token": f"mock-admin-token-{target_employee.id}",
+                    "token": jwt_token,
                     "role": "admin",
                     "system_role": user_system_role,
                     "user": {
@@ -146,7 +76,7 @@ def login(payload: EmployeeLoginRequest, db: Session = Depends(get_db)):
             return JSONResponse(
                 status_code=status.HTTP_200_OK,
                 content=success_response("Employee login successful", {
-                    "token": f"mock-emp-token-{target_employee.id}",
+                    "token": jwt_token,
                     "role": "employee",
                     "system_role": user_system_role,
                     "employee": {

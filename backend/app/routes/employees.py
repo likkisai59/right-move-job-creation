@@ -50,7 +50,7 @@ def serialize_employee(emp: Employee) -> dict:
         "completion_percentage_hr": emp.completion_percentage_hr,
         "profile_status_admin": emp.profile_status_admin,
         "completion_percentage_admin": emp.completion_percentage_admin,
-        "employee_password": emp.employee_password,
+        # employee_password intentionally excluded — bcrypt hashes must never be sent to frontend
         "last_working_date": str(emp.last_working_date) if emp.last_working_date else None,
         "date": str(emp.date) if emp.date else None,
         

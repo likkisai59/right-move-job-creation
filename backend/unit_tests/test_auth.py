@@ -18,11 +18,23 @@ def test_login_hardcoded_admin_sunmeet(client: TestClient, db_session: Session):
     assert response.status_code == 200
     res_data = response.json()
     assert res_data["success"] is True
-    assert "mock-admin-token" in res_data["data"]["token"]
+    
+    # Verify cryptographic JWT token structure
+    token = res_data["data"]["token"]
+    assert token.count(".") == 2
+    assert token.startswith("eyJ")
+    
+    # Decrypt and verify payload
+    from jose import jwt
+    from app.core.config import settings
+    payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+    assert payload["sub"] == "RM0011"
+    assert payload["role"] == "super_admin"
+
     assert res_data["data"]["role"] == "admin"
     assert res_data["data"]["user"]["username"] == "Sunmeet Singh"
 
-    # Verify that the employee was dynamically created in the DB
+    # Verify that the employee exists in the DB
     emp = db_session.query(Employee).filter(Employee.employee_id == "RM0011").first()
     assert emp is not None
     assert emp.first_name == "Sunmeet"
@@ -36,7 +48,17 @@ def test_login_hardcoded_admin_saurabh(client: TestClient, db_session: Session):
     assert response.status_code == 200
     res_data = response.json()
     assert res_data["success"] is True
-    assert "mock-emp-token" in res_data["data"]["token"]
+    
+    token = res_data["data"]["token"]
+    assert token.count(".") == 2
+    assert token.startswith("eyJ")
+    
+    from jose import jwt
+    from app.core.config import settings
+    payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+    assert payload["sub"] == "RM0013"
+    assert payload["role"] == "super_admin"
+
     assert res_data["data"]["role"] == "employee"
     assert res_data["data"]["employee"]["name"] == "Saurabh Jadge"
 

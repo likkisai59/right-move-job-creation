@@ -57,20 +57,22 @@ const PermissionProtectedRoute = ({ children, action }) => {
 
 // ── Employee Protected Route ─────────────────────────────────
 const EmployeeProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem('employee_token');
+  const token = localStorage.getItem('employee_token') || localStorage.getItem('token');
   if (!token) {
-    return <Navigate to="/attendance-login" replace />;
+    return <Navigate to="/login" replace />;
   }
   return children;
 };
 
 // ── Manager Protected Route ──────────────────────────────────
 const ManagerProtectedRoute = ({ children }) => {
-  const employee = JSON.parse(localStorage.getItem('employee_data') || '{}');
+  const empData = JSON.parse(localStorage.getItem('employee_data') || '{}');
+  const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+  const employee = empData.id ? empData : userData;
   const designation = employee.designation || '';
   const normalized = designation.toLowerCase().trim().replace(/[\s\.-]+/g, '');
   const nameNormalized = (employee.name || '').toLowerCase().trim();
-  const isManager = ['teamlead', 'assistantmanager', 'asstmanager', 'manager', 'seniormanager', 'srmanager', 'director'].includes(normalized) || nameNormalized === 'sunmeet singh';
+  const isManager = ['teamlead', 'assistantmanager', 'asstmanager', 'manager', 'seniormanager', 'srmanager', 'director'].includes(normalized) || nameNormalized === 'sunmeet singh' || ['super_admin', 'admin_admin', 'admin_user'].includes(employee.system_role);
 
   if (!isManager) {
     return <Navigate to="/attendance/portal/mark" replace />;
@@ -87,8 +89,8 @@ const AppRoutes = () => {
       {/* Admin Login */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* Employee Portal Login */}
-      <Route path="/attendance-login" element={<AttendanceLoginPage />} />
+      {/* Employee Portal Login (Redirects seamlessly to Attendance Portal) */}
+      <Route path="/attendance-login" element={<Navigate to="/attendance/portal/mark" replace />} />
 
       {/* Employee Portal (Protected) */}
       <Route

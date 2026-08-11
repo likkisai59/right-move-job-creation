@@ -1,4 +1,7 @@
 import bcrypt
+from jose import jwt, JWTError
+from datetime import datetime, timedelta
+from app.core.config import settings
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
@@ -27,6 +30,18 @@ def get_password_hash(password: str) -> str:
     salt = bcrypt.gensalt()
     return bcrypt.hashpw(pwd_bytes, salt).decode('utf-8')
 
+def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
+    """
+    Generates a cryptographically signed JWT access token.
+    """
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return encoded_jwt
 
 # ─────────────────────────────────────────────────────────────
 # BACKEND RBAC (Role-Based Access Control) HELPERS
@@ -58,17 +73,35 @@ def get_current_user_system_role(
     db: Session = Depends(get_db)
 ) -> str:
     """
-    Extracts authorization header and resolves current user's system_role.
+    Extracts authorization header and resolves current user's system_role using JWT decoding
+    with backwards-compatible fallback for mock tokens.
     """
     if not authorization:
         return "super_admin"
         
     token = authorization.replace("Bearer ", "").strip()
     
+    # 1. Try to parse as a real cryptographic JWT
+    if token.count('.') == 2:
+        try:
+            payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+            emp_id = payload.get("sub")
+            if emp_id:
+                emp = db.query(Employee).filter(Employee.employee_id == emp_id).first()
+                if emp:
+                    if emp.system_role and emp.system_role != "unassigned":
+                        return emp.system_role
+                    if emp.designation:
+                        norm = emp.designation.strip().lower().replace(" ", "").replace(".", "").replace("-", "")
+                        return ROLE_MAP_BY_DESIGNATION.get(norm, "user")
+        except JWTError:
+            pass  # Fallback to legacy validation if token is malformed
+
+    # 2. Backwards-compatible fallback: mock tokens (e.g. "mock-admin-token-1" or "token-1")
     if "token-" in token:
         try:
-            emp_id = int(token.split("token-")[-1])
-            emp = db.query(Employee).filter(Employee.id == emp_id).first()
+            db_id = int(token.split("token-")[-1])
+            emp = db.query(Employee).filter(Employee.id == db_id).first()
             if emp:
                 if emp.system_role and emp.system_role != "unassigned":
                     return emp.system_role
