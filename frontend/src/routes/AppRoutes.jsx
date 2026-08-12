@@ -66,15 +66,10 @@ const EmployeeProtectedRoute = ({ children }) => {
 
 // ── Manager Protected Route ──────────────────────────────────
 const ManagerProtectedRoute = ({ children }) => {
-  const empData = JSON.parse(localStorage.getItem('employee_data') || '{}');
-  const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-  const employee = empData.id ? empData : userData;
-  const designation = employee.designation || '';
-  const normalized = designation.toLowerCase().trim().replace(/[\s\.-]+/g, '');
-  const nameNormalized = (employee.name || '').toLowerCase().trim();
-  const isManager = ['teamlead', 'assistantmanager', 'asstmanager', 'manager', 'seniormanager', 'srmanager', 'director'].includes(normalized) || nameNormalized === 'sunmeet singh' || ['super_admin', 'admin_admin', 'admin_user'].includes(employee.system_role);
+  const role = getSystemRole();
+  const allowedRoles = ['leader', 'admin_user', 'admin_admin', 'super_admin'];
 
-  if (!isManager) {
+  if (!allowedRoles.includes(role)) {
     return <Navigate to="/attendance/portal/mark" replace />;
   }
   return children;

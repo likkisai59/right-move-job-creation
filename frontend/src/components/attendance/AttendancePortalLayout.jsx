@@ -5,7 +5,7 @@ import {
   ClipboardList, PieChart, UserCircle, ArrowLeft, CheckSquare, Clock, Briefcase
 } from 'lucide-react';
 import { FEATURE_FLAGS } from '../../config/features';
-import { getCurrentEmployee } from '../../api/authApi';
+import { getCurrentEmployee, getSystemRole } from '../../api/authApi';
 
 const AttendancePortalLayout = () => {
   const navigate = useNavigate();
@@ -33,22 +33,16 @@ const AttendancePortalLayout = () => {
     navigate('/login');
   };
 
-  const isManager = (emp) => {
-    if (!emp) return false;
-    const nameNormalized = (emp.name || '').toLowerCase().trim();
-    if (nameNormalized === 'sunmeet singh' || ['super_admin', 'admin_admin', 'admin_user'].includes(emp.system_role)) return true;
-    const designation = emp.designation || '';
-    const normalized = designation.toLowerCase().trim().replace(/[\s\.-]+/g, '');
-    return ['teamlead', 'assistantmanager', 'asstmanager', 'manager', 'seniormanager', 'srmanager', 'director'].includes(normalized);
-  };
-
   const navItems = [
     { name: 'Assigned Tasks', path: '/attendance/portal/tasks', icon: Briefcase },
     { name: 'Leave Management', path: '/attendance/portal/leaves', icon: ClipboardList },
     { name: 'Attendance Status', path: '/attendance/portal/status', icon: PieChart },
   ];
 
-  if (isManager(employee)) {
+  const role = getSystemRole();
+  const allowedRoles = ['leader', 'admin_user', 'admin_admin', 'super_admin'];
+
+  if (allowedRoles.includes(role)) {
     navItems.push({ name: 'Manage Approvals', path: '/attendance/portal/approvals', icon: CheckSquare });
   }
 
