@@ -407,7 +407,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     if (selectedReportingDesignation && allEmployees.length > 0) {
       const options = allEmployees
         .filter(emp =>
-          emp.designation === selectedReportingDesignation &&
+          emp.systemRole === selectedReportingDesignation &&
           (emp.status === 'Active' || `${emp.firstName} ${emp.lastName}`.trim() === initialData?.reportingTo)
         )
         .map(emp => `${emp.firstName} ${emp.lastName}`.trim());
@@ -425,7 +425,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     new Map(
       allEmployees
         .filter(emp =>
-          emp.designation === selectedReportingDesignation &&
+          emp.systemRole === selectedReportingDesignation &&
           (emp.status === 'Active' || `${emp.firstName} ${emp.lastName}`.trim() === initialData?.reportingTo)
         )
         .map(emp => {
@@ -462,28 +462,19 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   const currentStatus = formValues.status;
 
   const isHrSectionComplete = () => {
-    const hrMandatoryFields = [
-      'firstName', 'lastName', 'gender', 'dateOfBirth',
-      'contactNumber', 'contactNumberOffice', 'emergencyContactNumber',
-      'currentAddress', 'presentAddressProofUrl', 'permanentAddress', 'permanentAddressProofUrl',
-      'aadharNumber', 'aadharUrl', 'panNumber', 'panUrl',
-      'marksheet10thUrl', 'marksheet12thUrl', 'marksheetGraduationUrl', 'photoUrl',
-      'dateOfJoining', 'resumeUrl', 'designation', 'assignedBusinessUnit',
-      'workMode', 'ctc', 'compliance',
-      'bankName', 'bankAccountNumber', 'bankIfscCode'
-    ];
+    const fields = [...MANDATORY_HR_FIELDS];
     if (currentStatus === 'Inactive') {
-      hrMandatoryFields.push('lastWorkingDate');
+      fields.push('lastWorkingDate');
     }
 
-    // Reporting details are not required if designation is "Director"
-    const selectedDes = formValues.designation;
-    if (!selectedDes || selectedDes.toLowerCase().trim() !== 'director') {
-      hrMandatoryFields.push('reportingDesignation');
-      hrMandatoryFields.push('reportingTo');
+    if (reportingManagerOptions.length > 0) {
+      fields.push('reportingDesignation');
+      fields.push('reportingTo');
+    } else if (selectedReportingDesignation) {
+      fields.push('reportingDesignation');
     }
 
-    return hrMandatoryFields.every(field => {
+    return fields.every(field => {
       const val = formValues[field];
       return val !== undefined && val !== null && val !== '';
     });
@@ -1160,11 +1151,10 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
               label="Reporting Designation"
               placeholder="Select designation"
               options={[
-                { value: 'Team Lead', label: 'Team Lead' },
-                { value: 'Asst Manager', label: 'Asst Manager' },
-                { value: 'Manager', label: 'Manager' },
-                { value: 'Sr.Manager', label: 'Sr.Manager' },
-                { value: 'Director', label: 'Director' }
+                { value: 'leader', label: 'Leader' },
+                { value: 'admin_user', label: 'Admin user' },
+                { value: 'admin_admin', label: 'Admin Admin' },
+                { value: 'super_admin', label: 'Super Admin' }
               ]}
               required
               error={errors.reportingDesignation?.message}

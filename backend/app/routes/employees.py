@@ -86,9 +86,13 @@ def serialize_employee(emp: Employee) -> dict:
         # Reporting & Compliance Details
         "assigned_business_unit": emp.assigned_business_unit,
         "reporting_to": emp.reporting_to,
+        "reporting_designation": emp.reporting_designation,
         "work_mode": emp.work_mode,
         "ctc": emp.ctc,
         "compliance": emp.compliance,
+        
+        # System Role (needed by frontend for manager filtering in EmployeeForm)
+        "system_role": emp.system_role or "unassigned",
         
         # Asset & System Configuration Details
         "system_assigned": emp.system_assigned,

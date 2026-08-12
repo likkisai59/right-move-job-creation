@@ -91,6 +91,7 @@ class Employee(Base):
     # Reporting & Compliance Details
     assigned_business_unit = Column(String(255), nullable=True)
     reporting_to = Column(String(255), nullable=True)
+    reporting_designation = Column(String(255), nullable=True)
     work_mode = Column(String(255), nullable=True)
     ctc = Column(Float, nullable=True)
     compliance = Column(String(255), nullable=True)

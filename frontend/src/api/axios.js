@@ -54,7 +54,10 @@ api.interceptors.response.use(
     }
 
     // Use backend message if available, otherwise fall back to status-code mapping
-    let backendMessage = error.response?.data?.message || error.response?.data?.detail;
+    // For 500 errors, always show the friendly mapped message — never expose raw SQL or stack traces
+    let backendMessage = status === 500
+      ? null
+      : error.response?.data?.message || error.response?.data?.detail;
     
     // Safely convert arrays (e.g. FastAPI validation lists) or objects to strings
     if (Array.isArray(backendMessage)) {

@@ -66,6 +66,7 @@ const mapToFrontend = (data) => {
     assignedBusinessUnit: data.assigned_business_unit,
     reportingTo: data.reporting_to,
     reportingDesignation: data.reporting_designation || '',  // pre-populate from backend if available
+    systemRole: data.system_role || 'unassigned',
     workMode: data.work_mode,
     ctc: data.ctc,
     compliance: data.compliance,
@@ -131,6 +132,7 @@ const mapToBackend = (data) => {
     lastCompanyName: 'last_company_name',
     assignedBusinessUnit: 'assigned_business_unit',
     reportingTo: 'reporting_to',
+    reportingDesignation: 'reporting_designation',
     workMode: 'work_mode',
     ctc: 'ctc',
     compliance: 'compliance',

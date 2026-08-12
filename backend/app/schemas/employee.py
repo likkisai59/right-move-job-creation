@@ -66,9 +66,11 @@ class EmployeeBase(BaseModel):
     # Reporting & Compliance Details
     assigned_business_unit: Optional[str] = None
     reporting_to: Optional[str] = None
+    reporting_designation: Optional[str] = None
     work_mode: Optional[str] = None
     ctc: Optional[float] = None
     compliance: Optional[str] = None
+    system_role: Optional[str] = "unassigned"
 
     # Asset & System Configuration Details
     system_assigned: Optional[str] = None
@@ -186,6 +188,7 @@ class EmployeeUpdateRequest(BaseModel):
     # Reporting & Compliance Details
     assigned_business_unit: Optional[str] = None
     reporting_to: Optional[str] = None
+    reporting_designation: Optional[str] = None
     work_mode: Optional[str] = None
     ctc: Optional[float] = None
     compliance: Optional[str] = None
