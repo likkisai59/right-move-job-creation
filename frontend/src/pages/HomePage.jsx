@@ -11,13 +11,16 @@ import {
   ArrowRight
 } from 'lucide-react';
 import PageContainer from '../components/layout/PageContainer';
+import { getSystemRole } from '../api/authApi';
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const role = getSystemRole();
 
   const modules = [
     {
       title: 'Jobs',
+      label: 'Jobs',
       description: 'Manage corporate client job requirements, target openings, candidate shortlists, and BU details.',
       path: '/jobs',
       icon: Briefcase,
@@ -27,6 +30,7 @@ const HomePage = () => {
     },
     {
       title: 'Candidates',
+      label: 'Candidates',
       description: 'Onboard talent, monitor screening progress, trace interview schedules, and track joined statuses.',
       path: '/candidates',
       icon: Users,
@@ -36,6 +40,7 @@ const HomePage = () => {
     },
     {
       title: 'Organizations',
+      label: 'Organizations',
       description: 'Review corporate client organization profiles, locations, and system-wide GST registration settings.',
       path: '/organizations',
       icon: Building2,
@@ -45,6 +50,7 @@ const HomePage = () => {
     },
     {
       title: 'Employees',
+      label: 'Employees',
       description: 'Onboard internally hired personnel, assign designations, business units, and compliance details.',
       path: '/employees',
       icon: UserCheck,
@@ -54,6 +60,7 @@ const HomePage = () => {
     },
     {
       title: 'RMEP (Employee Portal)',
+      label: 'RMEP',
       description: 'Direct portal for internally active employees. Mark attendance logs, file leave requests, and view tasks.',
       path: '/attendance/portal',
       icon: CalendarCheck,
@@ -63,6 +70,7 @@ const HomePage = () => {
     },
     {
       title: 'Accounts',
+      label: 'Accounts',
       description: 'Manage baseline compensation structures, process monthly payroll calculations, and print tax invoices.',
       path: '/accounts',
       icon: Wallet,
@@ -71,6 +79,16 @@ const HomePage = () => {
       badge: 'Payroll & Invoices'
     }
   ];
+
+  const filteredModules = modules.filter(({ label }) => {
+    if (role === 'super_admin') return true;
+    if (role === 'admin_admin') return true;
+    if (role === 'admin_user') return ['Jobs', 'Candidates', 'Organizations', 'Employees', 'RMEP', 'Accounts'].includes(label);
+    if (role === 'hr') return ['Jobs', 'Candidates', 'Organizations', 'Employees', 'RMEP'].includes(label);
+    if (role === 'leader') return ['Jobs', 'Candidates', 'RMEP'].includes(label);
+    if (role === 'user') return ['Jobs', 'Candidates', 'RMEP'].includes(label);
+    return ['Jobs', 'Candidates', 'RMEP'].includes(label);
+  });
 
   return (
     <PageContainer
@@ -108,7 +126,7 @@ const HomePage = () => {
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-            {modules.map((m, idx) => {
+            {filteredModules.map((m, idx) => {
               const Icon = m.icon;
               return (
                 <div
