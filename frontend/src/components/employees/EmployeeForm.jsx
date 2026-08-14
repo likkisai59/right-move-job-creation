@@ -172,6 +172,7 @@ const FormFileUpload = ({ label, required, value, onChange, error, disabled }) =
 
 const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   const isEditing = !!initialData;
+  const isInitializingRef = useRef(true);
 
   const [step, setStep] = useState(1);
   const [designations, setDesignations] = useState([]);
@@ -371,6 +372,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     loadAllEmployees();
   }, []);
 
+
   // Set reportingDesignation once allEmployees and initialData are loaded
   useEffect(() => {
     if (initialData?.reportingTo && allEmployees.length > 0) {
@@ -378,9 +380,15 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
       const foundManager = allEmployees.find(emp =>
         `${emp.firstName} ${emp.lastName}`.trim().toLowerCase() === managerName
       );
-      if (foundManager && foundManager.designation) {
-        setValue('reportingDesignation', foundManager.designation);
+      if (foundManager && foundManager.systemRole) {
+        setValue('reportingDesignation', foundManager.systemRole);
       }
+    }
+    if (allEmployees.length > 0) {
+      // Wait for next tick so that the setValue above has time to update the watch value
+      setTimeout(() => {
+        isInitializingRef.current = false;
+      }, 50);
     }
   }, [initialData, allEmployees, setValue]);
 
@@ -417,7 +425,9 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
         setValue('reportingTo', '');
       }
     } else if (allEmployees.length > 0) {
-      setValue('reportingTo', '');
+      if (!isInitializingRef.current) {
+        setValue('reportingTo', '');
+      }
     }
   }, [selectedReportingDesignation, allEmployees, setValue, getValues, initialData]);
 
@@ -875,7 +885,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                 pattern: { value: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, message: 'Invalid PAN format. Example: DAHPN8767B' },
                 setValueAs: (v) => v ? v.toUpperCase() : v
               })}
-              onChange={(e) => { e.target.value = e.target.value.toUpperCase(); }}
+              onInput={(e) => { e.target.value = e.target.value.toUpperCase(); }}
               disabled={isHrDisabled}
             />
 
@@ -1270,7 +1280,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                 },
                 setValueAs: (v) => v ? v.toUpperCase() : v
               })}
-              onChange={(e) => { e.target.value = e.target.value.toUpperCase(); }}
+              onInput={(e) => { e.target.value = e.target.value.toUpperCase(); }}
               disabled={isHrDisabled}
             />
           </div>
