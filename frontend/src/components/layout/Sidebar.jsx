@@ -33,8 +33,8 @@ const Sidebar = ({ collapsed, onToggle }) => {
   const filteredNavItems = NAV_ITEMS.filter(({ label }) => {
     if (role === 'unassigned') return label === 'Home';
     if (role === 'super_admin') return true;
-    if (role === 'admin_admin') return label !== 'Dashboard';
-    if (role === 'admin_user') return ['Home', 'Jobs', 'Candidates', 'Organizations', 'Employees', 'RMEP', 'Accounts'].includes(label);
+    if (role === 'admin_admin') return true;
+    if (role === 'admin_user') return ['Dashboard', 'Home', 'Jobs', 'Candidates', 'Organizations', 'Employees', 'RMEP', 'Accounts'].includes(label);
     if (role === 'hr') return ['Home', 'Jobs', 'Candidates', 'Organizations', 'Employees', 'RMEP'].includes(label);
     if (role === 'leader') return ['Home', 'Jobs', 'Candidates', 'RMEP'].includes(label);
     if (role === 'user') return ['Home', 'Jobs', 'Candidates', 'RMEP'].includes(label);

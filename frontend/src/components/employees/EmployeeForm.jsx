@@ -474,10 +474,16 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
       fields.push('reportingDesignation');
     }
 
-    return fields.every(field => {
+    // Evaluate ALL fields without short-circuiting so React Hook Form's watch() 
+    // proxy subscribes to every field's changes and triggers re-renders correctly.
+    let isComplete = true;
+    for (const field of fields) {
       const val = formValues[field];
-      return val !== undefined && val !== null && val !== '';
-    });
+      if (val === undefined || val === null || val === '') {
+        isComplete = false;
+      }
+    }
+    return isComplete;
   };
 
   const isAdminSectionComplete = () => {
@@ -485,10 +491,14 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
       'systemAssigned', 'simCardAssigned', 'emailIdConfigured',
       'linkedinConfigured', 'googleSheetConfigured', 'whatsappBusinessConfigured'
     ];
-    return adminMandatoryFields.every(field => {
+    let isComplete = true;
+    for (const field of adminMandatoryFields) {
       const val = formValues[field];
-      return val !== undefined && val !== null && val !== '';
-    });
+      if (val === undefined || val === null || val === '') {
+        isComplete = false;
+      }
+    }
+    return isComplete;
   };
 
   const getFilteredPayload = () => {

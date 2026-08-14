@@ -6,7 +6,7 @@ import {
 import { getPendingLeaves, updateLeaveStatus, getTeamAttendance, saveApprovalsConfig } from '../../api/attendanceApi';
 import { fetchDesignations } from '../../api/designationsApi';
 
-import { getCurrentEmployee } from '../../api/authApi';
+import { getCurrentEmployee, getSystemRole } from '../../api/authApi';
 
 const ManageApprovals = () => {
   const [activeTab, setActiveTab] = useState('leaves'); // 'leaves', 'attendance', 'config', 'holidays'
@@ -25,10 +25,8 @@ const ManageApprovals = () => {
 
   const employee = getCurrentEmployee();
   const managerName = employee.name || '';
-  const isDirector = employee.name && (
-    employee.name.trim().toLowerCase() === 'sunmeet singh' ||
-    (employee.designation && employee.designation.trim().toLowerCase() === 'director')
-  );
+  const sysRole = getSystemRole();
+  const isDirector = sysRole === 'admin_admin' || sysRole === 'super_admin';
 
   // Get Monday to Friday dates for the current week
   const getWeekDays = () => {
