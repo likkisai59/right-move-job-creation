@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Briefcase, Building2, Users, Info, Clock, CheckCircle2, ChevronDown, ChevronUp, User, LayoutGrid, X, Play, Download } from 'lucide-react';
 import { fetchJobs, fetchShortlistedCandidates } from '../../api/jobsApi';
 import { getCurrentEmployee } from '../../api/authApi';
+import { fetchEmployees } from '../../api/employeesApi';
 
 const AssignedTasks = () => {
   const navigate = useNavigate();
