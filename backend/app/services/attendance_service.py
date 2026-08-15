@@ -238,7 +238,7 @@ def get_leave_config(db: Session, employee_id: int) -> Optional[dict]:
                 try:
                     holidays_list = json.loads(desg.holidays)
                 except Exception:
-                    pass
+                    print("Warning: Failed to parse holidays JSON for designation:", emp.designation)
         except Exception as e:
             if "Unknown column" in str(e) and "holidays" in str(e):
                 holidays_list = []
