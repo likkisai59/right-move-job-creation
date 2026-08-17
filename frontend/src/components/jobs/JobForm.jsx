@@ -221,6 +221,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
           label="Business Unit"
           required
           options={businessUnits}
+          value={watch('businessUnit') || ''}
           error={errors.businessUnit?.message}
           {...register('businessUnit', { required: 'Business unit is required' })}
         />
@@ -231,6 +232,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
           placeholder="Select Owner"
           required
           options={recruiters}
+          value={watch('assignedTo') || ''}
           error={errors.assignedTo?.message}
           {...register('assignedTo', {
             required: 'Please select an owner',
