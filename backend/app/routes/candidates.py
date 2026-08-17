@@ -77,7 +77,7 @@ async def parse_resume_endpoint(file: UploadFile = File(...)):
 
 from app.core.security import require_roles
 
-@router.post("", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles(["admin", "hr", "director", "teamlead", "atl", "executive", "trainee", "intern"]))])
+@router.post("", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles(["leader", "user"]))])
 async def add_candidate(
     # ── Personal Details ──────────────────────────────────
     first_name: str = Form(...),
