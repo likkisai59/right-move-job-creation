@@ -9,7 +9,11 @@ import { formatDate } from '../../utils/formatters';
 const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) => {
   const navigate = useNavigate();
 
-  const columns = [
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  const isSuperAdmin = user?.system_role === 'super_admin';
+
+  const baseColumns = [
     {
       key: 'employeeId',
       header: 'EMPID',
@@ -128,29 +132,9 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
         );
       },
     },
-    {
-      key: 'employeePassword',
-      header: 'Employee Password',
-      render: (_, row) => {
-        // Password is generated only when both HR and Admin sections are 100% complete
-        const isComplete = row.completionPercentageHr === 100 && row.completionPercentageAdmin === 100;
-        if (!isComplete) {
-          return <span className="text-gray-400 text-sm">—</span>;
-        }
-        // Derive password using the same formula as backend employee_service.py:
-        // Format: {FirstNameInitial}{LastName}@{EmployeeIDDigits}
-        const firstChar = (row.firstName || '')[0] || '';
-        const lastName = row.lastName || '';
-        const digits = (row.employeeId || '').replace(/\D/g, '');
-        const derivedPassword = `${firstChar}${lastName}@${digits}`;
-        return (
-          <span className="font-mono text-xs text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-200 select-all cursor-text">
-            {derivedPassword}
-          </span>
-        );
-      },
-    },
-    {
+  ];
+  
+  const actionColumn = {
       key: 'actions',
       header: 'Actions',
       render: (_, row) => (
@@ -178,8 +162,33 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
           </button>
         </div>
       ),
-    },
-  ];
+    };
+
+  const columns = [...baseColumns];
+  
+  if (isSuperAdmin) {
+    columns.push({
+      key: 'employeePassword',
+      header: 'Employee Password',
+      render: (_, row) => {
+        const isComplete = row.completionPercentageHr === 100 && row.completionPercentageAdmin === 100;
+        if (!isComplete) {
+          return <span className="text-gray-400 text-sm">—</span>;
+        }
+        const firstChar = (row.firstName || '')[0] || '';
+        const lastName = row.lastName || '';
+        const digits = (row.employeeId || '').replace(/\D/g, '');
+        const derivedPassword = `${firstChar}${lastName}@${digits}`;
+        return (
+          <span className="font-mono text-xs text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-200 select-all cursor-text">
+            {derivedPassword}
+          </span>
+        );
+      },
+    });
+  }
+
+  columns.push(actionColumn);
 
   if (!loading && employees.length === 0) {
     return (
