@@ -5,6 +5,7 @@ import PageContainer from '../../components/layout/PageContainer';
 import Card from '../../components/common/Card';
 import CandidateForm from '../../components/candidates/CandidateForm';
 import { createCandidate, fetchNextCandidateId } from '../../api/candidatesApi';
+import { shortlistCandidate } from '../../api/jobsApi';
 
 const AddCandidatePage = () => {
   const navigate = useNavigate();
@@ -30,7 +31,17 @@ const AddCandidatePage = () => {
     setLoading(true);
     setError(null);
     try {
-      await createCandidate(data);
+      const res = await createCandidate(data);
+      const createdCandidate = res?.data;
+
+      // Ensure candidate is shortlisted to mapped job
+      if (data.mappedJobId && createdCandidate?.id) {
+        try {
+          await shortlistCandidate(data.mappedJobId, createdCandidate.id);
+        } catch (shortlistErr) {
+          console.warn('Candidate already shortlisted by backend:', shortlistErr);
+        }
+      }
 
       setSuccess(true);
       setTimeout(() => navigate('/candidates'), 1500);

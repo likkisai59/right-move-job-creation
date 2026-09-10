@@ -21,6 +21,7 @@ class Candidate(Base):
     country_code = Column(String(10), nullable=False, default="+91")
     alternative_contact_number = Column(String(20), nullable=True)
     current_location = Column(String(255), nullable=True)
+    preferred_location = Column(String(255), nullable=True)
     highest_qualification = Column(String(255), nullable=True)
 
     # ── Employee Details ───────────────────────────────────

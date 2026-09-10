@@ -37,12 +37,20 @@ const NOTICE_PERIOD_OPTIONS = [
   { value: '90 Days', label: '90 Days' },
 ];
 
+const PIPELINE_STATUS_FILTER_OPTIONS = [
+  { value: '', label: 'All Pipeline Statuses' },
+  { value: 'In process', label: 'In process' },
+  { value: 'Selected', label: 'Selected' },
+  { value: 'Joined', label: 'Joined' },
+  { value: 'Dropped', label: 'Dropped' },
+];
+
 const CandidateFilters = ({ filters, onChange, onClear }) => {
   const handleChange = (field, value) => {
     onChange({ ...filters, [field]: value });
   };
 
-  const hasFilters = filters.search || filters.businessUnit || filters.skills || filters.currentLocation || filters.noticePeriod;
+  const hasFilters = filters.search || filters.businessUnit || filters.skills || filters.currentLocation || filters.noticePeriod || filters.pipelineStatus;
 
   return (
     <div className="flex items-center gap-3 flex-wrap">
@@ -62,6 +70,19 @@ const CandidateFilters = ({ filters, onChange, onClear }) => {
         className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all"
       >
         {BUSINESS_UNIT_FILTER_OPTIONS.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+
+      {/* Pipeline Status Dropdown */}
+      <select
+        value={filters.pipelineStatus || ''}
+        onChange={(e) => handleChange('pipelineStatus', e.target.value)}
+        className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all"
+      >
+        {PIPELINE_STATUS_FILTER_OPTIONS.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
           </option>

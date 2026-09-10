@@ -8,6 +8,7 @@ const mapToFrontend = (dbRecord) => {
     id: dbRecord.id,
     candidateCode: dbRecord.candidate_code,
     profileStatus: dbRecord.profile_status || 'Active',
+    pipelineStatus: dbRecord.pipeline_status || 'Submitted',
     // Personal Details
     firstName: dbRecord.first_name,
     lastName: dbRecord.last_name,
@@ -17,6 +18,7 @@ const mapToFrontend = (dbRecord) => {
     phone: dbRecord.phone_number,
     alternativePhone: dbRecord.alternative_contact_number || null,
     currentLocation: dbRecord.current_location,
+    preferredLocation: dbRecord.preferred_location || null,
     highestQualification: dbRecord.highest_qualification,
     // Employee Details
     businessUnit: dbRecord.business_unit || 'IT',
@@ -63,6 +65,9 @@ export const fetchCandidates = async (params = {}) => {
     queryParams.business_unit = params.businessUnit;
   }
   if (params.noticePeriod) queryParams.notice_period = params.noticePeriod;
+  if (params.pipelineStatus && params.pipelineStatus !== 'All') {
+    queryParams.pipeline_status = params.pipelineStatus;
+  }
   if (params.sortField) queryParams.sort_by = params.sortField;
   if (params.sortOrder) queryParams.sort_order = params.sortOrder;
 
@@ -96,6 +101,7 @@ export const createCandidate = async (candidateData) => {
   if (candidateData.alternativeEmail) formData.append('alternative_email', candidateData.alternativeEmail);
   if (candidateData.alternativePhone) formData.append('alternative_contact_number', candidateData.alternativePhone);
   if (candidateData.currentLocation) formData.append('current_location', candidateData.currentLocation);
+  if (candidateData.preferredLocation) formData.append('preferred_location', candidateData.preferredLocation);
   if (candidateData.highestQualification) formData.append('highest_qualification', candidateData.highestQualification);
 
   // Employee Details
@@ -155,6 +161,7 @@ export const updateCandidate = async (id, candidateData) => {
   appendIfPresent('country_code', candidateData.countryCode);
   appendIfPresent('alternative_contact_number', candidateData.alternativePhone);
   appendIfPresent('current_location', candidateData.currentLocation);
+  appendIfPresent('preferred_location', candidateData.preferredLocation);
   appendIfPresent('highest_qualification', candidateData.highestQualification);
   appendIfPresent('business_unit', candidateData.businessUnit);
   appendIfPresent('current_last_company', candidateData.currentCompany);
@@ -236,4 +243,32 @@ export const updateSelectionDetails = async (candidateId, mappingId, payload) =>
 export const matchCandidateJobs = async (candidateId) => {
   const response = await api.post(`/candidates/${candidateId}/match-jobs`);
   return { data: response.data.data };
+};
+
+// ── POST /api/candidates/import ──────────────────────────────
+export const importCandidates = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post('/candidates/import', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};
+
+// ── GET /api/candidates/import/template ──────────────────────
+export const downloadCandidateTemplate = async () => {
+  const response = await api.get('/candidates/import/template', {
+    responseType: 'blob',
+  });
+  const blob = new Blob([response.data], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'candidate_import_template.xlsx';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 };

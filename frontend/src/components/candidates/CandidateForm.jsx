@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { Plus, Trash2, Lock, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Plus, Trash2, Lock, AlertTriangle, CheckCircle, Briefcase, Search, X } from 'lucide-react';
 import Input from '../common/Input';
 import Select from '../common/Select';
 import Button from '../common/Button';
@@ -8,7 +8,6 @@ import FileUpload from '../common/FileUpload';
 import SkillsInput from './SkillsInput';
 import {
   NOTICE_PERIODS,
-  EXPERIENCE_OPTIONS,
   EDUCATION_OPTIONS,
   COUNTRY_CODES,
   SOURCE_OPTIONS,
@@ -18,6 +17,7 @@ import { fetchBusinessUnits } from '../../api/businessUnitsApi';
 import { checkDuplicateCandidate, parseResume } from '../../api/candidatesApi';
 import { fetchRecruiters } from '../../api/employeesApi';
 import { getCurrentUser } from '../../api/authApi';
+import { fetchJobs } from '../../api/jobsApi';
 
 const SectionTitle = ({ children }) => (
   <div className="mb-5">
@@ -26,6 +26,46 @@ const SectionTitle = ({ children }) => (
     </h3>
   </div>
 );
+
+export const YEAR_OPTIONS = Array.from({ length: 36 }, (_, i) => ({
+  value: String(i),
+  label: `${i} Year${i === 1 ? '' : 's'}`,
+}));
+
+export const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => ({
+  value: String(i),
+  label: `${i} Month${i === 1 ? '' : 's'}`,
+}));
+
+export const parseExpYearsMonths = (val) => {
+  if (!val) return { years: '', months: '' };
+  const str = String(val).toLowerCase().trim();
+  if (str === '0' || str === 'fresher' || str === '0 years') return { years: '0', months: '0' };
+  
+  const ymMatch = str.match(/(\d+)\s*(?:years?|yrs?|y)?(?:\s*(\d+)\s*(?:months?|mos?|m))?/i);
+  if (ymMatch && ymMatch[1]) {
+    const y = ymMatch[1];
+    const m = ymMatch[2] || '0';
+    return { years: y, months: m };
+  }
+  const num = parseFloat(str);
+  if (!isNaN(num)) {
+    const y = Math.floor(num);
+    const m = Math.round((num - y) * 12);
+    return { years: String(y), months: String(m) };
+  }
+  return { years: '', months: '' };
+};
+
+export const formatExpYearsMonths = (years, months) => {
+  if ((years === '' || years === undefined) && (months === '' || months === undefined)) return '';
+  const y = parseInt(years, 10) || 0;
+  const m = parseInt(months, 10) || 0;
+  if (y === 0 && m === 0) return '0 Years';
+  if (m === 0) return `${y} Years`;
+  if (y === 0) return `${m} Months`;
+  return `${y} Years ${m} Months`;
+};
 
 const DEFAULT_FORM_VALUES = {
   id: '',
@@ -38,13 +78,17 @@ const DEFAULT_FORM_VALUES = {
   phone: '',
   alternativePhone: '',
   currentLocation: '',
+  preferredLocation: '',
   highestQualification: '',
+  otherQualification: '',
   // Employee Details
   businessUnit: '',
   currentCompany: '',
   currentDesignation: '',
   totalExperience: '',
   relevantExperience: '',
+  relevantExpYears: '',
+  relevantExpMonths: '',
   skills: [],
   skills_draft: '',
   relevantExperienceBySkill: [],
@@ -59,6 +103,7 @@ const DEFAULT_FORM_VALUES = {
   source: '',
   comments: '',
   recruiterName: '',
+  mappedJobId: '',
   resumeFile: null,
 };
 
@@ -103,6 +148,11 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
   const [isParsing, setIsParsing] = useState(false);
   const [parseMessage, setParseMessage] = useState({ type: '', text: '' });
   const [parseConfidence, setParseConfidence] = useState(null);
+  const [availableJobs, setAvailableJobs] = useState([]);
+  const [jobSearchQuery, setJobSearchQuery] = useState('');
+  const [isJobDropdownOpen, setIsJobDropdownOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const jobDropdownRef = useRef(null);
   const publicForm = isPublicForm();
   const isEdit = window.location.pathname.includes('/edit');
   const personalDetailsRef = useRef(null);
@@ -113,11 +163,63 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
   const fixedCTC = watch('fixedCTC');
   const selectedCountryCode = watch('countryCode') || '+91';
 
+  const isFresher = /(^fresher$|^0$|^0 years$)/i.test((totalExperience || '').trim());
+
+  useEffect(() => {
+    if (isFresher) {
+      setValue('relevantExpYears', '0');
+      setValue('relevantExpMonths', '0');
+      setValue('relevantExperience', '0 Years');
+    }
+  }, [isFresher, setValue]);
+
+  const handleRelExpChange = (type, val) => {
+    const currentY = type === 'years' ? val : (getValues('relevantExpYears') || '');
+    const currentM = type === 'months' ? val : (getValues('relevantExpMonths') || '');
+    setValue(type === 'years' ? 'relevantExpYears' : 'relevantExpMonths', val, { shouldDirty: true });
+
+    if (currentY !== '' || currentM !== '') {
+      setValue('relevantExperience', formatExpYearsMonths(currentY, currentM), { shouldValidate: true, shouldDirty: true });
+    } else {
+      setValue('relevantExperience', '', { shouldValidate: true, shouldDirty: true });
+    }
+  };
+
   // Re-trigger phone validation when country code changes
   useEffect(() => {
     if (getValues('phone')) trigger('phone');
     if (getValues('alternativePhone')) trigger('alternativePhone');
   }, [selectedCountryCode, trigger, getValues]);
+
+  // ── Load available active jobs for assignment ──────────────────────────
+  useEffect(() => {
+    if (!publicForm) {
+      fetchJobs({ status: 'active' })
+        .then((res) => {
+          setAvailableJobs(res?.data || []);
+        })
+        .catch((err) => console.error('Failed to fetch active jobs:', err));
+    }
+  }, [publicForm]);
+
+  // Close job dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (jobDropdownRef.current && !jobDropdownRef.current.contains(e.target)) {
+        setIsJobDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Match existing assigned job if available
+  useEffect(() => {
+    if (defaultValues?.mappedJobId && availableJobs.length > 0) {
+      const matched = availableJobs.find(j => String(j.id) === String(defaultValues.mappedJobId));
+      if (matched) setSelectedJob(matched);
+    }
+  }, [defaultValues?.mappedJobId, availableJobs]);
 
   // ── Recruiter logic ────────────────────────────────────────────────────
   useEffect(() => {
@@ -153,42 +255,34 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           if (defaultValues?.businessUnit) {
             const hasCurrent = options.some(opt => opt.value === defaultValues.businessUnit);
             if (!hasCurrent) {
-              options.push({
+              options.unshift({
                 value: defaultValues.businessUnit,
-                label: `${defaultValues.businessUnit} (Inactive)`
+                label: defaultValues.businessUnit
               });
             }
           }
           setBusinessUnits(options);
         }
       } catch (err) {
-        console.error('Failed to load business units for form:', err);
+        console.error('Failed to fetch business units:', err);
       }
     };
     loadBusinessUnits();
-  }, [defaultValues]);
+  }, [defaultValues?.businessUnit]);
 
-  // ── Fresher logic ──────────────────────────────────────────────────────
+  // ── CTC Auto-calculation: Variable CTC = Current CTC - Fixed CTC ──────────
   useEffect(() => {
-    if (totalExperience === 'fresher') {
-      setValue('relevantExperience', '0');
-      setValue('relevantExperienceBySkill', []);
-    }
-  }, [totalExperience, setValue]);
+    const current = parseFloat(currentCTC);
+    const fixed = parseFloat(fixedCTC);
 
-  // ── Variable CTC auto-calculation ─────────────────────────────────────
-  useEffect(() => {
-    const curr = parseFloat(currentCTC) || 0;
-    const fixed = parseFloat(fixedCTC) || 0;
-
-    if (currentCTC && fixedCTC) {
-      if (fixed > curr) {
-        // Fixed > Current: show error, set variable to 0
+    if (!isNaN(current) && !isNaN(fixed)) {
+      if (fixed > current) {
         setCtcError('Fixed CTC cannot be greater than Current CTC');
-        setValue('variableCTC', '0');
+        setValue('variableCTC', '');
       } else {
         setCtcError('');
-        setValue('variableCTC', String(parseFloat((curr - fixed).toFixed(2))));
+        const variable = (current - fixed).toFixed(2);
+        setValue('variableCTC', variable);
       }
     } else {
       setCtcError('');
@@ -205,12 +299,31 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
       if (!publicForm) {
         const user = getCurrentUser();
         if (user) {
-          // Only overwrite if defaultValues doesn't explicitly have a different recruiterName
-          // (e.g. when editing an existing candidate, we want to keep the original recruiterName)
           if (!defaultValues.recruiterName) {
             newValues.recruiterName = user.name || user.username || user.email || '';
           }
         }
+      }
+
+      // Populate relevant experience years & months
+      if (defaultValues.relevantExperience) {
+        const { years, months } = parseExpYearsMonths(defaultValues.relevantExperience);
+        newValues.relevantExpYears = years;
+        newValues.relevantExpMonths = months;
+      }
+      if (defaultValues.preferredLocation) {
+        newValues.preferredLocation = defaultValues.preferredLocation;
+      }
+      if (defaultValues.mappedJobId) {
+        newValues.mappedJobId = defaultValues.mappedJobId;
+      }
+
+      // ── Req 5: Detect "Other" qualification on load/edit ────────────────
+      const knownQuals = EDUCATION_OPTIONS.map(o => o.value);
+      const storedQual = defaultValues.highestQualification || '';
+      if (storedQual && !knownQuals.includes(storedQual)) {
+        newValues.highestQualification = 'Other';
+        newValues.otherQualification = storedQual;
       }
       
       reset(newValues);
@@ -280,24 +393,30 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
 
     const submissionData = { ...data, skills: finalSkills };
     delete submissionData.skills_draft;
+    delete submissionData.relevantExpYears;
+    delete submissionData.relevantExpMonths;
+
+    if (selectedJob?.id) {
+      submissionData.mappedJobId = selectedJob.id;
+    }
+
+    // ── Req 5: If "Other" is selected, submit the typed value into highestQualification ──
+    if (submissionData.highestQualification === 'Other') {
+      const otherVal = (submissionData.otherQualification || '').trim();
+      if (otherVal) {
+        submissionData.highestQualification = otherVal;
+      }
+    }
+    // Always send otherQualification to backend (backend pops it)
     onSubmit({ ...submissionData, resumeFile });
   };
 
-  // ── Helper: Map experience string → dropdown value ───────────────────────
+  // ── Helper: Map experience string → text input value (Req 2) ─────────────
+  // totalExperience is now a free-text input, so preserve the raw string.
   const mapExperience = (rawExp) => {
     if (!rawExp) return '';
-    const s = rawExp.toString().trim().toLowerCase();
-    if (s === 'fresher' || s === '0' || s === '0 years') return 'fresher';
-    // e.g. "25+" or "25+ years"
-    if (s.includes('25+') || s.startsWith('25')) return '25+';
-    const numMatch = s.match(/(\d+)/);
-    if (numMatch) {
-      const n = parseInt(numMatch[1], 10);
-      if (n === 0) return 'fresher';
-      if (n >= 25) return '25+';
-      return String(n); // "3", "12" etc — matches EXPERIENCE_OPTIONS values directly
-    }
-    return '';
+    const s = rawExp.toString().trim();
+    return s; // preserve raw value (e.g. "3.5 years", "fresher", "2 years 6 months")
   };
 
   // ── Helper: Normalize notice period string → dropdown value ───────────────
@@ -313,24 +432,28 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
     return '';
   };
 
-  // ── Helper: Normalize qualification → dropdown value ─────────────────────
+  // ── Helper: Normalize qualification → dropdown value (Req 1 + Req 5) ────────
+  // Returns { qual, otherQual } where qual is the dropdown value and otherQual
+  // is the raw string to put in the Other text field (when qual === 'Other').
   const mapQualification = (raw) => {
-    if (!raw) return '';
+    if (!raw) return { qual: '', otherQual: '' };
     const s = raw.toLowerCase();
-    if (s.includes('phd') || s.includes('ph.d')) return 'PhD';
-    if (s.includes('m.tech') || s.includes('mtech')) return 'M.Tech';
-    if (s.includes('mca')) return 'MCA';
-    if (s.includes('mba')) return 'MBA';
-    if (s.includes('m.sc') || s.includes('msc')) return 'M.Sc';
-    if (s.includes('b.tech') || s.includes('btech') || s.includes('b tech') || s.includes('b.e') || s.includes('be')) return 'B.Tech';
-    if (s.includes('bca')) return 'BCA';
-    if (s.includes('b.sc') || s.includes('bsc')) return 'B.Sc';
-    if (s.includes('b.com') || s.includes('bcom')) return 'B.Com';
-    if (s.includes('diploma')) return 'Diploma';
-    if (s.includes('intermediate') || s.includes('12th')) return 'Intermediate';
-    if (s.includes('ssc') || s.includes('10th')) return 'SSC';
-    if (s.includes('degree')) return 'Degree';
-    return ''; // leave blank if can't map — don't risk wrong value
+    if (s.includes('phd') || s.includes('ph.d')) return { qual: 'PhD', otherQual: '' };
+    if (s.includes('m.tech') || s.includes('mtech')) return { qual: 'M.Tech', otherQual: '' };
+    if (s.includes('mca')) return { qual: 'MCA', otherQual: '' };
+    if (s.includes('mba')) return { qual: 'MBA', otherQual: '' };
+    if (s.includes('m.sc') || s.includes('msc')) return { qual: 'M.Sc', otherQual: '' };
+    if (s.includes('b.tech') || s.includes('btech') || s.includes('b tech') || s.includes('b.e') || s.includes('be')) return { qual: 'B.Tech', otherQual: '' };
+    if (s.includes('bca')) return { qual: 'BCA', otherQual: '' };
+    if (s.includes('b.sc') || s.includes('bsc')) return { qual: 'B.Sc', otherQual: '' };
+    if (s.includes('b.com') || s.includes('bcom')) return { qual: 'B.Com', otherQual: '' };
+    if (s.includes('diploma')) return { qual: 'Diploma', otherQual: '' };
+    if (s.includes('intermediate') || s.includes('12th')) return { qual: 'Intermediate', otherQual: '' };
+    if (s.includes('ssc') || s.includes('10th')) return { qual: 'SSC', otherQual: '' };
+    if (s.includes('degree')) return { qual: 'Degree', otherQual: '' };
+    // Req 5: unrecognized qualification → map to 'Other', preserve raw in otherQual
+    if (raw.trim()) return { qual: 'Other', otherQual: raw.trim() };
+    return { qual: '', otherQual: '' };
   };
 
   // ── Helper: Clean phone number (remove country codes, spaces, dashes) ─────
@@ -439,18 +562,32 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
         if (apply('alternativePhone', cleanedAltPhone)) filled++;
 
         if (apply('currentLocation', extractCity(d.current_location))) filled++;
+        if (d.preferred_location && apply('preferredLocation', extractCity(d.preferred_location))) filled++;
 
-        // Qualification: map to dropdown value
-        const mappedQual = mapQualification(d.highest_qualification);
+        // Qualification: map to dropdown value (Req 1 + Req 5)
+        const { qual: mappedQual, otherQual: mappedOtherQual } = mapQualification(d.highest_qualification);
         if (mappedQual && apply('highestQualification', mappedQual)) filled++;
+        if (mappedQual === 'Other' && mappedOtherQual) {
+          apply('otherQualification', mappedOtherQual);
+        }
 
         // Employee Details
         if (apply('currentCompany', d.current_company)) filled++;
         if (apply('currentDesignation', d.current_designation)) filled++;
 
-        // Experience: normalize → dropdown value
+        // Experience: preserve raw string for text input (Req 2)
         const mappedExp = mapExperience(d.total_experience);
         if (mappedExp && apply('totalExperience', mappedExp)) filled++;
+
+        if (d.relevant_experience) {
+          const { years, months } = parseExpYearsMonths(d.relevant_experience);
+          if (years !== '') {
+            apply('relevantExpYears', years);
+            apply('relevantExpMonths', months);
+            apply('relevantExperience', formatExpYearsMonths(years, months));
+            filled++;
+          }
+        }
 
         // Notice Period: normalize → dropdown value
         const mappedNotice = mapNoticePeriod(d.notice_period);
@@ -528,9 +665,9 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
     }
   };
 
-  // LWD is shown when notice period is selected. Mandatory only for Immediate/Currently Serving.
+  // LWD is shown when notice period is selected. Mandatory only for Currently Serving.
   const showLWD = !!noticePeriod;
-  const isLwdMandatory = noticePeriod === 'Immediate' || noticePeriod === 'Currently Serving';
+  const isLwdMandatory = noticePeriod === 'Currently Serving';
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} noValidate>
@@ -739,6 +876,16 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           })}
         />
 
+        {/* Preferred Location */}
+        <Input
+          label="Preferred Location"
+          placeholder="Enter preferred location (optional)"
+          error={errors.preferredLocation?.message}
+          {...register('preferredLocation', {
+            pattern: { value: /^(?!\d+$)[A-Za-z0-9\s.,'-]+$/, message: 'Location cannot be purely numeric' }
+          })}
+        />
+
         {/* Highest Qualification */}
         <Select
           label="Highest Qualification"
@@ -748,6 +895,19 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           error={errors.highestQualification?.message}
           {...register('highestQualification', { required: 'Highest qualification is required' })}
         />
+
+        {/* Req 5: Other Qualification text field — shown only when 'Other' is selected */}
+        {watch('highestQualification') === 'Other' && (
+          <Input
+            label="Other Qualification"
+            placeholder="Enter qualification (e.g. Bachelor of Computer Applications)"
+            required
+            error={errors.otherQualification?.message}
+            {...register('otherQualification', {
+              required: watch('highestQualification') === 'Other' ? 'Please specify your qualification' : false,
+            })}
+          />
+        )}
 
       </div>
 
@@ -783,33 +943,60 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           {...register('currentDesignation')}
         />
 
-        {/* Total Experience */}
-        <Select
+        {/* Total Experience — Req 2: free-text input */}
+        <Input
           label="Total Experience"
-          placeholder="Select experience"
+          placeholder="Enter total experience (e.g. 3.5 years)"
           required
-          options={EXPERIENCE_OPTIONS}
           error={errors.totalExperience?.message}
           {...register('totalExperience', { required: 'Total experience is required' })}
         />
 
-        {/* Relevant Experience (Years) */}
-        <Input
-          label="Relevant Experience (Years)"
-          type="number"
-          placeholder="e.g. 3"
-          disabled={totalExperience === 'fresher'}
-          error={errors.relevantExperience?.message}
-          {...register('relevantExperience', {
-            validate: value => {
-              if (totalExperience === 'fresher' && parseFloat(value) > 0) {
-                return 'Freshers cannot have relevant experience';
-              }
-              return true;
-            },
-            min: { value: 0, message: 'Cannot be negative' },
-          })}
-        />
+        {/* Relevant Experience (Years & Months) — Req 11 */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-gray-700">
+            Relevant Experience
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <select
+                disabled={isFresher}
+                value={watch('relevantExpYears') || (isFresher ? '0' : '')}
+                onChange={(e) => handleRelExpChange('years', e.target.value)}
+                className={`w-full rounded-lg border bg-white text-sm text-gray-900 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                  isFresher ? 'bg-gray-100 cursor-not-allowed opacity-60' : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <option value="">Years</option>
+                {YEAR_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <select
+                disabled={isFresher}
+                value={watch('relevantExpMonths') || (isFresher ? '0' : '')}
+                onChange={(e) => handleRelExpChange('months', e.target.value)}
+                className={`w-full rounded-lg border bg-white text-sm text-gray-900 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                  isFresher ? 'bg-gray-100 cursor-not-allowed opacity-60' : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <option value="">Months</option>
+                {MONTH_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {errors.relevantExperience && (
+            <p className="text-xs text-red-500">{errors.relevantExperience.message}</p>
+          )}
+        </div>
 
         {/* Notice Period */}
         <Select
@@ -1041,32 +1228,148 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
         </div>
       </div>
 
-      {/* ── SECTION 4: Other Skills ── */}
+      {/* ── SECTION 4: Other Skills (Req 14: Optional) ── */}
       <div className="mb-8">
         <label className="text-sm font-medium text-gray-700 flex items-center gap-1 mb-1.5">
-          Other Skills <span className="text-red-500">*</span>
+          Other Skills <span className="text-xs text-gray-400 font-normal">(Optional)</span>
         </label>
         <Controller
           name="skills"
           control={control}
-          rules={{
-            validate: (val) => {
-              const draft = getValues('skills_draft')?.trim();
-              return (val && val.length > 0) || (draft && draft.length > 0) || 'At least one skill is required';
-            },
-          }}
           render={({ field }) => (
             <SkillsInput
               value={field.value || []}
               onChange={field.onChange}
               draftValue={watch('skills_draft')}
-              onDraftChange={(val) => setValue('skills_draft', val, { shouldValidate: true })}
-              placeholder="Type a skill and press Enter"
+              onDraftChange={(val) => setValue('skills_draft', val)}
+              placeholder="Type or search a skill..."
               error={errors.skills?.message}
             />
           )}
         />
       </div>
+
+      {/* ── SECTION 5: Job Assignment (Req 15: Optional) ── */}
+      {!publicForm && (
+        <div className="mb-8">
+          <SectionTitle>Job Assignment (Optional)</SectionTitle>
+          <p className="text-sm text-gray-500 mb-4 -mt-3">
+            Search and assign this candidate directly to an open job requirement
+          </p>
+
+          <div className="relative" ref={jobDropdownRef}>
+            {selectedJob ? (
+              <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/70 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                    <Briefcase size={18} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-800">
+                        {selectedJob.jobCode}
+                      </span>
+                      <h4 className="text-sm font-semibold text-gray-900">
+                        {selectedJob.requirements?.[0]?.jobTitle || selectedJob.title || 'Job Requirement'}
+                      </h4>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-0.5">
+                      Client: <span className="font-medium text-gray-800">{selectedJob.companyName}</span>
+                      {selectedJob.requirements?.[0]?.location && ` • ${selectedJob.requirements[0].location}`}
+                      {selectedJob.requirements?.[0]?.experience && ` • Exp: ${selectedJob.requirements[0].experience}`}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedJob(null);
+                    setValue('mappedJobId', '');
+                  }}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-white transition-colors"
+                  title="Remove Job Assignment"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className="relative">
+                  <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={jobSearchQuery}
+                    onChange={(e) => {
+                      setJobSearchQuery(e.target.value);
+                      setIsJobDropdownOpen(true);
+                    }}
+                    onFocus={() => setIsJobDropdownOpen(true)}
+                    placeholder="Search active jobs by title, job code, or client name..."
+                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all"
+                  />
+                </div>
+
+                {isJobDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto py-1">
+                    {availableJobs
+                      .filter((job) => {
+                        if (!jobSearchQuery.trim()) return true;
+                        const q = jobSearchQuery.toLowerCase();
+                        const title = (job.requirements?.[0]?.jobTitle || job.title || '').toLowerCase();
+                        const code = (job.jobCode || '').toLowerCase();
+                        const company = (job.companyName || '').toLowerCase();
+                        return title.includes(q) || code.includes(q) || company.includes(q);
+                      })
+                      .map((job) => (
+                        <button
+                          key={job.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedJob(job);
+                            setValue('mappedJobId', job.id);
+                            setIsJobDropdownOpen(false);
+                            setJobSearchQuery('');
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center justify-between border-b border-gray-50 last:border-b-0 group transition-colors"
+                        >
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold px-2 py-0.5 rounded bg-gray-100 text-gray-700 group-hover:bg-blue-100 group-hover:text-blue-800">
+                                {job.jobCode}
+                              </span>
+                              <span className="text-sm font-medium text-gray-900 group-hover:text-blue-900">
+                                {job.requirements?.[0]?.jobTitle || job.title || 'Untitled Job'}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                              <span>Client: {job.companyName}</span>
+                              {job.requirements?.[0]?.location && <span>• {job.requirements[0].location}</span>}
+                            </div>
+                          </div>
+                          <span className="text-xs text-blue-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                            Assign
+                          </span>
+                        </button>
+                      ))}
+                    {availableJobs.filter((job) => {
+                      if (!jobSearchQuery.trim()) return true;
+                      const q = jobSearchQuery.toLowerCase();
+                      const title = (job.requirements?.[0]?.jobTitle || job.title || '').toLowerCase();
+                      const code = (job.jobCode || '').toLowerCase();
+                      const company = (job.companyName || '').toLowerCase();
+                      return title.includes(q) || code.includes(q) || company.includes(q);
+                    }).length === 0 && (
+                      <div className="p-4 text-center text-sm text-gray-500">
+                        No active jobs found matching "{jobSearchQuery}"
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex items-center justify-end gap-3 pt-5 border-t border-gray-100">

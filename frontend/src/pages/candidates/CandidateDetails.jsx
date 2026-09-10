@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { fetchCandidateById, fetchCandidateHistory } from '../../api/candidatesApi';
 import {
   Mail, Phone, MapPin, Building2, GraduationCap, Briefcase,
@@ -38,13 +38,14 @@ const SectionHeader = ({ title, icon: Icon, color = "bg-blue-500" }) => (
   </div>
 );
 
-// ── Edit History Section ──────────────────────────────────────────────────
-const EditHistorySection = ({ history }) => {
+// ── Log History Section (Req 7: Max 3 records) ────────────────────────────
+const LogHistorySection = ({ history }) => {
   const [expanded, setExpanded] = useState(null);
+  const displayHistory = (history || []).slice(0, 3);
 
-  if (!history || history.length === 0) {
+  if (!displayHistory || displayHistory.length === 0) {
     return (
-      <p className="text-sm text-gray-400 italic py-2">No edit history available.</p>
+      <p className="text-sm text-gray-400 italic py-2">No log history available.</p>
     );
   }
 
@@ -53,7 +54,7 @@ const EditHistorySection = ({ history }) => {
 
   return (
     <div className="space-y-3">
-      {history.map((entry, idx) => {
+      {displayHistory.map((entry, idx) => {
         const isOpen = expanded === idx;
         const changedFields = Array.isArray(entry.changed_fields) ? entry.changed_fields : [];
         return (
@@ -131,10 +132,13 @@ const EditHistorySection = ({ history }) => {
 const CandidateDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [candidate, setCandidate] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('candidate'); // 'candidate' or 'selection'
+  // Req 4: read ?tab= from URL to support direct navigation to Selection tab
+  const urlTab = new URLSearchParams(location.search).get('tab');
+  const [activeTab, setActiveTab] = useState(urlTab === 'selection' ? 'selection' : 'candidate');
 
   useEffect(() => {
     const loadCandidate = async () => {
@@ -264,6 +268,9 @@ const CandidateDetails = () => {
                 <DetailItem icon={Phone} label="Alternative Contact" value={candidate.alternativePhone} iconColor="text-indigo-400" />
               )}
               <DetailItem icon={MapPin} label="Current Location" value={candidate.currentLocation} iconColor="text-rose-600" />
+              {candidate.preferredLocation && (
+                <DetailItem icon={MapPin} label="Preferred Location" value={candidate.preferredLocation} iconColor="text-amber-600" />
+              )}
               <DetailItem icon={GraduationCap} label="Highest Qualification" value={candidate.highestQualification} iconColor="text-purple-600" />
             </div>
           </div>
@@ -283,10 +290,18 @@ const CandidateDetails = () => {
               </p>
               {candidate.resumeUrl ? (
                 <button
-                  onClick={() => window.open(`http://localhost:8000${candidate.resumeUrl}`, '_blank')}
+                  onClick={() => {
+                    // Req 3: encode URL to handle filenames with spaces, fallback to API stream endpoint
+                    const base = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
+                    const url = encodeURI(`${base}${candidate.resumeUrl}`);
+                    const fallback = `${base}/api/candidates/${candidate.id}/resume`;
+                    // Attempt the direct URL first; API endpoint as reliable fallback
+                    const win = window.open(url, '_blank');
+                    if (!win) window.open(fallback, '_blank');
+                  }}
                   className="mt-3 px-6 py-2 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 hover:shadow-lg transition-all active:scale-95"
                 >
-                  View File
+                  View Resume
                 </button>
               ) : (
                 <p className="text-[10px] font-bold text-gray-400 uppercase mt-2">Awaiting Upload</p>
@@ -324,8 +339,20 @@ const CandidateDetails = () => {
               <DetailItem icon={Layers} label="Business Unit" value={candidate.businessUnit} iconColor="text-purple-600" />
               <DetailItem icon={Building2} label="Current / Last Company" value={candidate.currentCompany} iconColor="text-indigo-600" />
               <DetailItem icon={Briefcase} label="Current Designation" value={candidate.currentDesignation} iconColor="text-blue-600" />
-              <DetailItem icon={Briefcase} label="Total Work Experience" value={candidate.totalExperience} iconColor="text-amber-600" />
-              <DetailItem icon={GraduationCap} label="Relevant Experience" value={candidate.relevantExperience ? `${candidate.relevantExperience} Years` : '—'} iconColor="text-emerald-600" />
+              <DetailItem icon={Briefcase} label="Total Work Experience" value={
+                candidate.totalExperience
+                  ? (/(years?|yrs?|fresher)/i.test(candidate.totalExperience)
+                      ? candidate.totalExperience
+                      : `${candidate.totalExperience} Years`)
+                  : '—'
+              } iconColor="text-amber-600" />
+              <DetailItem icon={GraduationCap} label="Relevant Experience" value={
+                candidate.relevantExperience
+                  ? (/(years?|yrs?|months?|mos?)/i.test(candidate.relevantExperience)
+                      ? candidate.relevantExperience
+                      : `${candidate.relevantExperience} Years`)
+                  : '—'
+              } iconColor="text-emerald-600" />
               <DetailItem icon={MapPin} label="Employment Location" value={candidate.employmentLocation} iconColor="text-rose-400" />
               <DetailItem icon={Tag} label="Source" value={candidate.source} iconColor="text-cyan-600" />
               <div>
@@ -422,10 +449,10 @@ const CandidateDetails = () => {
             )}
           </div>
 
-          {/* Edit History Card */}
+          {/* Log History Card */}
           <div className="bg-white rounded-[2rem] p-7 md:p-8 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-            <SectionHeader title="Edit History" color="bg-violet-500" icon={MessageSquare} />
-            <EditHistorySection history={history} />
+            <SectionHeader title="Log History" color="bg-violet-500" icon={MessageSquare} />
+            <LogHistorySection history={history} />
           </div>
         </div>
       </div>

@@ -42,7 +42,7 @@ IT_SKILLS = [
     "Spring Boot", "Spring", "Hibernate", ".NET", "ASP.NET", "Laravel", "Rails",
     "SQL", "MySQL", "PostgreSQL", "MongoDB", "Redis", "SQLite", "Oracle", "MSSQL", "Cassandra", "Elasticsearch",
     "AWS", "Azure", "GCP", "Docker", "Kubernetes", "Terraform", "Ansible", "Jenkins", "CI/CD", "GitHub Actions",
-    "Linux", "Git", "REST", "GraphQL", "gRPC", "Microservices", "HTML", "CSS", "SASS", "Bootstrap", "Tailwind",
+    "Linux", "Git", "REST", "GraphQL", "gRPC", "Microservices", "HTML", "HTML5", "CSS", "CSS3", "SASS", "Bootstrap", "Tailwind", "Redux", "PHP",
     "Machine Learning", "Deep Learning", "TensorFlow", "PyTorch", "Scikit-learn", "NLP", "OpenAI",
     "Excel", "Power BI", "Tableau", "Selenium", "Playwright", "Cypress",
 ]
@@ -100,7 +100,6 @@ def regex_parse(text: str) -> dict:
 
     # ── Emails ────────────────────────────────────────────────────────────
     emails = re.findall(r'[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}', text)
-    # Prefer personal emails (gmail, yahoo, outlook etc) over company emails
     personal_pattern = re.compile(r'@(gmail|yahoo|hotmail|outlook|rediffmail|icloud|proton)\.', re.I)
     personal_emails = [e for e in emails if personal_pattern.search(e)]
     other_emails = [e for e in emails if not personal_pattern.search(e)]
@@ -114,27 +113,37 @@ def regex_parse(text: str) -> dict:
     if len(unique_emails) > 1:
         data["alternative_email"] = unique_emails[1]
 
-    # ── Phones ────────────────────────────────────────────────────────────
-    raw_phones = re.findall(r'(?:\+91[\s\-.]?|0091[\s\-.]?|091[\s\-.]?)?[6-9]\d{9}', text)
+    # ── Phones (supports +91, spaces, dashes, dots) ───────────────────────
+    raw_phones = re.findall(r'(?:\+?91[\s\-.]?|0091[\s\-.]?|091[\s\-.]?)?[6-9](?:[\s\-.]?\d){9}', text)
     clean_phones = []
     for p in raw_phones:
         c = re.sub(r'[\s\-.]', '', p)
-        c = re.sub(r'^(\+91|0091|091)', '', c)
-        c = c[-10:]  # last 10 digits
-        if len(c) == 10 and c not in clean_phones:
+        c = re.sub(r'^(\+91|0091|091|91)', '', c)
+        c = c[-10:]
+        if len(c) == 10 and c[0] in '6789' and c not in clean_phones:
             clean_phones.append(c)
     if clean_phones:
         data["phone"] = clean_phones[0]
     if len(clean_phones) > 1:
         data["alternative_phone"] = clean_phones[1]
 
-    # ── Experience ────────────────────────────────────────────────────────
-    exp_match = re.search(r'(\d+(?:\.\d+)?)\s*\+?\s*[Yy]ears?\s*(?:of\s+)?(?:experience|exp)?', text)
-    if exp_match:
-        years = float(exp_match.group(1))
-        data["total_experience"] = "fresher" if years == 0 else str(int(years))
-    elif re.search(r'\b[Ff]resher\b', text):
+    # ── Experience (supports decimal years e.g. 3.5 years, fresher) ───────
+    if re.search(r'\b[Ff]resher\b', text):
         data["total_experience"] = "fresher"
+    else:
+        # Check "X years Y months"
+        ym_match = re.search(r'(\d+)\s*(?:years?|yrs?)\s*(?:and\s+)?(\d+)\s*(?:months?|mos?)', text, re.IGNORECASE)
+        if ym_match:
+            yrs = int(ym_match.group(1)) + round(int(ym_match.group(2)) / 12, 1)
+            data["total_experience"] = f"{yrs:g} years"
+        else:
+            exp_match = re.search(r'(\d+(?:\.\d+)?)\s*\+?\s*(?:years?|yrs?|yr)\b(?:\s*(?:of\s+)?(?:experience|exp))?', text, re.IGNORECASE)
+            if exp_match:
+                years = float(exp_match.group(1))
+                if years == 0:
+                    data["total_experience"] = "fresher"
+                else:
+                    data["total_experience"] = f"{years:g} years"
 
     # ── Skills ────────────────────────────────────────────────────────────
     found_skills = []
@@ -144,18 +153,36 @@ def regex_parse(text: str) -> dict:
     data["skills"] = found_skills
 
     # ── Qualification ─────────────────────────────────────────────────────
-    qual_match = re.search(
-        r'(B\.?Tech|B\.?E|M\.?Tech|M\.?E|MCA|BCA|B\.?Sc|M\.?Sc|MBA|Ph\.?D|Bachelor|Master|Diploma)[^,\n]*',
-        text, re.IGNORECASE
-    )
-    if qual_match:
-        data["highest_qualification"] = qual_match.group(0).strip()
+    qual_patterns = [
+        r'\b(?:Bachelor\s+of\s+Technology|B\.?\s*Tech)\b[^,\n]*',
+        r'\b(?:Bachelor\s+of\s+Engineering|B\.?\s*E\.?)\b[^,\n]*',
+        r'\b(?:Master\s+of\s+Technology|M\.?\s*Tech)\b[^,\n]*',
+        r'\b(?:Master\s+of\s+Engineering|M\.?\s*E\.?)\b[^,\n]*',
+        r'\b(?:Master\s+of\s+Computer\s+Applications|MCA)\b[^,\n]*',
+        r'\b(?:Bachelor\s+of\s+Computer\s+Applications|BCA)\b[^,\n]*',
+        r'\b(?:Master\s+of\s+Business\s+Administration|MBA)\b[^,\n]*',
+        r'\b(?:Bachelor\s+of\s+Science|B\.?\s*Sc)\b[^,\n]*',
+        r'\b(?:Master\s+of\s+Science|M\.?\s*Sc)\b[^,\n]*',
+        r'\b(?:Bachelor\s+of\s+Commerce|B\.?\s*Com)\b[^,\n]*',
+        r'\b(?:Doctor\s+of\s+Philosophy|Ph\.?\s*D)\b[^,\n]*',
+        r'\bDiploma\b[^,\n]*',
+        r'\b(?:Higher\s+Secondary|Intermediate|12th)\b[^,\n]*',
+        r'\b(?:Secondary\s+School|SSC|10th)\b[^,\n]*',
+        r'\b(?:Bachelor|Master|Degree)\b[^,\n]*',
+    ]
+    for q_pat in qual_patterns:
+        qual_match = re.search(q_pat, text, re.IGNORECASE)
+        if qual_match:
+            data["highest_qualification"] = qual_match.group(0).strip()
+            break
 
     # ── Notice Period ─────────────────────────────────────────────────────
     notice_match = re.search(r'(?:Notice\s*Period|Availability)[:\s]*([^\n,]+)', text, re.IGNORECASE)
     if notice_match:
         nr = notice_match.group(1).strip().lower()
         if 'immediate' in nr: data["notice_period"] = "Immediate"
+        elif 'serving' in nr or 'current' in nr: data["notice_period"] = "Currently Serving"
+        elif '15' in nr: data["notice_period"] = "15 Days"
         elif '30' in nr or '1 month' in nr: data["notice_period"] = "30 Days"
         elif '45' in nr: data["notice_period"] = "45 Days"
         elif '60' in nr or '2 month' in nr: data["notice_period"] = "60 Days"
@@ -170,16 +197,15 @@ def regex_parse(text: str) -> dict:
         data["expected_ctc"] = exp_ctc_match.group(1)
 
     # ── Company & Designation ─────────────────────────────────────────────
-    # Pattern 1: "Software Engineer at Infosys"
+    # Pattern 1: "Software Engineer at / - / | Infosys"
     desg_at_match = re.search(
-        r'([A-Z][A-Za-z\s]+?)\s+(?:at|@|in|with)\s+([A-Z][A-Za-z\s&.,]+?)(?:\s*[\n|]|$)',
+        r'([A-Z][A-Za-z\s]+?)\s+(?:at|@|in|with|[-|])\s+([A-Z][A-Za-z\s&.,]+?)(?:\s*[\n|]|$)',
         text
     )
     if desg_at_match:
         data["current_designation"] = desg_at_match.group(1).strip()
         data["current_company"] = desg_at_match.group(2).strip()
     else:
-        # Pattern 2: "Working as Senior Developer in TCS"
         working_match = re.search(
             r'(?:[Ww]orking|[Ww]orked)\s+as\s+([A-Za-z\s]+?)\s+(?:at|in|with|@)\s+([A-Za-z\s&.,]+?)(?:\s*[\n|]|$)',
             text
@@ -189,19 +215,28 @@ def regex_parse(text: str) -> dict:
             data["current_company"] = working_match.group(2).strip()
 
     # ── Location ──────────────────────────────────────────────────────────
-    loc_match = re.search(r'(?:Location|Address|Based\s+in)[:\s]+([A-Za-z\s,]+?)(?:\n|$)', text, re.IGNORECASE)
+    loc_match = re.search(r'(?:Location|Address|Based\s+in|City)[:\s]+([A-Za-z\s,]+?)(?:\n|$)', text, re.IGNORECASE)
     if loc_match:
         data["current_location"] = loc_match.group(1).strip()
+    else:
+        # Check common cities
+        common_cities = ["Hyderabad", "Bangalore", "Bengaluru", "Chennai", "Pune", "Mumbai", "Delhi", "Noida", "Gurgaon", "Gurugram", "Kolkata", "Ahmedabad", "Kochi", "Jaipur"]
+        for city in common_cities:
+            if re.search(r'\b' + city + r'\b', text[:2000], re.IGNORECASE):
+                data["current_location"] = city
+                break
 
-    # ── Name (first non-email line, 1-4 words of letters only) ───────────
+    # ── Name (first non-header, non-email line, 1-4 words of letters only) ──
+    ignored_headers = {"resume", "curriculum vitae", "cv", "profile", "bio-data", "biodata", "personal details", "contact", "summary", "contact info", "career objective"}
     lines = [l.strip() for l in text.splitlines() if l.strip()]
-    for line in lines[:10]:
-        if '@' not in line and len(line.split()) <= 4 and re.match(r'^[A-Za-z\s\.]+$', line):
-            parts = line.split()
-            if parts and len(parts[0]) > 1:
+    for line in lines[:15]:
+        line_clean = re.sub(r'[^A-Za-z\s\.]', '', line).strip()
+        if '@' not in line and line.lower() not in ignored_headers and len(line_clean.split()) <= 4 and len(line_clean.split()) >= 1 and re.match(r'^[A-Za-z\s\.]+$', line_clean):
+            parts = line_clean.split()
+            if parts and len(parts[0]) > 1 and parts[0].lower() not in ignored_headers:
                 data["first_name"] = parts[0].capitalize()
                 data["last_name"] = " ".join(parts[1:]).title() if len(parts) > 1 else ""
-            break
+                break
 
     # ── Business Unit Prediction ──────────────────────────────────────────
     data["business_unit"] = predict_business_unit(found_skills, text)

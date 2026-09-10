@@ -13,7 +13,7 @@ const JobListPage = () => {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ company: '', startDate: '', endDate: '', status: '', sortField: '', sortOrder: 'desc' });
+  const [filters, setFilters] = useState({ company: '', businessUnit: '', startDate: '', endDate: '', status: '', sortField: '', sortOrder: 'desc' });
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const exportRef = useRef(null);
@@ -59,7 +59,7 @@ const JobListPage = () => {
   };
 
   const handleFilterClear = () => {
-    setFilters({ company: '', startDate: '', endDate: '', status: '', sortField: '', sortOrder: 'desc' });
+    setFilters({ company: '', businessUnit: '', startDate: '', endDate: '', status: '', sortField: '', sortOrder: 'desc' });
   };
 
   const handleExport = async (format) => {
@@ -69,6 +69,7 @@ const JobListPage = () => {
       // Build query params from current filters
       const params = new URLSearchParams();
       if (filters.company) params.append('company', filters.company);
+      if (filters.businessUnit) params.append('business_unit', filters.businessUnit);
       if (filters.startDate) params.append('start_date', filters.startDate);
       if (filters.endDate) params.append('end_date', filters.endDate);
       if (filters.status) params.append('status', filters.status);

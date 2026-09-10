@@ -1,19 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Briefcase, Info, CheckCircle2, IndianRupee, Clock, Calendar, MessageSquare, BriefcaseBusiness, XCircle, User, Zap, Sparkles } from 'lucide-react';
+import { Building2, Briefcase, Info, CheckCircle2, IndianRupee, Clock, Calendar, MessageSquare, BriefcaseBusiness, XCircle, User, Zap, Sparkles, Plus, X } from 'lucide-react';
 import { fetchSelectionDetails, updateSelectionDetails, matchCandidateJobs } from '../../api/candidatesApi';
-import { getCurrentUser } from '../../api/authApi';
+import { fetchJobs, shortlistCandidate } from '../../api/jobsApi';
+import { getCurrentUser, getSystemRole } from '../../api/authApi';
 import Button from '../common/Button';
 import Badge from '../common/Badge';
 import toast, { Toaster } from 'react-hot-toast';
+import { CANDIDATE_PIPELINE_STATUSES, PIPELINE_STATUS_COLORS } from '../../utils/constants';
 
-const PIPELINE_STAGES = [
-  'Shortlisted',
-  'Interview Selected',
-  'Interview Rejected',
-  'Candidate Approved',
-  'Candidate Rejected',
-  'Joined'
-];
+const PIPELINE_STAGES = CANDIDATE_PIPELINE_STATUSES;
+const STATUS_COLORS = PIPELINE_STATUS_COLORS;
+
+const HOUR_OPTIONS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
+const MINUTE_OPTIONS = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+
+const parseTimeString = (timeStr) => {
+  if (!timeStr) return { hour: '', minute: '', ampm: 'AM' };
+  const trimmed = timeStr.trim();
+  const match = trimmed.match(/^(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?$/);
+  if (match) {
+    let h = parseInt(match[1], 10);
+    const m = match[2];
+    let ampm = match[3] ? match[3].toUpperCase() : 'AM';
+    if (!match[3]) {
+      if (h >= 12) {
+        ampm = 'PM';
+        if (h > 12) h -= 12;
+      } else if (h === 0) {
+        h = 12;
+        ampm = 'AM';
+      }
+    }
+    return {
+      hour: String(h).padStart(2, '0'),
+      minute: m,
+      ampm: ampm
+    };
+  }
+  return { hour: '', minute: '', ampm: 'AM' };
+};
 
 const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
   const [selections, setSelections] = useState([]);
@@ -26,16 +51,29 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
   const [matching, setMatching] = useState(false);
   const [filterStatus, setFilterStatus] = useState('All');
   const [sortOption, setSortOption] = useState('highest_match');
+  // Req 4: Assign to Job modal state
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [jobList, setJobList] = useState([]);
+  const [selectedJobId, setSelectedJobId] = useState('');
+  const [assigning, setAssigning] = useState(false);
 
   const currentUser = getCurrentUser() || { role: 'Administrator' };
   const isAdmin = currentUser.role === 'Administrator' || currentUser.role === 'Admin' || currentUser.role === 'Director';
   const isTL = currentUser.role === 'Team Lead' || currentUser.role === 'TL';
 
-  // Future Ready Permission Hook/Placeholder
+  // Req 10: Accounts role access only for incentive editing
   const canEditIncentive = (role) => {
-    // Return true for all users now, as no current restriction should be enforced.
-    // In future, can be changed to: role === 'Administrator' || role === 'Admin' || role === 'Team Lead' || role === 'TL'
-    return true; 
+    const userRole = (role || '').toLowerCase();
+    const sysRole = (getSystemRole ? getSystemRole() : '').toLowerCase();
+    return (
+      userRole.includes('account') ||
+      sysRole.includes('account') ||
+      userRole === 'administrator' ||
+      userRole === 'admin' ||
+      sysRole === 'super_admin' ||
+      sysRole === 'admin_admin' ||
+      sysRole === 'admin_user'
+    );
   };
 
   useEffect(() => {
@@ -61,10 +99,14 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
 
   const handleEditClick = (selection) => {
     setEditingId(selection.id);
+    const parsedTime = parseTimeString(selection.interview_time || '');
     setEditForm({
-      status: selection.status || 'Shortlisted',
+      status: selection.status || 'Submitted',
       interview_date: selection.interview_date || '',
       interview_time: selection.interview_time || '',
+      interview_hour: parsedTime.hour,
+      interview_minute: parsedTime.minute,
+      interview_ampm: parsedTime.ampm,
       approval_date: selection.approval_date || '',
       rejection_date: selection.rejection_date || '',
       band: selection.band || '',
@@ -79,6 +121,21 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
       joined_by: selection.joined_by || '',
       remarks: selection.remarks || '',
     });
+  };
+
+  const handleTimeChange = (type, val) => {
+    const nextHour = type === 'hour' ? val : (editForm.interview_hour || '');
+    const nextMin = type === 'minute' ? val : (editForm.interview_minute || '');
+    const nextAmpm = type === 'ampm' ? val : (editForm.interview_ampm || 'AM');
+    
+    const combined = (nextHour && nextMin) ? `${nextHour}:${nextMin} ${nextAmpm}` : '';
+    setEditForm(prev => ({
+      ...prev,
+      interview_hour: nextHour,
+      interview_minute: nextMin,
+      interview_ampm: nextAmpm,
+      interview_time: combined
+    }));
   };
 
   const handleCancelEdit = () => {
@@ -97,24 +154,22 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
       let errors = {};
       const statusToCheck = payload.status;
       
-      if (statusToCheck === 'Interview Selected') {
+      if (statusToCheck === 'Interview Selected' || statusToCheck === 'Interview Scheduled') {
         if (!payload.interview_date) errors.interview_date = 'Interview Date is required';
         if (!payload.interview_time) errors.interview_time = 'Interview Time is required';
-        if (!payload.recruiter_notes) errors.recruiter_notes = 'Recruiter Notes is required';
+        // Req 33: Recruiter Notes, TL Notes, Client Feedback are NOT mandatory
       }
-      if (statusToCheck === 'Candidate Approved') {
-        if (!payload.joining_date) errors.joining_date = 'Joining Date is required';
-        if (!payload.salary_offered) errors.salary_offered = 'Salary is required';
-        else if (isNaN(Number(payload.salary_offered))) errors.salary_offered = 'Salary must be numeric only';
-        if (!payload.band) errors.band = 'Band is required';
-        if (!payload.approval_date) errors.approval_date = 'Approval Date is required';
-        if (!payload.incentive) errors.incentive = 'Incentive is required';
-        else if (isNaN(Number(payload.incentive))) errors.incentive = 'Incentive must be numeric only';
+      if (statusToCheck === 'Final Select' || statusToCheck === 'Candidate Approved') {
+        if (!payload.approval_date) errors.approval_date = 'Selection Date is required';
+        if (payload.salary_offered && isNaN(Number(payload.salary_offered))) {
+          errors.salary_offered = 'Salary must be numeric only';
+        }
+        if (canEditIncentive(currentUser.role) && payload.incentive && isNaN(Number(payload.incentive))) {
+          errors.incentive = 'Incentive must be numeric only';
+        }
       }
       if (statusToCheck === 'Joined') {
         if (!payload.joining_date) errors.joining_date = 'Joining Date is required';
-        if (!payload.joined_by) errors.joined_by = 'Joined By is required';
-        if (!payload.remarks) errors.remarks = 'Remarks is required';
       }
       if (statusToCheck === 'Candidate Rejected' && !payload.rejection_date) {
         errors.rejection_date = 'Rejection Date is required';
@@ -179,28 +234,70 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
     }
   };
 
+  // Req 4: Open Assign to Job modal, load active jobs
+  const handleOpenAssignModal = async () => {
+    setShowAssignModal(true);
+    setSelectedJobId('');
+    try {
+      const res = await fetchJobs({ status: 'active' });
+      const jobs = (res.data || []).map(j => ({
+        id: j.id,
+        label: `${j.jobCode || j.id} — ${j.jobTitle || j.companyName || 'Job'}`,
+      }));
+      setJobList(jobs);
+    } catch {
+      setJobList([]);
+      toast.error('Could not load job list');
+    }
+  };
+
+  // Req 4: Perform manual assignment
+  const handleAssignToJob = async () => {
+    if (!selectedJobId) {
+      toast.error('Please select a job to assign');
+      return;
+    }
+    try {
+      setAssigning(true);
+      await shortlistCandidate(selectedJobId, candidateId);
+      toast.success('Candidate successfully assigned to job!');
+      setShowAssignModal(false);
+      await loadSelections();
+      if (onUpdate) onUpdate();
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Failed to assign candidate. Please try again.';
+      toast.error(msg);
+    } finally {
+      setAssigning(false);
+    }
+  };
+
   const renderPipeline = (currentStatus, selection = {}) => {
     let path = [];
-    if (currentStatus === 'Interview Rejected') {
-      path = ['Shortlisted', 'Interview Selected', 'Interview Completed', 'Interview Rejected'];
-    } else if (currentStatus === 'Candidate Rejected') {
+    if (currentStatus === 'Reject' || currentStatus === 'Interview Rejected' || currentStatus === 'Candidate Rejected') {
       if (selection.interview_date) {
-        path = ['Shortlisted', 'Interview Selected', 'Interview Completed', 'Candidate Rejected'];
+        path = ['Submitted', 'CV Shortlisted', 'Interview Scheduled', 'Reject'];
       } else {
-        path = ['Shortlisted', 'Candidate Rejected'];
+        path = ['Submitted', 'CV Shortlisted', 'Reject'];
       }
+    } else if (currentStatus === 'Drop') {
+      path = ['Submitted', 'CV Shortlisted', 'Interview Scheduled', 'Drop'];
+    } else if (currentStatus === 'Not Offered') {
+      path = ['Submitted', 'CV Shortlisted', 'Interview Scheduled', 'Final Select', 'Not Offered'];
     } else {
-      path = ['Shortlisted', 'Interview Selected', 'Interview Completed', 'Candidate Approved', 'Joined'];
+      path = ['Submitted', 'CV Shortlisted', 'Interview Scheduled', 'Final Select', 'Offered', 'Joined'];
     }
 
     // Determine completion index
-    let renderIndex = 0;
-    if (currentStatus === 'Shortlisted') renderIndex = 0;
-    else if (currentStatus === 'Interview Selected') renderIndex = 1;
-    else if (currentStatus === 'Interview Completed' || currentStatus === 'Interview Rejected') renderIndex = 2;
-    else if (currentStatus === 'Candidate Approved') renderIndex = 3;
-    else if (currentStatus === 'Joined') renderIndex = 4;
-    else if (currentStatus === 'Candidate Rejected') renderIndex = path.length - 1;
+    let renderIndex = path.indexOf(currentStatus);
+    if (renderIndex === -1) {
+      if (currentStatus === 'Shortlisted') renderIndex = 1;
+      else if (currentStatus === 'Interview Selected') renderIndex = 2;
+      else if (currentStatus === 'Candidate Approved') renderIndex = 4;
+      else if (currentStatus === 'Joined') renderIndex = path.length - 1;
+      else if (currentStatus === 'Interview Rejected' || currentStatus === 'Candidate Rejected') renderIndex = path.length - 1;
+      else renderIndex = 0;
+    }
 
     return (
       <div className="w-full py-6">
@@ -213,8 +310,8 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
           
           {path.map((stage, idx) => {
             const isCompleted = idx <= renderIndex;
-            const isCurrent = stage === currentStatus || (stage === 'Interview Completed' && (currentStatus === 'Candidate Approved' || currentStatus === 'Joined'));
-            const isReject = stage.includes('Rejected');
+            const isCurrent = stage === currentStatus || (idx === renderIndex);
+            const isReject = stage === 'Reject' || stage.includes('Reject') || stage === 'Drop' || stage === 'Not Offered';
             
             let circleClass = "w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-300 bg-white ";
             if (isCurrent) {
@@ -264,10 +361,45 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
         </div>
         <h3 className="text-xl font-bold text-gray-900 mb-2">No Applications Yet</h3>
         <p className="text-gray-500 mb-6">This candidate has not been mapped or applied to any jobs.</p>
-        <Button onClick={handleMatchJobs} disabled={matching} className="px-6 py-3">
-          <Sparkles size={16} className="mr-2" />
-          {matching ? 'Matching...' : 'Match with Open Jobs'}
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Button onClick={handleMatchJobs} disabled={matching} className="px-6 py-3">
+            <Sparkles size={16} className="mr-2" />
+            {matching ? 'Matching...' : 'Match with Open Jobs'}
+          </Button>
+          {/* Req 4: Manual assign button in empty state */}
+          <Button onClick={handleOpenAssignModal} className="px-6 py-3 bg-violet-600 hover:bg-violet-700">
+            <Plus size={16} className="mr-2" />
+            Assign to Job Manually
+          </Button>
+        </div>
+        {/* Req 4: Assign to Job Modal */}
+        {showAssignModal && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowAssignModal(false)}>
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-900">Assign to Job</h3>
+                <button onClick={() => setShowAssignModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              </div>
+              <p className="text-sm text-gray-500 mb-4">Select a job to manually assign this candidate. Match score will not block assignment.</p>
+              <select
+                value={selectedJobId}
+                onChange={e => setSelectedJobId(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-violet-500 outline-none mb-4"
+              >
+                <option value="">Select a job...</option>
+                {jobList.map(job => (
+                  <option key={job.id} value={job.id}>{job.label}</option>
+                ))}
+              </select>
+              <div className="flex gap-3 justify-end">
+                <button onClick={() => setShowAssignModal(false)} className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50">Cancel</button>
+                <Button onClick={handleAssignToJob} disabled={assigning || !selectedJobId} className="px-5 py-2 bg-violet-600 hover:bg-violet-700">
+                  {assigning ? 'Assigning...' : 'Assign'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -285,14 +417,7 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
     return 0;
   });
 
-  const STATUS_COLORS = {
-    Shortlisted: 'bg-purple-100 text-purple-700 border-purple-200',
-    'Interview Selected': 'bg-indigo-100 text-indigo-700 border-indigo-200',
-    'Interview Rejected': 'bg-rose-100 text-rose-700 border-rose-200',
-    'Candidate Approved': 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    'Candidate Rejected': 'bg-red-100 text-red-700 border-red-200',
-    Joined: 'bg-blue-100 text-blue-700 border-blue-200'
-  };
+  const STATUS_COLORS = PIPELINE_STATUS_COLORS;
 
   const SCORE_COLORS = (score) => {
     if (score >= 80) return 'text-emerald-600';
@@ -311,12 +436,9 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
             className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
           >
             <option value="All">All Status</option>
-            <option value="Shortlisted">Shortlisted</option>
-            <option value="Interview Selected">Interview Selected</option>
-            <option value="Interview Rejected">Interview Rejected</option>
-            <option value="Candidate Approved">Candidate Approved</option>
-            <option value="Candidate Rejected">Candidate Rejected</option>
-            <option value="Joined">Joined</option>
+            {CANDIDATE_PIPELINE_STATUSES.map(stage => (
+              <option key={stage} value={stage}>{stage}</option>
+            ))}
           </select>
           
           <select 
@@ -335,7 +457,41 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
           <Sparkles size={16} className="mr-2" />
           {matching ? 'Matching...' : 'Run Auto-Match'}
         </Button>
+        {/* Req 4: Assign to Job button in header */}
+        <Button onClick={handleOpenAssignModal} className="bg-violet-50 text-violet-600 hover:bg-violet-100 border-none font-bold shrink-0">
+          <Plus size={16} className="mr-2" />
+          Assign to Job
+        </Button>
       </div>
+
+      {/* Req 4: Assign to Job Modal */}
+      {showAssignModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowAssignModal(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Assign to Job</h3>
+              <button onClick={() => setShowAssignModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">Select a job to manually assign this candidate. Match score will not block assignment.</p>
+            <select
+              value={selectedJobId}
+              onChange={e => setSelectedJobId(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-violet-500 outline-none mb-4"
+            >
+              <option value="">Select a job...</option>
+              {jobList.map(job => (
+                <option key={job.id} value={job.id}>{job.label}</option>
+              ))}
+            </select>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setShowAssignModal(false)} className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50">Cancel</button>
+              <Button onClick={handleAssignToJob} disabled={assigning || !selectedJobId} className="px-5 py-2 bg-violet-600 hover:bg-violet-700">
+                {assigning ? 'Assigning...' : 'Assign'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {sortedSelections.map((selection) => {
         const isExpanded = expandedId === selection.id;
@@ -379,21 +535,28 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
               </div>
               <div className="flex flex-col md:flex-row md:items-center gap-4">
                 <div className="flex gap-2 mr-4">
-                  {selection.status === 'Shortlisted' && (
+                  {(selection.status === 'Submitted' || selection.status === 'CV Shortlisted' || selection.status === 'Shortlisted') && (
                     <>
-                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Interview Selected'}); }} className="text-xs py-1 px-3 border-indigo-200 text-indigo-700 hover:bg-indigo-50">Schedule Interview</Button>
-                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Candidate Rejected'}); }} className="text-xs py-1 px-3 border-red-200 text-red-700 hover:bg-red-50">Reject Candidate</Button>
+                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Interview Scheduled'}); }} className="text-xs py-1 px-3 border-indigo-200 text-indigo-700 hover:bg-indigo-50">Schedule Interview</Button>
+                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Reject'}); }} className="text-xs py-1 px-3 border-red-200 text-red-700 hover:bg-red-50">Reject</Button>
                     </>
                   )}
-                  {selection.status === 'Interview Selected' && (
+                  {(selection.status === 'Interview Scheduled' || selection.status === 'Interview Selected') && (
                     <>
-                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Candidate Approved'}); }} className="text-xs py-1 px-3 border-emerald-200 text-emerald-700 hover:bg-emerald-50">Approve</Button>
-                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Interview Rejected'}); }} className="text-xs py-1 px-3 border-rose-200 text-rose-700 hover:bg-rose-50">Reject Interview</Button>
+                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Final Select'}); }} className="text-xs py-1 px-3 border-teal-200 text-teal-700 hover:bg-teal-50">Final Select</Button>
+                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Reject'}); }} className="text-xs py-1 px-3 border-rose-200 text-rose-700 hover:bg-rose-50">Reject</Button>
                     </>
                   )}
-                  {selection.status === 'Candidate Approved' && (
+                  {(selection.status === 'Final Select' || selection.status === 'Candidate Approved') && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Offered'}); }} className="text-xs py-1 px-3 border-amber-200 text-amber-700 hover:bg-amber-50">Offer</Button>
+                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Not Offered'}); }} className="text-xs py-1 px-3 border-rose-200 text-rose-700 hover:bg-rose-50">Not Offered</Button>
+                    </>
+                  )}
+                  {selection.status === 'Offered' && (
                     <>
                       <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Joined'}); }} className="text-xs py-1 px-3 border-blue-200 text-blue-700 hover:bg-blue-50">Mark as Joined</Button>
+                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditClick({...selection, status: 'Drop'}); }} className="text-xs py-1 px-3 border-gray-200 text-gray-700 hover:bg-gray-50">Drop</Button>
                     </>
                   )}
                 </div>
@@ -462,7 +625,7 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                             )}
                             {selection.approval_date && (
                               <div>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Approval Date</p>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Selection Date</p>
                                 <p className="text-sm font-semibold text-gray-900">{selection.approval_date}</p>
                               </div>
                             )}
@@ -476,12 +639,6 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                               <div>
                                 <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Rejection Date</p>
                                 <p className="text-sm font-semibold text-gray-900">{selection.rejection_date}</p>
-                              </div>
-                            )}
-                            {selection.joined_by && (
-                              <div>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Joined By</p>
-                                <p className="text-sm font-semibold text-gray-900">{selection.joined_by}</p>
                               </div>
                             )}
                           </div>
@@ -553,7 +710,9 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                           )}
                           {selection.remarks && (
                             <div>
-                              <p className="text-[10px] font-bold text-amber-600 uppercase mb-1">Joining Remarks</p>
+                              <p className="text-[10px] font-bold text-amber-600 uppercase mb-1">
+                                {selection.status === 'Reject' || selection.status === 'Candidate Rejected' ? 'Rejection Reason' : 'Joining Remarks'}
+                              </p>
                               <p className="text-sm text-gray-700 italic">{selection.remarks}</p>
                             </div>
                           )}
@@ -578,17 +737,14 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                             onChange={(e) => setEditForm({...editForm, status: e.target.value})}
                             className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
                           >
-                            <option value="Shortlisted">Shortlisted</option>
-                            <option value="Interview Selected">Interview Selected</option>
-                            <option value="Interview Rejected">Interview Rejected</option>
-                            <option value="Candidate Approved">Candidate Approved</option>
-                            <option value="Candidate Rejected">Candidate Rejected</option>
-                            <option value="Joined">Joined</option>
+                            {CANDIDATE_PIPELINE_STATUSES.map((status) => (
+                              <option key={status} value={status}>{status}</option>
+                            ))}
                           </select>
                         </div>
                         
-                        {editForm.status === 'Interview Selected' && (
-                          <div className="grid grid-cols-2 gap-4">
+                        {(editForm.status === 'Interview Scheduled' || editForm.status === 'Interview Selected') && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                               <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Interview Date</label>
                               <input 
@@ -601,33 +757,46 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                             </div>
                             <div>
                               <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Interview Time</label>
-                              <input 
-                                type="text" 
-                                placeholder="e.g. 11:30 AM"
-                                value={editForm.interview_time} 
-                                onChange={(e) => setEditForm({...editForm, interview_time: e.target.value})}
-                                className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.interview_time ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
-                              />
+                              <div className="grid grid-cols-3 gap-2">
+                                <select
+                                  value={editForm.interview_hour || ''}
+                                  onChange={(e) => handleTimeChange('hour', e.target.value)}
+                                  className={`w-full px-2 py-2.5 rounded-xl border ${formErrors.interview_time ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
+                                >
+                                  <option value="">HH</option>
+                                  {HOUR_OPTIONS.map(h => (
+                                    <option key={h} value={h}>{h}</option>
+                                  ))}
+                                </select>
+                                <select
+                                  value={editForm.interview_minute || ''}
+                                  onChange={(e) => handleTimeChange('minute', e.target.value)}
+                                  className={`w-full px-2 py-2.5 rounded-xl border ${formErrors.interview_time ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
+                                >
+                                  <option value="">MM</option>
+                                  {MINUTE_OPTIONS.map(m => (
+                                    <option key={m} value={m}>{m}</option>
+                                  ))}
+                                </select>
+                                <select
+                                  value={editForm.interview_ampm || 'AM'}
+                                  onChange={(e) => handleTimeChange('ampm', e.target.value)}
+                                  className="w-full px-2 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
+                                >
+                                  <option value="AM">AM</option>
+                                  <option value="PM">PM</option>
+                                </select>
+                              </div>
                               {formErrors.interview_time && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.interview_time}</p>}
                             </div>
                           </div>
                         )}
 
-                        {editForm.status === 'Candidate Approved' && (
+                        {(editForm.status === 'Final Select' || editForm.status === 'Candidate Approved') && (
                           <>
                             <div className="grid grid-cols-2 gap-4">
                               <div>
-                                <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Joining Date</label>
-                                <input 
-                                  type="date" 
-                                  value={editForm.joining_date} 
-                                  onChange={(e) => setEditForm({...editForm, joining_date: e.target.value})}
-                                  className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.joining_date ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
-                                />
-                                {formErrors.joining_date && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.joining_date}</p>}
-                              </div>
-                              <div>
-                                <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Approval Date</label>
+                                <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Selection Date *</label>
                                 <input 
                                   type="date" 
                                   value={editForm.approval_date} 
@@ -635,6 +804,16 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                                   className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.approval_date ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
                                 />
                                 {formErrors.approval_date && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.approval_date}</p>}
+                              </div>
+                              <div>
+                                <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Joining Date (Optional)</label>
+                                <input 
+                                  type="date" 
+                                  value={editForm.joining_date} 
+                                  onChange={(e) => setEditForm({...editForm, joining_date: e.target.value})}
+                                  className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.joining_date ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
+                                />
+                                {formErrors.joining_date && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.joining_date}</p>}
                               </div>
                             </div>
                             <div className="grid grid-cols-3 gap-4">
@@ -663,9 +842,9 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                                 />
                                 {formErrors.band && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.band}</p>}
                               </div>
-                              {canEditIncentive(currentUser.role) && (
+                              {canEditIncentive(currentUser.role) ? (
                                 <div>
-                                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Incentive</label>
+                                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Incentive (Accounts)</label>
                                   <input 
                                     type="text" 
                                     inputMode="numeric"
@@ -677,6 +856,16 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                                     className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.incentive ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
                                   />
                                   {formErrors.incentive && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.incentive}</p>}
+                                </div>
+                              ) : (
+                                <div>
+                                  <label className="block text-[11px] font-bold text-gray-400 uppercase mb-1">Incentive (Accounts Only)</label>
+                                  <input 
+                                    type="text" 
+                                    disabled
+                                    value={editForm.incentive || '—'}
+                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-100 bg-gray-50 text-sm font-semibold text-gray-400 cursor-not-allowed outline-none"
+                                  />
                                 </div>
                               )}
                             </div>
@@ -698,9 +887,9 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
 
                         {editForm.status === 'Joined' && (
                           <>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4">
                               <div>
-                                <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Joining Date</label>
+                                <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Joining Date *</label>
                                 <input 
                                   type="date" 
                                   value={editForm.joining_date} 
@@ -708,17 +897,6 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                                   className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.joining_date ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
                                 />
                                 {formErrors.joining_date && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.joining_date}</p>}
-                              </div>
-                              <div>
-                                <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Joined By</label>
-                                <input 
-                                  type="text" 
-                                  placeholder="e.g. Priya Sharma"
-                                  value={editForm.joined_by} 
-                                  onChange={(e) => setEditForm({...editForm, joined_by: e.target.value})}
-                                  className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.joined_by ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
-                                />
-                                {formErrors.joined_by && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.joined_by}</p>}
                               </div>
                             </div>
                             <div>
@@ -735,16 +913,28 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                           </>
                         )}
 
-                        {editForm.status === 'Candidate Rejected' && (
-                          <div>
-                            <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Rejection Date</label>
-                            <input 
-                              type="date" 
-                              value={editForm.rejection_date} 
-                              onChange={(e) => setEditForm({...editForm, rejection_date: e.target.value})}
-                              className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.rejection_date ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
-                            />
-                            {formErrors.rejection_date && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.rejection_date}</p>}
+                        {(editForm.status === 'Reject' || editForm.status === 'Candidate Rejected') && (
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Rejection Reason</label>
+                              <textarea 
+                                rows={2}
+                                placeholder="Enter rejection reason..."
+                                value={editForm.remarks || ''} 
+                                onChange={(e) => setEditForm({...editForm, remarks: e.target.value})}
+                                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                              ></textarea>
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Rejection Date</label>
+                              <input 
+                                type="date" 
+                                value={editForm.rejection_date} 
+                                onChange={(e) => setEditForm({...editForm, rejection_date: e.target.value})}
+                                className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.rejection_date ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
+                              />
+                              {formErrors.rejection_date && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.rejection_date}</p>}
+                            </div>
                           </div>
                         )}
                       </div>
