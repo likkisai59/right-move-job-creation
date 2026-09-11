@@ -1,11 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Pencil } from 'lucide-react';
+import { Eye, Pencil, FileText, Briefcase } from 'lucide-react';
 import Table from '../common/Table';
 import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
 import { Users } from 'lucide-react';
 import { checkPermission } from '../../api/authApi';
+import { PIPELINE_STATUS_COLORS } from '../../utils/constants';
 
 const CandidateTable = ({ candidates = [], loading = false }) => {
   const navigate = useNavigate();
@@ -67,9 +68,13 @@ const CandidateTable = ({ candidates = [], loading = false }) => {
       header: 'Experience',
       render: (val) => {
         if (!val) return '—';
-        if (val.toLowerCase() === 'fresher') return 'Fresher';
-        if (val === '1') return '1 Year';
-        return `${val} Years`;
+        const s = val.toString();
+        const lower = s.toLowerCase();
+        if (lower === 'fresher' || lower === '0' || lower === '0 years') return 'Fresher';
+        // Req 2: if value already contains 'year', 'yr', show as-is; otherwise append 'Years'
+        if (/(years?|yrs?)/i.test(s)) return s;
+        if (s === '1') return '1 Year';
+        return `${s} Years`;
       }
     },
     {
@@ -91,6 +96,19 @@ const CandidateTable = ({ candidates = [], loading = false }) => {
       key: 'currentLocation',
       header: 'Current Location',
       render: (val) => val || '—',
+    },
+    {
+      key: 'pipelineStatus',
+      header: 'Pipeline Status',
+      render: (_, row) => {
+        const status = row.pipelineStatus || row.status || 'Submitted';
+        const colorClass = PIPELINE_STATUS_COLORS[status] || 'bg-blue-50 text-blue-700 border-blue-100';
+        return (
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${colorClass}`}>
+            {status}
+          </span>
+        );
+      },
     },
     {
       key: 'actions',
@@ -121,6 +139,38 @@ const CandidateTable = ({ candidates = [], loading = false }) => {
             title="Edit candidate"
           >
             <Pencil size={15} />
+          </button>
+
+          {/* Req 3: View Resume button — only when resume is uploaded */}
+          {row.resumeUrl && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const base = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
+                const url = encodeURI(`${base}${row.resumeUrl}`);
+                const fallback = `${base}/api/candidates/${row.id}/resume`;
+                const win = window.open(url, '_blank');
+                if (!win) window.open(fallback, '_blank');
+              }}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-emerald-500 hover:bg-emerald-50 transition-colors"
+              title="View Resume"
+            >
+              <FileText size={15} />
+            </button>
+          )}
+
+          {/* Req 4: Tag to Job button — navigate to candidate detail, Selection tab */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (row.id) {
+                navigate(`/candidates/${row.id}?tab=selection`);
+              }
+            }}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-violet-500 hover:bg-violet-50 transition-colors"
+            title="Tag / Assign to Job"
+          >
+            <Briefcase size={15} />
           </button>
         </div>
       ),

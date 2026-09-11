@@ -4,13 +4,24 @@ from datetime import date, datetime
 from enum import Enum
 
 class PipelineStatus(str, Enum):
+    # Candidate Pipeline Statuses (Req 8)
+    SUBMITTED = "Submitted"
+    CV_SHORTLISTED = "CV Shortlisted"
+    REJECT = "Reject"
+    INTERVIEW_SCHEDULED = "Interview Scheduled"
+    FINAL_SELECT = "Final Select"
+    OFFERED = "Offered"
+    JOINED = "Joined"
+    DROP = "Drop"
+    NOT_OFFERED = "Not Offered"
+
+    # Backwards compatibility with existing DB entries & test suite
     MATCHED = "Matched"
     SHORTLISTED = "Shortlisted"
     INTERVIEW_SELECTED = "Interview Selected"
     INTERVIEW_REJECTED = "Interview Rejected"
     CANDIDATE_APPROVED = "Candidate Approved"
     CANDIDATE_REJECTED = "Candidate Rejected"
-    JOINED = "Joined"
 
 class JoiningStatus(str, Enum):
     PENDING = "Pending"
@@ -24,6 +35,7 @@ class SelectionDetailsUpdate(BaseModel):
     status: Optional[PipelineStatus] = None
     interview_date: Optional[date] = None
     approval_date: Optional[date] = None
+    selection_date: Optional[date] = None
     rejection_date: Optional[date] = None
     band: Optional[str] = None
     joining_status: Optional[JoiningStatus] = None
@@ -39,7 +51,7 @@ class SelectionDetailsUpdate(BaseModel):
     remarks: Optional[str] = None
 
     @field_validator(
-        'interview_date', 'approval_date', 'rejection_date',
+        'interview_date', 'approval_date', 'selection_date', 'rejection_date',
         'band', 'joining_status', 'joining_date', 'salary_offered',
         'rate_card', 'incentive', 'recruiter_notes', 'tl_notes',
         'client_feedback', 'interview_time', 'joined_by', 'remarks',
@@ -96,6 +108,7 @@ class SelectionDetailsResponse(BaseModel):
     status: str
     interview_date: Optional[date] = None
     approval_date: Optional[date] = None
+    selection_date: Optional[date] = None
     rejection_date: Optional[date] = None
     band: Optional[str] = None
     matched_skills: Optional[str] = None

@@ -8,7 +8,7 @@ VALID_BUSINESS_UNITS = {"IT", "ITES", "BPO", "Lateral", "FLP", "F&A"}
 VALID_SOURCES = {"Naukri", "LinkedIn", "Monster", "Shine", "Referral"}
 VALID_NOTICE_PERIODS = {
     "Immediate", "Currently Serving",
-    "30 Days", "45 Days", "60 Days", "90 Days",
+    "15 Days", "30 Days", "45 Days", "60 Days", "90 Days",
 }
 
 class CandidateCreateRequest(BaseModel):
@@ -21,6 +21,7 @@ class CandidateCreateRequest(BaseModel):
     country_code: str = Field("+91", min_length=1)
     alternative_contact_number: Optional[str] = None
     current_location: Optional[str] = None
+    preferred_location: Optional[str] = None
     highest_qualification: Optional[str] = None
     profile_status: Optional[str] = "Active"
 
@@ -115,7 +116,7 @@ class CandidateCreateRequest(BaseModel):
             raise ValueError(f"Notice period must be one of: {', '.join(sorted(VALID_NOTICE_PERIODS))}")
         return v
 
-    @field_validator('current_location', 'employment_location')
+    @field_validator('current_location', 'preferred_location', 'employment_location')
     @classmethod
     def validate_locations(cls, v: Optional[str]) -> Optional[str]:
         if v:
@@ -124,21 +125,30 @@ class CandidateCreateRequest(BaseModel):
                 raise ValueError("Location cannot be purely numeric")
         return v or None
 
+    other_qualification: Optional[str] = None
+
     @model_validator(mode='after')
-    def validate_fresher_experience(self) -> 'CandidateCreateRequest':
-        total_exp = self.total_experience
+    def validate_fresher_and_qualification(self) -> 'CandidateCreateRequest':
+        total_exp = (self.total_experience or "").lower().strip()
         relevant_exp = self.relevant_experience_years
 
-        if total_exp == 'fresher':
+        if total_exp in ['fresher', '0', '0 years', '0 year']:
             if relevant_exp:
                 try:
-                    if float(relevant_exp) > 0:
+                    num_match = re.search(r'\d+', str(relevant_exp))
+                    if num_match and int(num_match.group()) > 0:
+                        raise ValueError("Freshers cannot have relevant experience")
+                    elif float(relevant_exp) > 0:
                         raise ValueError("Freshers cannot have relevant experience")
                 except ValueError as e:
                     if "Freshers cannot have relevant experience" in str(e):
                         raise e
-                except TypeError:
+                except (TypeError, Exception):
                     pass
+
+        if self.highest_qualification == 'Other' and self.other_qualification and self.other_qualification.strip():
+            self.highest_qualification = self.other_qualification.strip()
+
         return self
 
 
@@ -153,7 +163,9 @@ class CandidateUpdateRequest(BaseModel):
     country_code: Optional[str] = None
     alternative_contact_number: Optional[str] = None
     current_location: Optional[str] = None
+    preferred_location: Optional[str] = None
     highest_qualification: Optional[str] = None
+    other_qualification: Optional[str] = None
     profile_status: Optional[str] = None
     # Employee Details
     business_unit: Optional[str] = None
@@ -181,6 +193,12 @@ class CandidateUpdateRequest(BaseModel):
     resume_url: Optional[str] = None
     updated_by: Optional[str] = None   # For edit history
 
+    @model_validator(mode='after')
+    def handle_other_qualification(self) -> 'CandidateUpdateRequest':
+        if self.highest_qualification == 'Other' and self.other_qualification and self.other_qualification.strip():
+            self.highest_qualification = self.other_qualification.strip()
+        return self
+
 
 class EditHistoryItem(BaseModel):
     id: int
@@ -198,6 +216,7 @@ class CandidateResponse(BaseModel):
     id: int
     candidate_code: str
     profile_status: Optional[str] = None
+    pipeline_status: Optional[str] = None
 
     # Personal Details
     first_name: str
@@ -208,6 +227,7 @@ class CandidateResponse(BaseModel):
     phone_number: str
     alternative_contact_number: Optional[str] = None
     current_location: Optional[str] = None
+    preferred_location: Optional[str] = None
     highest_qualification: Optional[str] = None
 
     # Employee Details

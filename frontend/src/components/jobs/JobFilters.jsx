@@ -20,8 +20,20 @@ const SORT_OPTIONS = [
 const STATUS_OPTIONS = [
   { value: '', label: 'All Status' },
   { value: 'ACTIVE', label: 'Active' },
+  { value: 'INACTIVE', label: 'Inactive' },
   { value: 'CLOSED', label: 'Closed' },
-  { value: 'ON_HOLD', label: 'On Hold' },
+  { value: 'HOLD', label: 'Hold' },
+];
+
+const BUSINESS_UNIT_OPTIONS = [
+  { value: '', label: 'All Units' },
+  { value: 'IT', label: 'IT' },
+  { value: 'ITSM', label: 'ITSM' },
+  { value: 'BPO', label: 'BPO' },
+  { value: 'ITES', label: 'ITES' },
+  { value: 'Lateral', label: 'Lateral' },
+  { value: 'FLP', label: 'FLP' },
+  { value: 'F&A', label: 'F&A' },
 ];
 
 const JobFilters = ({ filters, onChange, onClear }) => {
@@ -29,7 +41,7 @@ const JobFilters = ({ filters, onChange, onClear }) => {
     onChange({ ...filters, [field]: value });
   };
 
-  const hasFilters = filters.company || filters.startDate || filters.endDate || filters.status;
+  const hasFilters = filters.company || filters.businessUnit || filters.startDate || filters.endDate || filters.status;
 
   return (
     <div className="flex items-center gap-3 flex-wrap">
@@ -79,6 +91,19 @@ const JobFilters = ({ filters, onChange, onClear }) => {
         className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all"
       >
         {STATUS_OPTIONS.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+
+      {/* Business Unit Dropdown */}
+      <select
+        value={filters.businessUnit || ''}
+        onChange={(e) => handleChange('businessUnit', e.target.value)}
+        className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all"
+      >
+        {BUSINESS_UNIT_OPTIONS.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
           </option>

@@ -1,9 +1,8 @@
+import json
 from datetime import date
 from typing import List, Optional
 
 from sqlalchemy import func, or_
-from sqlalchemy.orm import Session
-
 from sqlalchemy.orm import Session
 from app.models.job_requirement import Job, JobRequirement
 from app.models.candidate import Candidate
@@ -113,10 +112,16 @@ def get_all_jobs(
         query = query.filter(Job.requisition_open_date <= end_date)
 
     if status:
-        query = query.join(JobRequirement).filter(JobRequirement.status == status.upper())
+        st = status.strip().upper()
+        if st in ("HOLD", "ON_HOLD"):
+            query = query.join(JobRequirement).filter(JobRequirement.status.in_(["ON_HOLD", "HOLD"]))
+        elif st == "INACTIVE":
+            query = query.join(JobRequirement).filter(JobRequirement.status.in_(["CLOSED", "DRAFT", "INACTIVE"]))
+        else:
+            query = query.join(JobRequirement).filter(JobRequirement.status == st)
 
     if business_unit and business_unit.upper() != "ALL":
-        query = query.filter(Job.business_unit == business_unit.upper())
+        query = query.filter(Job.business_unit.ilike(business_unit.strip()))
 
     if assigned_to:
         query = query.filter(Job.assigned_to == assigned_to)
@@ -142,6 +147,7 @@ def get_filtered_jobs_for_export(
     end_date: Optional[date] = None,
     company: Optional[str] = None,
     status: Optional[str] = None,
+    business_unit: Optional[str] = None,
     sort_by: Optional[str] = None,
     sort_order: Optional[str] = "desc",
 ) -> List[Job]:
@@ -161,7 +167,16 @@ def get_filtered_jobs_for_export(
         query = query.filter(Job.requisition_open_date <= end_date)
 
     if status:
-        query = query.join(JobRequirement).filter(JobRequirement.status == status.strip().upper())
+        st = status.strip().upper()
+        if st in ("HOLD", "ON_HOLD"):
+            query = query.join(JobRequirement).filter(JobRequirement.status.in_(["ON_HOLD", "HOLD"]))
+        elif st == "INACTIVE":
+            query = query.join(JobRequirement).filter(JobRequirement.status.in_(["CLOSED", "DRAFT", "INACTIVE"]))
+        else:
+            query = query.join(JobRequirement).filter(JobRequirement.status == st)
+
+    if business_unit and business_unit.upper() != "ALL":
+        query = query.filter(Job.business_unit.ilike(business_unit.strip()))
 
     from app.utils.sorting import apply_sorting
     query = apply_sorting(query, Job, sort_by, sort_order, Job.created_at)
@@ -255,6 +270,34 @@ def parse_skills(skills_input: Optional[str]) -> List[str]:
     # Fallback to comma-separated parsing
     return [s.strip().lower() for s in skills_input.split(',') if s.strip()]
 
+def get_candidate_skills_set(candidate: Candidate) -> set:
+    """
+    Extracts all candidate skills from both candidate.skills and
+    candidate.relevant_experience_by_skill, deduplicating them into a clean set.
+    """
+    skills_set = set(parse_skills(candidate.skills))
+    if candidate.relevant_experience_by_skill:
+        try:
+            exp_skills_list = json.loads(candidate.relevant_experience_by_skill)
+            if isinstance(exp_skills_list, list):
+                for item in exp_skills_list:
+                    if isinstance(item, dict) and item.get("skill"):
+                        s = str(item["skill"]).strip().lower()
+                        if s:
+                            skills_set.add(s)
+        except Exception:
+            pass
+    return skills_set
+
+def get_requirement_skills(requirement: JobRequirement) -> List[str]:
+    """
+    Combines required_skills and mandatory_skill, returning a deduplicated list.
+    """
+    req_skills_set = set(parse_skills(requirement.required_skills))
+    if requirement.mandatory_skill:
+        req_skills_set.update(parse_skills(requirement.mandatory_skill))
+    return list(req_skills_set)
+
 def extract_experience_years(experience_str: Optional[str]) -> int:
     """
     Extract numeric years from experience string.
@@ -321,10 +364,7 @@ def get_matching_candidates(db: Session, job_id: int, strict: bool = True, requi
     else:
         requirement = job.requirements[0]  # default: first requirement
     
-    required_skills = parse_skills(requirement.required_skills)
-    if not required_skills:
-        # Fallback to Requirement's mandatory_skill if required_skills is empty
-        required_skills = parse_skills(requirement.mandatory_skill)
+    required_skills = get_requirement_skills(requirement)
 
     min_exp = requirement.min_experience or 0
     max_exp = requirement.max_experience or 100
@@ -334,7 +374,8 @@ def get_matching_candidates(db: Session, job_id: int, strict: bool = True, requi
     results = []
 
     for candidate in all_candidates:
-        candidate_skills = parse_skills(candidate.skills)
+        candidate_skills_set = get_candidate_skills_set(candidate)
+        candidate_skills = list(candidate_skills_set)
         # Handle experience which might be string "5" or "5 years"
         try:
             candidate_exp = float(extract_experience_years(candidate.relevant_experience_years or candidate.total_experience))
@@ -345,8 +386,8 @@ def get_matching_candidates(db: Session, job_id: int, strict: bool = True, requi
 
         # --- MANDATORY FILTERS ---
         # 1. Strict Skill Filtering (At least one skill must match)
-        matched_skills = set(required_skills) & set(candidate_skills)
-        missing_skills = set(required_skills) - set(candidate_skills)
+        matched_skills = set(required_skills) & candidate_skills_set
+        missing_skills = set(required_skills) - candidate_skills_set
         
         if strict and not matched_skills:
             continue
@@ -445,23 +486,74 @@ def get_matching_candidates(db: Session, job_id: int, strict: bool = True, requi
 
 def shortlist_candidate(db: Session, job_id: int, candidate_id: int) -> JobCandidateMapping:
     """
-    Updates or creates status = "Shortlisted"
+    Updates or creates status = "Shortlisted" for candidate on job_id irrespective of match score.
     """
+    from app.models.candidate import Candidate
+    candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+
     mapping = db.query(JobCandidateMapping).filter(
         JobCandidateMapping.job_id == job_id,
         JobCandidateMapping.candidate_id == candidate_id
     ).first()
     
+    # Calculate match score for reference if not already calculated
+    calculated_score = 0
+    matched_skills_json = None
+    missing_skills_json = None
+    if candidate:
+        try:
+            job = db.query(Job).filter(Job.id == job_id).first()
+            if job and job.requirements:
+                req = job.requirements[0]
+                cand_skills_set = get_candidate_skills_set(candidate)
+                req_skills = get_requirement_skills(req)
+                matched = set(req_skills) & cand_skills_set
+                missing = set(req_skills) - cand_skills_set
+                matched_skills_json = json.dumps(list(matched)) if matched else None
+                missing_skills_json = json.dumps(list(missing)) if missing else None
+
+                skill_score = (len(matched) / len(req_skills) * 50) if req_skills else 0
+                try:
+                    c_exp = float(extract_experience_years(candidate.relevant_experience_years or candidate.total_experience))
+                except:
+                    c_exp = 0.0
+                min_e = req.min_experience or 0
+                max_e = req.max_experience or 100
+                exp_score = 20 if min_e <= c_exp <= max_e else (10 if (min_e - 1) <= c_exp <= (max_e + 1) else 0)
+                
+                j_loc = req.location or job.company_name
+                loc_score = 10 if j_loc and candidate.current_location and j_loc.lower() == candidate.current_location.lower() else 0
+
+                kws = set(req.job_title.lower().split())
+                c_txt = ((candidate.skills or "") + " " + (candidate.relevant_experience_by_skill or "")).lower()
+                k_matches = [kw for kw in kws if kw in c_txt and len(kw) > 2]
+                kw_score = min(20, (len(k_matches) / len(kws) * 20)) if kws else 0
+
+                calculated_score = round(skill_score + exp_score + loc_score + kw_score, 1)
+        except Exception as e:
+            logger.warning(f"Could not calculate score on manual shortlist: {e}")
+
     if mapping:
         mapping.status = "Shortlisted"
+        if (not mapping.match_score or mapping.match_score == 0) and calculated_score > 0:
+            mapping.match_score = calculated_score
+            if matched_skills_json: mapping.matched_skills = matched_skills_json
+            if missing_skills_json: mapping.missing_skills = missing_skills_json
     else:
         mapping = JobCandidateMapping(
             job_id=job_id,
             candidate_id=candidate_id,
-            status="Shortlisted"
+            status="Shortlisted",
+            match_score=calculated_score,
+            matched_skills=matched_skills_json,
+            missing_skills=missing_skills_json
         )
         db.add(mapping)
     
+    if candidate and not candidate.mapped_job_id:
+        candidate.mapped_job_id = job_id
+        db.add(candidate)
+
     db.commit()
     db.refresh(mapping)
     return mapping

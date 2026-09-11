@@ -218,7 +218,8 @@ def export_jobs(
     start_date: Optional[date] = Query(None, description="Filter from date (YYYY-MM-DD)"),
     end_date:   Optional[date] = Query(None, description="Filter to date (YYYY-MM-DD)"),
     company:    Optional[str]  = Query(None, description="Partial match on company name"),
-    status_filter: Optional[str] = Query(None, alias="status", description="ACTIVE | CLOSED | ON_HOLD"),
+    status_filter: Optional[str] = Query(None, alias="status", description="ACTIVE | INACTIVE | CLOSED | ON_HOLD"),
+    business_unit: Optional[str] = Query(None, description="Filter by business unit"),
     sort_by: Optional[str] = Query(None, description="Field to sort by"),
     sort_order: Optional[str] = Query("desc", description="Sort order (asc or desc)"),
     format:     str            = Query("csv",  description="csv or excel"),
@@ -235,16 +236,31 @@ def export_jobs(
         end_date=end_date,
         company=company,
         status=status_filter,
+        business_unit=business_unit,
         sort_by=sort_by,
         sort_order=sort_order,
     )
 
     # ── 2. Flatten ORM objects → list of plain dicts ────────────
     HEADERS = [
-        "Job Code", "Date", "Ageing (Days)", "Company Name", "Business Unit",
-        "External SPOC", "External SPOC Email",
-        "Job Title(s)", "Mandatory Skill", "Assigned To",
-        "Total Candidates", "Status",
+        "Job Code",
+        "Requisition Date",
+        "Ageing (Days)",
+        "Company Name",
+        "Business Unit",
+        "Job Title(s)",
+        "Total Open Positions",
+        "Budget / Package",
+        "Experience Required",
+        "Location",
+        "Work Mode",
+        "Mandatory Skills",
+        "Status",
+        "Assigned Recruiter",
+        "External SPOC",
+        "External SPOC Email",
+        "Total Candidates Mapped",
+        "Created By",
     ]
 
     from datetime import date as dt_date
@@ -252,29 +268,36 @@ def export_jobs(
 
     rows = []
     for job in jobs_orm:
-        titles = ", ".join(r.job_title for r in job.requirements) if job.requirements else "—"
-        total  = sum(r.number_of_open_positions for r in job.requirements)
-        
-        # Calculate Ageing
+        titles = ", ".join(r.job_title for r in job.requirements if r.job_title) if job.requirements else ""
+        total_open = sum(r.number_of_open_positions for r in job.requirements) if job.requirements else 0
+        budgets = ", ".join(filter(None, [r.budget for r in job.requirements])) if job.requirements else ""
+        experiences = ", ".join(filter(None, [r.experience for r in job.requirements])) if job.requirements else ""
+        locations = ", ".join(filter(None, set(r.location for r in job.requirements if r.location))) if job.requirements else ""
+        work_modes = ", ".join(filter(None, set(r.work_mode for r in job.requirements if r.work_mode))) if job.requirements else ""
+        skills = ", ".join(filter(None, set(r.mandatory_skill for r in job.requirements if r.mandatory_skill))) if job.requirements else ""
+        statuses = ", ".join(filter(None, set(r.status for r in job.requirements if r.status))) if job.requirements else ""
+        mapped_count = len(job.candidate_mappings) if job.candidate_mappings else 0
         ageing = max(0, (today - job.requisition_open_date).days) if job.requisition_open_date else 0
-        
-        # Since status and mandatory_skill are now at the requirement level, we can join them or take the first one
-        skills = ", ".join(filter(None, set(r.mandatory_skill for r in job.requirements))) if job.requirements else "—"
-        statuses = ", ".join(set(r.status for r in job.requirements)) if job.requirements else "—"
 
         rows.append([
             job.job_code,
-            str(job.requisition_open_date),
+            str(job.requisition_open_date) if job.requisition_open_date else "",
             ageing,
-            job.company_name,
-            job.business_unit,
-            job.external_spoc or "—",
-            job.external_spoc_email_id or "—",
+            job.company_name or "",
+            job.business_unit or "IT",
             titles,
+            total_open,
+            budgets,
+            experiences,
+            locations,
+            work_modes,
             skills,
-            job.assigned_to,
-            total,
             statuses,
+            job.assigned_to or "",
+            job.external_spoc or "",
+            job.external_spoc_email_id or "",
+            mapped_count,
+            job.created_by or "",
         ])
 
     # ── 3a. CSV ─────────────────────────────────────────────────
@@ -296,10 +319,16 @@ def export_jobs(
     ws = wb.active
     ws.title = "Jobs"
 
-    # Header row — bold
+    # Header row with professional styling
     ws.append(HEADERS)
+    header_fill = openpyxl.styles.PatternFill(start_color="CCE5FF", end_color="CCE5FF", fill_type="solid")
+    header_font = openpyxl.styles.Font(name="Calibri", size=11, bold=True, color="000000")
+    header_alignment = openpyxl.styles.Alignment(horizontal="center", vertical="center", wrap_text=True)
+
     for cell in ws[1]:
-        cell.font = openpyxl.styles.Font(bold=True)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
 
     # Data rows
     for row in rows:
@@ -308,7 +337,8 @@ def export_jobs(
     # Auto-fit column widths
     for col in ws.columns:
         max_len = max((len(str(cell.value or "")) for cell in col), default=10)
-        ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 50)
+        col_letter = col[0].column_letter
+        ws.column_dimensions[col_letter].width = max(min(max_len + 4, 50), 12)
 
     output = io.BytesIO()
     wb.save(output)

@@ -100,6 +100,37 @@ export const CANDIDATE_STATUS_COLORS = {
   hired: 'teal',
 };
 
+// Candidate Pipeline Statuses (Req 8 & 9 Single Source of Truth)
+export const CANDIDATE_PIPELINE_STATUSES = [
+  'Submitted',
+  'CV Shortlisted',
+  'Reject',
+  'Interview Scheduled',
+  'Final Select',
+  'Offered',
+  'Joined',
+  'Drop',
+  'Not Offered'
+];
+
+export const PIPELINE_STATUS_COLORS = {
+  'Submitted': 'bg-blue-100 text-blue-700 border-blue-200',
+  'CV Shortlisted': 'bg-purple-100 text-purple-700 border-purple-200',
+  'Reject': 'bg-red-100 text-red-700 border-red-200',
+  'Interview Scheduled': 'bg-indigo-100 text-indigo-700 border-indigo-200',
+  'Final Select': 'bg-teal-100 text-teal-700 border-teal-200',
+  'Offered': 'bg-amber-100 text-amber-700 border-amber-200',
+  'Joined': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  'Drop': 'bg-gray-100 text-gray-700 border-gray-200',
+  'Not Offered': 'bg-rose-100 text-rose-700 border-rose-200',
+  // Backwards compatibility
+  'Shortlisted': 'bg-purple-100 text-purple-700 border-purple-200',
+  'Interview Selected': 'bg-indigo-100 text-indigo-700 border-indigo-200',
+  'Interview Rejected': 'bg-rose-100 text-rose-700 border-rose-200',
+  'Candidate Approved': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  'Candidate Rejected': 'bg-red-100 text-red-700 border-red-200',
+};
+
 export const ALLOWED_RESUME_TYPES = [
   'application/pdf',
   'application/msword',

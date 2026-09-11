@@ -48,6 +48,7 @@ def generate_candidate_code(db: Session) -> str:
 def create_candidate(db: Session, payload: CandidateCreateRequest) -> Candidate:
     code = generate_candidate_code(db)
     data = payload.model_dump()
+    data.pop("other_qualification", None)
     new_candidate = Candidate(**data, candidate_code=code)
     db.add(new_candidate)
     db.commit()
@@ -69,6 +70,7 @@ def update_candidate(
         return None
 
     update_data = payload.model_dump(exclude_unset=True)
+    update_data.pop("other_qualification", None)
     updated_by = update_data.pop("updated_by", None)
 
     # Diff: capture previous vs new values for tracked fields
@@ -120,6 +122,7 @@ def get_all_candidates(
     current_location: Optional[str] = None,
     business_unit: Optional[str] = None,
     notice_period: Optional[str] = None,
+    pipeline_status: Optional[str] = None,
     sort_by: Optional[str] = None,
     sort_order: Optional[str] = "desc",
     skip: int = 0,
@@ -135,7 +138,10 @@ def get_all_candidates(
                 Candidate.last_name.ilike(search_term),
                 func.concat(Candidate.first_name, ' ', Candidate.last_name).ilike(search_term),
                 Candidate.email_address.ilike(search_term),
-                Candidate.phone_number.ilike(search_term)
+                Candidate.phone_number.ilike(search_term),
+                Candidate.candidate_code.ilike(search_term),
+                Candidate.skills.ilike(search_term),
+                Candidate.relevant_experience_by_skill.ilike(search_term)
             )
         )
 
@@ -152,6 +158,46 @@ def get_all_candidates(
 
     if business_unit and business_unit.upper() != "ALL":
         query = query.filter(Candidate.business_unit.ilike(business_unit.strip()))
+
+    if pipeline_status and pipeline_status.strip().upper() != "ALL":
+        from app.models.job_candidate import JobCandidateMapping
+        pst = pipeline_status.strip().lower()
+
+        all_mappings = db.query(
+            JobCandidateMapping.candidate_id,
+            JobCandidateMapping.status
+        ).order_by(JobCandidateMapping.updated_at.desc()).all()
+        
+        cand_status_map = {}
+        for cid, st in all_mappings:
+            if cid not in cand_status_map:
+                cand_status_map[cid] = st
+
+        in_process_statuses = {"submitted", "cv shortlisted", "shortlisted", "interview scheduled", "interview selected", "screening"}
+        selected_statuses = {"final select", "candidate approved", "offered", "selected"}
+        joined_statuses = {"joined"}
+        dropped_statuses = {"reject", "drop", "not offered", "interview rejected", "candidate rejected", "dropped"}
+
+        matching_cids = []
+        all_candidate_ids = [cid for (cid,) in db.query(Candidate.id).all()]
+        for cid in all_candidate_ids:
+            cur_st = (cand_status_map.get(cid) or "Submitted").strip().lower()
+            if pst == "in process":
+                if cur_st in in_process_statuses:
+                    matching_cids.append(cid)
+            elif pst == "selected":
+                if cur_st in selected_statuses:
+                    matching_cids.append(cid)
+            elif pst == "joined":
+                if cur_st in joined_statuses:
+                    matching_cids.append(cid)
+            elif pst == "dropped":
+                if cur_st in dropped_statuses:
+                    matching_cids.append(cid)
+            elif cur_st == pst:
+                matching_cids.append(cid)
+
+        query = query.filter(Candidate.id.in_(matching_cids))
 
     from app.utils.sorting import apply_sorting
     query = apply_sorting(query, Candidate, sort_by, sort_order, Candidate.created_at)
@@ -227,7 +273,21 @@ def match_jobs_for_candidate(db: Session, candidate_id: int) -> List[dict]:
     if not candidate:
         return []
 
-    candidate_skills = parse_skills(candidate.skills)
+    import json
+    candidate_skills_set = set(parse_skills(candidate.skills))
+    if candidate.relevant_experience_by_skill:
+        try:
+            exp_skills_list = json.loads(candidate.relevant_experience_by_skill)
+            if isinstance(exp_skills_list, list):
+                for item in exp_skills_list:
+                    if isinstance(item, dict) and item.get("skill"):
+                        s = str(item["skill"]).strip().lower()
+                        if s:
+                            candidate_skills_set.add(s)
+        except Exception:
+            pass
+    candidate_skills = list(candidate_skills_set)
+
     try:
         candidate_exp = float(extract_experience_years(candidate.relevant_experience_years or candidate.total_experience))
     except:
@@ -242,16 +302,18 @@ def match_jobs_for_candidate(db: Session, candidate_id: int) -> List[dict]:
             continue
             
         requirement = job.requirements[0]
-        required_skills = parse_skills(requirement.required_skills)
-        if not required_skills:
-            required_skills = parse_skills(requirement.mandatory_skill)
+        # Combine required_skills and mandatory_skill
+        req_skills_set = set(parse_skills(requirement.required_skills))
+        if requirement.mandatory_skill:
+            req_skills_set.update(parse_skills(requirement.mandatory_skill))
+        required_skills = list(req_skills_set)
 
         min_exp = requirement.min_experience or 0
         max_exp = requirement.max_experience or 100
         job_location = requirement.location or job.company_name
 
-        matched_skills = set(required_skills) & set(candidate_skills)
-        missing_skills = set(required_skills) - set(candidate_skills)
+        matched_skills = set(required_skills) & candidate_skills_set
+        missing_skills = set(required_skills) - candidate_skills_set
         
         # Skill Match
         skill_score = 0
@@ -330,3 +392,134 @@ def match_jobs_for_candidate(db: Session, candidate_id: int) -> List[dict]:
 
     results.sort(key=lambda x: x["match_score"], reverse=True)
     return results
+
+
+def import_candidates_from_data(db: Session, rows: List[dict]) -> dict:
+    """
+    Imports candidates from a list of dicts parsed from Excel or CSV.
+    Each row is validated, candidate code is generated, and inserted.
+    """
+    imported = 0
+    skipped = 0
+    errors = []
+
+    existing_emails = set(
+        email.lower() for (email,) in db.query(Candidate.email_address).all() if email
+    )
+
+    FIELD_MAP = {
+        "first_name": ["first_name", "first name", "firstname", "first name *", "fname"],
+        "last_name": ["last_name", "last name", "lastname", "last name *", "lname"],
+        "email_address": ["email_address", "email", "email address", "email address *", "email *"],
+        "alternative_email": ["alternative_email", "alternative email", "alt email"],
+        "phone_number": ["phone_number", "phone", "contact", "phone number", "phone number *", "contact number"],
+        "country_code": ["country_code", "country code", "code"],
+        "alternative_contact_number": ["alternative_contact_number", "alternative contact", "alt phone"],
+        "current_location": ["current_location", "current location", "location", "city"],
+        "preferred_location": ["preferred_location", "preferred location", "pref location"],
+        "highest_qualification": ["highest_qualification", "highest qualification", "qualification", "education"],
+        "business_unit": ["business_unit", "business unit", "bu"],
+        "current_last_company": ["current_last_company", "current/last company", "company", "current company"],
+        "current_designation": ["current_designation", "current designation", "designation", "role"],
+        "total_experience": ["total_experience", "total experience", "experience", "exp"],
+        "relevant_experience_years": ["relevant_experience_years", "relevant experience", "relevant exp"],
+        "skills": ["skills", "primary skills", "key skills"],
+        "notice_period": ["notice_period", "notice period"],
+        "current_ctc": ["current_ctc", "current ctc", "ctc"],
+        "fixed_ctc": ["fixed_ctc", "fixed ctc"],
+        "variable_ctc": ["variable_ctc", "variable ctc"],
+        "expected_ctc": ["expected_ctc", "expected ctc"],
+        "reason_for_job_change": ["reason_for_job_change", "reason for job change", "reason for change"],
+        "source": ["source"],
+        "comments": ["comments", "notes"],
+        "recruiter_name": ["recruiter_name", "recruiter name", "recruiter"]
+    }
+
+    for idx, raw_row in enumerate(rows, start=2):
+        clean_row = {}
+        for target_field, aliases in FIELD_MAP.items():
+            for k, v in raw_row.items():
+                if k and str(k).strip().lower() in aliases:
+                    clean_row[target_field] = str(v).strip() if v is not None else ""
+                    break
+
+        first_name = clean_row.get("first_name", "").strip()
+        last_name = clean_row.get("last_name", "").strip()
+        email = clean_row.get("email_address", "").strip().lower()
+        phone = clean_row.get("phone_number", "").strip()
+
+        if not first_name or not last_name:
+            errors.append(f"Row {idx}: First Name and Last Name are required.")
+            skipped += 1
+            continue
+
+        if not email or "@" not in email:
+            errors.append(f"Row {idx} ({first_name} {last_name}): Valid Email Address is required.")
+            skipped += 1
+            continue
+
+        if not phone:
+            errors.append(f"Row {idx} ({first_name} {last_name}): Phone Number is required.")
+            skipped += 1
+            continue
+
+        if email in existing_emails:
+            errors.append(f"Row {idx} ({email}): Candidate with this email already exists.")
+            skipped += 1
+            continue
+
+        code = generate_candidate_code(db)
+        
+        current_ctc_val = clean_row.get("current_ctc", "")
+        fixed_ctc_val = clean_row.get("fixed_ctc", "")
+        var_ctc_val = clean_row.get("variable_ctc", "")
+        if not var_ctc_val and current_ctc_val and fixed_ctc_val:
+            try:
+                c_num = float(current_ctc_val)
+                f_num = float(fixed_ctc_val)
+                var_ctc_val = str(round(max(0.0, c_num - f_num), 2))
+            except ValueError:
+                pass
+
+        new_cand = Candidate(
+            candidate_code=code,
+            profile_status="Active",
+            first_name=first_name,
+            last_name=last_name,
+            email_address=email,
+            alternative_email=clean_row.get("alternative_email") or None,
+            phone_number=phone,
+            country_code=clean_row.get("country_code") or "+91",
+            alternative_contact_number=clean_row.get("alternative_contact_number") or None,
+            current_location=clean_row.get("current_location") or None,
+            preferred_location=clean_row.get("preferred_location") or None,
+            highest_qualification=clean_row.get("highest_qualification") or None,
+            business_unit=clean_row.get("business_unit") or "IT",
+            current_last_company=clean_row.get("current_last_company") or None,
+            current_designation=clean_row.get("current_designation") or None,
+            total_experience=clean_row.get("total_experience") or None,
+            relevant_experience_years=clean_row.get("relevant_experience_years") or None,
+            skills=clean_row.get("skills") or None,
+            notice_period=clean_row.get("notice_period") or None,
+            current_ctc=current_ctc_val or None,
+            fixed_ctc=fixed_ctc_val or None,
+            variable_ctc=var_ctc_val or None,
+            expected_ctc=clean_row.get("expected_ctc") or None,
+            reason_for_job_change=clean_row.get("reason_for_job_change") or None,
+            source=clean_row.get("source") or None,
+            comments=clean_row.get("comments") or None,
+            recruiter_name=clean_row.get("recruiter_name") or None,
+        )
+
+        db.add(new_cand)
+        db.flush()
+        existing_emails.add(email)
+        imported += 1
+
+    db.commit()
+    return {
+        "total_rows": len(rows),
+        "imported_count": imported,
+        "skipped_count": skipped,
+        "errors": errors
+    }

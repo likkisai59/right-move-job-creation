@@ -141,11 +141,11 @@ def test_candidate_job_matching_and_pipeline_stages(client: TestClient, db_sessi
 
     # 4. Pipeline Status updates (Transitions verification)
     
-    # Invalid transition (Shortlisted -> Joined directly is not allowed)
+    # Direct transition to Joined is permitted per Req 32, but requires joining_date
     up_payload = {"status": "Joined"}
     bad_res = client.put(f"/api/candidates/{cand.id}/selection-details/{mapping.id}", json=up_payload)
     assert bad_res.status_code == 400
-    assert "Invalid status transition" in bad_res.json()["message"]
+    assert "Mandatory fields missing for Joined: Joining Date" in bad_res.json()["message"]
 
     # Transition to Interview Selected (requires mandatory interview details)
     up_payload = {"status": "Interview Selected"}
@@ -222,3 +222,29 @@ def test_dashboard_analytics(client: TestClient, db_session: Session):
     assert "total_candidates" in data["data"]
     assert "filled_positions" in data["data"]
     assert "available_openings" in data["data"]
+
+def test_candidate_template_and_bulk_import(client: TestClient, db_session: Session):
+    # 1. Download template
+    tmpl_res = client.get("/api/candidates/import/template")
+    assert tmpl_res.status_code == 200
+    assert "spreadsheetml" in tmpl_res.headers["content-type"]
+
+    # 2. Bulk import CSV
+    csv_content = (
+        "first_name,last_name,email_address,phone_number,business_unit,skills,profile_status\n"
+        "BulkFirst1,BulkLast1,bulk1@testimport.com,9876543210,IT,Python,Active\n"
+        "BulkFirst2,BulkLast2,bulk2@testimport.com,9876543211,BPO,Communication,Active\n"
+    )
+    files = {
+        "file": ("candidates.csv", io.BytesIO(csv_content.encode("utf-8")), "text/csv")
+    }
+    import_res = client.post("/api/candidates/import", files=files)
+    assert import_res.status_code == 200
+    data = import_res.json()["data"]
+    assert data["imported_count"] == 2
+    assert len(data["errors"]) == 0
+
+    # 3. Filter candidates by pipeline_status
+    filter_res = client.get("/api/candidates?pipeline_status=In process")
+    assert filter_res.status_code == 200
+
