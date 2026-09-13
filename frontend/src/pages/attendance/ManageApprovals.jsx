@@ -415,7 +415,8 @@ const ManageApprovals = () => {
                             <th className="px-6 py-4">Duration</th>
                             <th className="px-6 py-4">Reason</th>
                             <th className="px-6 py-4">Status</th>
-                            <th className="px-6 py-4 text-right">Resolved By</th>
+                            <th className="px-6 py-4">Resolved By</th>
+                            <th className="px-6 py-4 text-right">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -448,8 +449,36 @@ const ManageApprovals = () => {
                                   {leave.status}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 text-right">
+                              <td className="px-6 py-4">
                                 <p className="text-xs font-bold text-gray-500">{leave.approved_by || '-'}</p>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  {leave.status === 'Approved' && (
+                                    <button
+                                      onClick={() => {
+                                        setRejectLeaveId(leave.id);
+                                        setRejectReason('');
+                                        setRejectModalOpen(true);
+                                      }}
+                                      className="flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors border border-rose-100"
+                                      title="Change to Reject"
+                                    >
+                                      <X size={12} />
+                                      Reject
+                                    </button>
+                                  )}
+                                  {leave.status === 'Rejected' && (
+                                    <button
+                                      onClick={() => handleAction(leave.id, 'Approved')}
+                                      className="flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100"
+                                      title="Change to Approve"
+                                    >
+                                      <Check size={12} />
+                                      Approve
+                                    </button>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           ))}
