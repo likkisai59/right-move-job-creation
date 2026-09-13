@@ -226,9 +226,18 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
               />
               <Input
                 label="GST Number"
-                placeholder="e.g. 29AAAAA1111A1Z1"
+                placeholder="e.g. 36ABCDE1234F1Z5"
+                maxLength={15}
                 error={errors.gst_number?.message}
-                {...register('gst_number')}
+                {...register('gst_number', {
+                  pattern: {
+                    value: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/,
+                    message: "Invalid GST Number format (e.g. 36ABCDE1234F1Z5)"
+                  },
+                  onChange: (e) => {
+                    e.target.value = e.target.value.toUpperCase();
+                  }
+                })}
               />
             </div>
             

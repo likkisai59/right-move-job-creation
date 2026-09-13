@@ -56,6 +56,16 @@ class OrganizationCreate(BaseModel):
                 raise ValueError("Enter a valid email address")
         return v
 
+    @field_validator("gst_number", mode="before")
+    @classmethod
+    def validate_gst(cls, v):
+        if v and str(v).strip():
+            val = str(v).strip()
+            import re
+            if not re.match(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$", val):
+                raise ValueError("Invalid GST Number format (e.g. 36ABCDE1234F1Z5)")
+        return v
+
     @model_validator(mode='after')
     def validate_dates(self) -> 'OrganizationCreate':
         if self.contract_signed_date and self.contract_end_date:
@@ -81,6 +91,16 @@ class OrganizationUpdate(BaseModel):
     cgst: Optional[float] = None
     sgst: Optional[float] = None
     igst: Optional[float] = None
+
+    @field_validator("gst_number", mode="before")
+    @classmethod
+    def validate_gst(cls, v):
+        if v and str(v).strip():
+            val = str(v).strip()
+            import re
+            if not re.match(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$", val):
+                raise ValueError("Invalid GST Number format (e.g. 36ABCDE1234F1Z5)")
+        return v
 
     @model_validator(mode='after')
     def validate_dates(self) -> 'OrganizationUpdate':
