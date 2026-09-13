@@ -2,7 +2,7 @@
 
 export const formatDate = (dateString) => {
   if (!dateString) return '—';
-  const date = new Date(dateString);
+  const date = new Date(!dateString.includes('Z') && dateString.includes('T') ? dateString + 'Z' : dateString);
   return date.toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'short',
@@ -12,7 +12,7 @@ export const formatDate = (dateString) => {
 
 export const formatFullDateTime = (dateString) => {
   if (!dateString) return '—';
-  const date = new Date(dateString);
+  const date = new Date(!dateString.includes('Z') && dateString.includes('T') ? dateString + 'Z' : dateString);
   return date.toLocaleString('en-IN', {
     day: '2-digit',
     month: 'short',
@@ -25,7 +25,7 @@ export const formatFullDateTime = (dateString) => {
 
 export const formatRelativeTime = (dateString) => {
   if (!dateString) return '—';
-  const date = new Date(dateString);
+  const date = new Date(!dateString.includes('Z') && dateString.includes('T') ? dateString + 'Z' : dateString);
   const now = new Date();
   const diffInSeconds = Math.floor((now - date) / 1000);
 

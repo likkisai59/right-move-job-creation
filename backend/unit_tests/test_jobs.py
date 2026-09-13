@@ -12,12 +12,12 @@ def test_job_crud_and_exports(client: TestClient, db_session: Session):
         "requisition_open_date": "2026-06-17",
         "company_name": "Google",
         "business_unit": "IT",
-        "assigned_to": "Recruiter Priya",
+        "internal_spoc": "Recruiter Priya",
         "requirements": [
             {
                 "job_title": "React Developer",
-                "budget": "15 LPA",
-                "experience": "3 years",
+                "budget": 15.0,
+                "experience": 3.0,
                 "min_experience": 2,
                 "max_experience": 5,
                 "location": "Bangalore",
@@ -50,12 +50,12 @@ def test_job_crud_and_exports(client: TestClient, db_session: Session):
         "requisition_open_date": "2026-06-17",
         "company_name": "Google Alphabet",
         "business_unit": "IT",
-        "assigned_to": "Recruiter Priya",
+        "internal_spoc": "Recruiter Priya",
         "requirements": [
             {
                 "job_title": "React Lead Developer",
-                "budget": "25 LPA",
-                "experience": "6 years",
+                "budget": 25.0,
+                "experience": 6.0,
                 "min_experience": 5,
                 "max_experience": 8,
                 "location": "Bangalore",
@@ -97,12 +97,12 @@ def test_job_matching_and_shortlisting_workflows(client: TestClient, db_session:
         requisition_open_date=date(2026, 6, 17),
         company_name="Meta",
         business_unit="IT",
-        assigned_to="Recruiter Priya"
+        internal_spoc="Recruiter Priya"
     )
     req = JobRequirement(
         job_title="Python Developer",
-        budget="20 LPA",
-        experience="4 years",
+        budget=20.0,
+        experience=4.0,
         min_experience=3,
         max_experience=6,
         location="Hyderabad",

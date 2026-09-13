@@ -231,7 +231,7 @@ const JobDetailsPage = () => {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <UserCheck size={14} className="text-gray-400" />
-                    <span>Assigned to: <span className="text-gray-700 font-medium">{job.assignedTo}</span></span>
+                    <span>Assigned to: <span className="text-gray-700 font-medium">{job.internalSpoc}</span></span>
                   </div>
                 </div>
               </div>
@@ -240,7 +240,7 @@ const JobDetailsPage = () => {
             <div className="flex flex-wrap gap-3 md:flex-col md:items-end">
               <div className="text-right">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Budget Range</p>
-                <p className="text-lg font-bold text-emerald-600">{job.budget}</p>
+                <p className="text-lg font-bold text-emerald-600">{job.budget} LPA</p>
               </div>
               <div className="px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
                 <TimeStamp created={job.created_at} updated={job.updated_at} />
@@ -355,7 +355,7 @@ const JobDetailsPage = () => {
               processingId={processingId}
               tab="matching"
               jobId={parseInt(id)}
-              assignedTo={job?.assignedTo}
+              internalSpoc={job?.internalSpoc}
             />
           ) : (
             <MatchingCandidatesTable
@@ -363,7 +363,7 @@ const JobDetailsPage = () => {
               processingId={processingId}
               tab="shortlisted"
               jobId={parseInt(id)}
-              assignedTo={job?.assignedTo}
+              internalSpoc={job?.internalSpoc}
               onRefresh={async () => {
                 try {
                   const res = await fetchShortlistedCandidates(id);

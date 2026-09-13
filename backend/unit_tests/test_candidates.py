@@ -88,12 +88,12 @@ def test_candidate_job_matching_and_pipeline_stages(client: TestClient, db_sessi
         requisition_open_date=date.today(),
         company_name="Tardis Corp",
         business_unit="IT",
-        assigned_to="Doctor"
+        internal_spoc="Doctor"
     )
     req = JobRequirement(
         job_title="Time Lord assistant",
-        budget="30 LPA",
-        experience="5 years",
+        budget=30.0,
+        experience=5.0,
         min_experience=4,
         max_experience=7,
         location="London",

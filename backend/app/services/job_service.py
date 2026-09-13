@@ -41,7 +41,7 @@ def create_job_requirement(db: Session, payload: JobCreateRequest) -> Job:
         business_unit=payload.business_unit,
         external_spoc=payload.external_spoc,
         external_spoc_email_id=payload.external_spoc_email_id,
-        assigned_to=payload.assigned_to,
+        internal_spoc=payload.internal_spoc,
         created_by=payload.created_by,
     )
 
@@ -79,7 +79,7 @@ def get_all_jobs(
     end_date: Optional[date] = None,
     status: Optional[str] = None,
     business_unit: Optional[str] = None,
-    assigned_to: Optional[str] = None,
+    internal_spoc: Optional[str] = None,
     created_by: Optional[str] = None,
     sort_by: Optional[str] = None,
     sort_order: Optional[str] = "desc",
@@ -123,8 +123,8 @@ def get_all_jobs(
     if business_unit and business_unit.upper() != "ALL":
         query = query.filter(Job.business_unit.ilike(business_unit.strip()))
 
-    if assigned_to:
-        query = query.filter(Job.assigned_to == assigned_to)
+    if internal_spoc:
+        query = query.filter(Job.internal_spoc == internal_spoc)
 
     if created_by:
         query = query.filter(Job.created_by == created_by)
@@ -218,7 +218,7 @@ def update_job(
     job.business_unit = payload.business_unit
     job.external_spoc = payload.external_spoc
     job.external_spoc_email_id = payload.external_spoc_email_id
-    job.assigned_to = payload.assigned_to
+    job.internal_spoc = payload.internal_spoc
     job.created_by = payload.created_by
 
     # Update requirements (replace existing ones)

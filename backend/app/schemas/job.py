@@ -7,9 +7,9 @@ class JobBase(BaseModel):
     company_name: str
     job_title: str
     num_candidates: int = 0
-    experience: str
-    budget: str
-    assigned_to: Optional[str] = None
+    experience: float
+    budget: float
+    internal_spoc: Optional[str] = None
 
 class JobCreate(JobBase): pass
 
@@ -18,9 +18,9 @@ class JobUpdate(BaseModel):
     company_name: Optional[str] = None
     job_title: Optional[str] = None
     num_candidates: Optional[int] = None
-    experience: Optional[str] = None
-    budget: Optional[str] = None
-    assigned_to: Optional[str] = None
+    experience: Optional[float] = None
+    budget: Optional[float] = None
+    internal_spoc: Optional[str] = None
 
 class JobResponse(JobBase):
     id: int

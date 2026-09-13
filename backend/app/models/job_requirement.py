@@ -15,6 +15,7 @@ from sqlalchemy import (
     func,
     ForeignKey,
     Text,
+    Float,
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -44,7 +45,7 @@ class Job(Base):
     external_spoc_email_id = Column(String(255), nullable=True)
     
     # Name of the recruiter assigned to this requirement
-    assigned_to = Column(String(255), nullable=False)
+    internal_spoc = Column(String(255), nullable=False)
     created_by = Column(String(255), nullable=True)
 
     # ── Timestamps ────────────────────────────────────────────
@@ -76,10 +77,10 @@ class JobRequirement(Base):
     
     # MOVED FROM JOB
     job_title = Column(String(255), nullable=False)
-    budget = Column('budgeted_package', String(100), nullable=False)
+    budget = Column('budgeted_package', Float, nullable=False)
     
     # ORIGINAL FIELDS
-    experience = Column(String(100), nullable=False)
+    experience = Column(Float, nullable=False)
     min_experience = Column(Integer, nullable=True, default=0)
     max_experience = Column(Integer, nullable=True, default=0)
     location = Column(String(255), nullable=True)

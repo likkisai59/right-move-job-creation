@@ -21,6 +21,44 @@ const JOB_STATUS_OPTIONS = [
   { value: 'DRAFT', label: 'Draft' },
 ];
 
+const CustomSelectOrInput = ({ 
+  name, otherName, options, label, selectPlaceholder, inputPlaceholder, 
+  register, watch, setValue 
+}) => {
+  if (watch(name) === 'Other') {
+    return (
+      <div className="relative">
+        <Input
+          label={`Specify Other ${label}`}
+          placeholder={inputPlaceholder}
+          {...register(otherName, { required: `Please specify the ${label.toLowerCase()}` })}
+        />
+        <button
+          type="button"
+          onClick={() => {
+            setValue(name, '');
+            setValue(otherName, '');
+          }}
+          className="absolute right-3 top-[34px] text-gray-400 hover:text-gray-700"
+          title="Back to options"
+        >
+          ✕
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <Select
+      label={label}
+      placeholder={selectPlaceholder}
+      options={options}
+      {...register(name)}
+    />
+  );
+};
+
+
 
 
 const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) => {
@@ -41,7 +79,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
       externalSpoc: '',
       externalSpocEmailId: '',
       requirements: [{ job_title: '', budget: '', experience: '', number_of_open_positions: '', min_experience: 0, max_experience: 10, location: '', required_skills: '', status: 'ACTIVE', mandatorySkill: '', noticePeriod: '', qualification: '', shifts: '', workMode: '', jobDescription: '' }],
-      assignedTo: '',
+      internalSpoc: '',
     },
   });
 
@@ -148,15 +186,43 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
 
   useEffect(() => {
     if (defaultValues) {
+      const mappedRequirements = defaultValues.requirements?.map(req => {
+        let mappedReq = { ...req };
+        
+        const mapToOther = (field, options) => {
+          const isStandard = options.some(opt => opt.value === req[field]);
+          if (req[field] && !isStandard) {
+            mappedReq[`${field}Other`] = req[field];
+            mappedReq[field] = 'Other';
+          }
+        };
+
+        mapToOther('qualification', EDUCATION_OPTIONS);
+        mapToOther('shifts', JOB_SHIFTS);
+        
+        return mappedReq;
+      });
+
       reset({
         ...defaultValues,
-        assignedTo: defaultValues.assignedTo || ''
+        requirements: mappedRequirements || defaultValues.requirements,
+        internalSpoc: defaultValues.internalSpoc || ''
       });
     }
   }, [defaultValues, reset]);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form onSubmit={handleSubmit((data) => {
+      const payload = { ...data };
+      payload.requirements = payload.requirements.map(req => {
+        let q = req.qualification;
+        if (q === 'Other' && req.qualificationOther) q = req.qualificationOther;
+        let s = req.shifts;
+        if (s === 'Other' && req.shiftsOther) s = req.shiftsOther;
+        return { ...req, qualification: q, shifts: s };
+      });
+      onSubmit(payload);
+    })} noValidate>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
         {/* Date */}
         <Input
@@ -226,49 +292,13 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
           {...register('businessUnit', { required: 'Business unit is required' })}
         />
 
-        {/* Recruiter */}
-        <Select
-          label="Assign Owner"
-          placeholder="Select Owner"
-          required
-          options={recruiters}
-          value={watch('assignedTo') || ''}
-          error={errors.assignedTo?.message}
-          {...register('assignedTo', {
-            required: 'Please select an owner',
-          })}
-        />
-
-        {/* External SPOC */}
-        <Input
-          label="External SPOC"
-          placeholder="Enter External SPOC Name"
-          error={errors.externalSpoc?.message}
-          onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
-          {...register('externalSpoc', {
-            pattern: { value: /^[A-Za-z\s'-]+$/, message: 'Only alphabetic characters allowed' }
-          })}
-        />
-
-        {/* External SPOC Email */}
-        <Input
-          label="External SPOC Email ID"
-          type="email"
-          placeholder="e.g. spoc@company.com"
-          error={errors.externalSpocEmailId?.message}
-          {...register('externalSpocEmailId', {
-            pattern: {
-              value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-              message: 'Enter a valid email address (e.g. spoc@company.com)'
-            }
-          })}
-        />
       </div>
 
       {/* Hiring Requirements Table */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Hiring Requirements</h3>
+
           <Button
             type="button"
             variant="secondary"
@@ -283,6 +313,40 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
         <div className="space-y-6">
           {fields.map((field, index) => (
             <div key={field.id} className="p-6 bg-gray-50 rounded-xl border border-gray-200 relative animate-slide-up">
+              {/* SPOC Fields inside Requirement Card */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                <Select
+                  label="Internal SPOC"
+                  placeholder="Select Internal SPOC"
+                  required
+                  options={recruiters}
+                  value={watch('internalSpoc') || ''}
+                  error={errors.internalSpoc?.message}
+                  {...register('internalSpoc', { required: 'Please select an Internal SPOC' })}
+                />
+                <Input
+                  label="External SPOC"
+                  placeholder="Enter External SPOC Name"
+                  error={errors.externalSpoc?.message}
+                  onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
+                  {...register('externalSpoc', {
+                    pattern: { value: /^[A-Za-z\s'-]+$/, message: 'Only alphabetic characters allowed' }
+                  })}
+                />
+                <Input
+                  label="External SPOC Email ID"
+                  type="email"
+                  placeholder="e.g. spoc@company.com"
+                  error={errors.externalSpocEmailId?.message}
+                  {...register('externalSpocEmailId', {
+                    pattern: {
+                      value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                      message: 'Enter a valid email address'
+                    }
+                  })}
+                />
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
                 {/* Job Title */}
                 <Input
@@ -298,20 +362,32 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
 
                 {/* Budget */}
                 <Input
-                  label="Budget"
-                  placeholder="e.g. ₹15-20 LPA"
+                  label="Budget (in LPA)"
+                  type="number"
+                  step="any"
+                  placeholder="e.g. 15.5"
                   required
                   error={errors.requirements?.[index]?.budget?.message}
-                  {...register(`requirements.${index}.budget`, { required: 'Budget is required' })}
+                  {...register(`requirements.${index}.budget`, { 
+                    required: 'Budget is required',
+                    valueAsNumber: true,
+                    min: { value: 0, message: 'Min 0' }
+                  })}
                 />
 
                 {/* Experience */}
                 <Input
-                  label="Experience"
-                  placeholder="e.g. 5+ years"
+                  label="Experience (in years)"
+                  type="number"
+                  step="any"
+                  placeholder="e.g. 5.0"
                   required
                   error={errors.requirements?.[index]?.experience?.message}
-                  {...register(`requirements.${index}.experience`, { required: 'Experience is required' })}
+                  {...register(`requirements.${index}.experience`, { 
+                    required: 'Experience is required',
+                    valueAsNumber: true,
+                    min: { value: 0, message: 'Min 0' }
+                  })}
                 />
 
                 {/* Num Candidates */}
@@ -352,19 +428,29 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
                 />
 
                 {/* Qualification */}
-                <Select
-                  label="Qualification"
-                  placeholder="Select Qualification"
+                <CustomSelectOrInput
+                  name={`requirements.${index}.qualification`}
+                  otherName={`requirements.${index}.qualificationOther`}
                   options={EDUCATION_OPTIONS}
-                  {...register(`requirements.${index}.qualification`)}
+                  label="Qualification"
+                  selectPlaceholder="Select Qualification"
+                  inputPlaceholder="e.g., M.Tech"
+                  register={register}
+                  watch={watch}
+                  setValue={setValue}
                 />
 
                 {/* Shifts */}
-                <Select
-                  label="Shifts"
-                  placeholder="Select Shift"
+                <CustomSelectOrInput
+                  name={`requirements.${index}.shifts`}
+                  otherName={`requirements.${index}.shiftsOther`}
                   options={JOB_SHIFTS}
-                  {...register(`requirements.${index}.shifts`)}
+                  label="Shifts"
+                  selectPlaceholder="Select Shift"
+                  inputPlaceholder="e.g., Morning 9-5"
+                  register={register}
+                  watch={watch}
+                  setValue={setValue}
                 />
 
                 {/* Work Mode */}

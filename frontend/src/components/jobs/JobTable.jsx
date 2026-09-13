@@ -28,14 +28,16 @@ const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats }) => {
   const columns = [
     {
       key: 'date',
-      header: 'Requisition open Date',
-      render: (val) => formatDate(val),
+      header: 'Job Req ID',
+      render: (_, row) => (
+        <span className="font-semibold text-blue-600">{row.jobCode}</span>
+      ),
     },
     {
       key: 'ageing',
       header: 'Ageing',
       render: (_, row) => {
-        if (!row.date) return '—';
+        if (!row.date) return '?"';
         const openDate = new Date(row.date);
         const today = new Date();
         const diffTime = today.getTime() - openDate.getTime();
@@ -48,8 +50,17 @@ const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats }) => {
       }
     },
     {
+      key: 'role',
+      header: 'Role',
+      render: (_, row) => {
+        if (!row.requirements || row.requirements.length === 0) return '?"';
+        const titles = row.requirements.map(r => r.job_title);
+        return <span className="font-medium text-gray-900">{titles.join(', ')}</span>;
+      }
+    },
+    {
       key: 'companyName',
-      header: 'Company name',
+      header: 'Company Name',
       minWidth: '160px',
       render: (val) => (
         <span className="font-medium text-gray-900">{val}</span>
@@ -57,7 +68,7 @@ const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats }) => {
     },
     {
       key: 'businessUnit',
-      header: 'Business Unit',
+      header: 'BU',
       render: (val) => (
         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
           {val || 'IT'}
@@ -66,7 +77,7 @@ const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats }) => {
     },
     {
       key: 'numberOfCandidates',
-      header: 'Total Open Positions',
+      header: 'Total No of Positions',
       render: (val, row) => {
         const totalPositions = row.requirements
           ? row.requirements.reduce((sum, r) => sum + (r.number_of_open_positions || 0), 0)
@@ -134,8 +145,6 @@ const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats }) => {
                     );
                   })}
                 </div>
-
-                <div className="absolute -top-1.5 left-6 w-3 h-3 bg-white border-t border-l border-gray-100 rotate-45" />
               </div>
             )}
           </div>
@@ -143,8 +152,26 @@ const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats }) => {
       }
     },
     {
+      key: 'status',
+      header: 'Status',
+      render: (_, row) => {
+        if (!row.requirements || row.requirements.length === 0) return '?"';
+        const statuses = row.requirements.map(r => r.status || 'ACTIVE');
+        const unique = [...new Set(statuses)];
+        return (
+          <div className="flex flex-wrap gap-1">
+            {unique.map((s, i) => (
+              <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 uppercase">
+                {s}
+              </span>
+            ))}
+          </div>
+        );
+      }
+    },
+    {
       key: 'actions',
-      header: 'Actions',
+      header: 'Action',
       render: (_, row) => (
         <div className="flex items-center gap-1.5">
           <button
@@ -157,7 +184,6 @@ const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats }) => {
           >
             <Eye size={15} />
           </button>
-
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -168,7 +194,6 @@ const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats }) => {
           >
             <Pencil size={15} />
           </button>
-
           <button
             onClick={(e) => {
               e.stopPropagation();

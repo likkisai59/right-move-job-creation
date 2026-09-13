@@ -40,8 +40,11 @@ export const SOURCE_OPTIONS = [
 
 export const JOB_SHIFTS = [
   { value: 'General', label: 'General' },
-  { value: 'Night', label: 'Night' },
-  { value: 'Rotational', label: 'Rotational' }
+  { value: 'US', label: 'US' },
+  { value: 'UK', label: 'UK' },
+  { value: 'AUS', label: 'AUS' },
+  { value: 'Rotational', label: 'Rotational' },
+  { value: 'Other', label: 'Other' },
 ];
 
 

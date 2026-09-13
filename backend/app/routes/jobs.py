@@ -154,7 +154,7 @@ def list_jobs(
     end_date: Optional[date] = Query(None, description="Filter jobs up to this date (YYYY-MM-DD)"),
     status_filter: Optional[str] = Query(None, alias="status", description="Filter by status: ACTIVE, CLOSED, ON_HOLD"),
     business_unit: Optional[str] = Query(None, description="Filter by IT, ITSM, BPO"),
-    assigned_to: Optional[str] = Query(None, description="Filter by assigned recruiter name"),
+    internal_spoc: Optional[str] = Query(None, description="Filter by assigned recruiter name"),
     created_by: Optional[str] = Query(None, description="Filter by creator name"),
     sort_by: Optional[str] = Query(None, description="Field to sort by"),
     sort_order: Optional[str] = Query("desc", description="Sort order (asc or desc)"),
@@ -175,7 +175,7 @@ def list_jobs(
             end_date=end_date,
             status=status_filter,
             business_unit=business_unit,
-            assigned_to=assigned_to,
+            internal_spoc=internal_spoc,
             created_by=created_by,
             sort_by=sort_by,
             sort_order=sort_order,
@@ -270,8 +270,8 @@ def export_jobs(
     for job in jobs_orm:
         titles = ", ".join(r.job_title for r in job.requirements if r.job_title) if job.requirements else ""
         total_open = sum(r.number_of_open_positions for r in job.requirements) if job.requirements else 0
-        budgets = ", ".join(filter(None, [r.budget for r in job.requirements])) if job.requirements else ""
-        experiences = ", ".join(filter(None, [r.experience for r in job.requirements])) if job.requirements else ""
+        budgets = ", ".join(filter(None, [str(r.budget) for r in job.requirements if r.budget is not None])) if job.requirements else ""
+        experiences = ", ".join(filter(None, [str(r.experience) for r in job.requirements if r.experience is not None])) if job.requirements else ""
         locations = ", ".join(filter(None, set(r.location for r in job.requirements if r.location))) if job.requirements else ""
         work_modes = ", ".join(filter(None, set(r.work_mode for r in job.requirements if r.work_mode))) if job.requirements else ""
         skills = ", ".join(filter(None, set(r.mandatory_skill for r in job.requirements if r.mandatory_skill))) if job.requirements else ""
@@ -293,7 +293,7 @@ def export_jobs(
             work_modes,
             skills,
             statuses,
-            job.assigned_to or "",
+            job.internal_spoc or "",
             job.external_spoc or "",
             job.external_spoc_email_id or "",
             mapped_count,

@@ -23,8 +23,8 @@ ALLOWED_STATUSES = {"ACTIVE", "ON_HOLD", "CLOSED", "DRAFT"}
 # ─────────────────────────────────────────────────────────────
 class RequirementCreate(BaseModel):
     job_title: str = Field(..., min_length=1, description="Title of the job position")
-    budget: str = Field(..., min_length=1, description="Budget for the role, e.g. '18-22 LPA'")
-    experience: str = Field(..., min_length=1, description="Required experience, e.g. '3-5 years'")
+    budget: float = Field(..., gt=0, description="Budget for the role in LPA, e.g. 15.5")
+    experience: float = Field(..., ge=0, description="Required experience in years, e.g. 5.0")
     min_experience: Optional[int] = Field(default=0)
     max_experience: Optional[int] = Field(default=0)
     location: Optional[str] = Field(default=None)
@@ -38,7 +38,7 @@ class RequirementCreate(BaseModel):
     work_mode: Optional[str] = Field(default=None)
     job_description: Optional[str] = Field(default=None)
 
-    @field_validator("job_title", "budget", "experience", mode="before")
+    @field_validator("job_title", mode="before")
     @classmethod
     def strip_fields(cls, v: str) -> str:
         if isinstance(v, str):
@@ -61,8 +61,8 @@ class RequirementCreate(BaseModel):
 class RequirementResponse(BaseModel):
     id: int
     job_title: str
-    budget: str
-    experience: str
+    budget: float
+    experience: float
     min_experience: Optional[int] = 0
     max_experience: Optional[int] = 0
     location: Optional[str] = None
@@ -94,7 +94,7 @@ class JobCreateRequest(BaseModel):
     external_spoc: Optional[str] = Field(default=None, description="External SPOC Name")
     external_spoc_email_id: Optional[str] = Field(default=None, description="External SPOC Email ID")
     requirements: List[RequirementCreate] = Field(..., min_length=1, description="List of hiring requirements")
-    assigned_to: str = Field(..., min_length=1, description="Name of the assigned recruiter")
+    internal_spoc: str = Field(..., min_length=1, description="Name of the assigned recruiter")
     created_by: Optional[str] = Field(default=None, description="Name of the creator")
 
     @field_validator("external_spoc", mode="before")
@@ -119,7 +119,7 @@ class JobCreateRequest(BaseModel):
             return val
         return v
 
-    @field_validator("company_name", "assigned_to", mode="before")
+    @field_validator("company_name", "internal_spoc", mode="before")
     @classmethod
     def strip_strings(cls, v: str) -> str:
         """Remove leading/trailing whitespace from all string fields."""
@@ -133,10 +133,10 @@ class JobCreateRequest(BaseModel):
                 "requisition_open_date": "2026-03-28",
                 "company_name": "Microsoft",
                 "requirements": [
-                    { "job_title": "Software Engineer", "budget": "18-22 LPA", "experience": "5 years", "number_of_open_positions": 10, "status": "ACTIVE", "mandatory_skill": "React" },
-                    { "job_title": "Full Stack Dev", "budget": "15-20 LPA", "experience": "2 years", "number_of_open_positions": 5, "status": "ACTIVE", "mandatory_skill": "Python" }
+                    { "job_title": "Software Engineer", "budget": 18.0, "experience": 5.0, "number_of_open_positions": 10, "status": "ACTIVE", "mandatory_skill": "React" },
+                    { "job_title": "Full Stack Dev", "budget": 15.5, "experience": 2.5, "number_of_open_positions": 5, "status": "ACTIVE", "mandatory_skill": "Python" }
                 ],
-                "assigned_to": "Priya Sharma"
+                "internal_spoc": "Priya Sharma"
             }
         }
     }
@@ -153,10 +153,10 @@ class JobUpdateRequest(BaseModel):
     external_spoc: Optional[str] = Field(default=None, description="External SPOC Name")
     external_spoc_email_id: Optional[str] = Field(default=None, description="External SPOC Email ID")
     requirements: List[RequirementCreate] = Field(..., min_length=1, description="List of hiring requirements")
-    assigned_to: str = Field(..., min_length=1, description="Name of the assigned recruiter")
+    internal_spoc: str = Field(..., min_length=1, description="Name of the assigned recruiter")
     created_by: Optional[str] = Field(default=None, description="Name of the creator")
 
-    @field_validator("company_name", "assigned_to", mode="before")
+    @field_validator("company_name", "internal_spoc", mode="before")
     @classmethod
     def strip_strings(cls, v: str) -> str:
         if isinstance(v, str):
@@ -178,7 +178,7 @@ class JobResponse(BaseModel):
     external_spoc: Optional[str] = None
     external_spoc_email_id: Optional[str] = None
     requirements: List[RequirementResponse]
-    assigned_to: str
+    internal_spoc: str
     created_by: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

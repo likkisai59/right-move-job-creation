@@ -21,7 +21,7 @@ const MatchingCandidatesTable = ({
   onBulkShortlist,
   onRefresh,
   jobId = null,
-  assignedTo = null
+  internalSpoc = null
 }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
