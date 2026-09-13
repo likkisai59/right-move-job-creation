@@ -162,10 +162,10 @@ const AssignedTasks = () => {
         const res = await fetchJobs({ createdBy: employeeName });
         const jobs = res.data || [];
         
-        // Group jobs by recruiter (assignedTo)
+        // Group jobs by recruiter (internalSpoc)
         const recruiterGroups = {};
         jobs.forEach(job => {
-          const recruiter = (job.assignedTo || '').trim();
+          const recruiter = (job.internalSpoc || '').trim();
           if (!recruiter) return;
           if (!recruiterGroups[recruiter]) {
             recruiterGroups[recruiter] = {
@@ -231,7 +231,7 @@ const AssignedTasks = () => {
         setRecruiterTasks(recruiterList);
       } else {
         // Recruiter Mode: Fetch jobs assigned to this recruiter
-        const res = await fetchJobs({ assignedTo: employeeName });
+        const res = await fetchJobs({ internalSpoc: employeeName });
         const jobsList = res.data || [];
 
         let totalShortlisted = 0;

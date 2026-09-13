@@ -148,7 +148,9 @@ def get_all_candidates(
     if candidate_code:
         query = query.filter(Candidate.candidate_code.ilike(f"%{candidate_code.strip()}%"))
     if skills:
-        query = query.filter(Candidate.skills.ilike(f"%{skills.strip()}%"))
+        search_skills = [s.strip() for s in skills.split(',') if s.strip()]
+        for skill in search_skills:
+            query = query.filter(Candidate.skills.ilike(f"%{skill}%"))
     if total_experience:
         query = query.filter(Candidate.total_experience.ilike(f"%{total_experience.strip()}%"))
     if current_location:

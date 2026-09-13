@@ -863,7 +863,7 @@ def get_selection_details(candidate_id: int, db: Session = Depends(get_db)):
             data["job_title"] = job_req.job_title if job_req else None
             data["job_description"] = job_req.job_description if job_req else None
             data["business_unit"] = job.business_unit if job else None
-            data["hiring_manager"] = job.assigned_to if job else None
+            data["hiring_manager"] = job.internal_spoc if job else None
             result.append(data)
             
         return JSONResponse(status_code=200, content=success_response("Selection details fetched", result))
