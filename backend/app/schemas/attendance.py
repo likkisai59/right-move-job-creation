@@ -39,6 +39,7 @@ class LeaveResponse(LeaveBase):
     employee_id: int
     status: str
     approved_by: Optional[str] = None
+    rejection_reason: Optional[str] = None
     total_leaves: Optional[float] = 0.0
     model_config = {
         "from_attributes": True
@@ -48,6 +49,7 @@ class LeaveResponse(LeaveBase):
 class LeaveActionRequest(BaseModel):
     status: str  # Approved, Rejected
     manager_name: str
+    rejection_reason: Optional[str] = None
 
 class TeamLeaveResponse(BaseModel):
     id: int
@@ -60,6 +62,7 @@ class TeamLeaveResponse(BaseModel):
     reason: Optional[str] = None
     status: str
     approved_by: Optional[str] = None
+    rejection_reason: Optional[str] = None
     total_leaves: Optional[float] = 0.0
     model_config = {
         "from_attributes": True

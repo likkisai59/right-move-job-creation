@@ -1,13 +1,22 @@
 // Formatting utility functions
 
-export const formatDate = (dateString) => {
-  if (!dateString) return '—';
-  const date = new Date(!dateString.includes('Z') && dateString.includes('T') ? dateString + 'Z' : dateString);
-  return date.toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+export const formatDate = (dateInput) => {
+  if (!dateInput) return '—';
+  
+  let date;
+  if (dateInput instanceof Date) {
+    date = dateInput;
+  } else {
+    // Handle string
+    date = new Date(!dateInput.includes('Z') && dateInput.includes('T') ? dateInput + 'Z' : dateInput);
+  }
+  
+  if (isNaN(date.getTime())) return '—';
+
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = date.toLocaleString('en-US', { month: 'short' });
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
 };
 
 export const formatFullDateTime = (dateString) => {

@@ -88,7 +88,7 @@ def action_leave_request(leave_id: int, payload: LeaveActionRequest, db: Session
     """
     Approve or reject a leave request.
     """
-    leave = attendance_service.action_leave_request(db, leave_id, payload.status, payload.manager_name)
+    leave = attendance_service.action_leave_request(db, leave_id, payload.status, payload.manager_name, payload.rejection_reason)
     if not leave:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

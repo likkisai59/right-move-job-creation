@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ClipboardList, Plus, Clock, CheckCircle2, XCircle, Calendar, ShieldAlert } from 'lucide-react';
 import { applyLeave, getLeaveHistory, getLeaveConfig } from '../../api/attendanceApi';
+import { formatDate } from '../../utils/formatters';
 
 import { getCurrentEmployee } from '../../api/authApi';
 
@@ -298,14 +299,21 @@ const LeaveManagement = () => {
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex flex-col">
-                        <span className="text-sm font-bold text-gray-600">{leave.start_date}</span>
-                        <span className="text-[10px] text-gray-400">to {leave.end_date} ({calculateDays(leave.start_date, leave.end_date)} {calculateDays(leave.start_date, leave.end_date) === 1 ? 'day' : 'days'})</span>
+                        <span className="text-sm font-bold text-gray-600">{formatDate(leave.start_date)}</span>
+                        <span className="text-[10px] text-gray-400">to {formatDate(leave.end_date)} ({calculateDays(leave.start_date, leave.end_date)} {calculateDays(leave.start_date, leave.end_date) === 1 ? 'day' : 'days'})</span>
                       </div>
                     </td>
                     <td className="px-6 py-5">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${statusColors[leave.status]}`}>
-                        {leave.status}
-                      </span>
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${statusColors[leave.status]}`}>
+                          {leave.status}
+                        </span>
+                        {leave.status === 'Rejected' && leave.rejection_reason && (
+                          <span className="text-[10px] text-red-500 font-semibold max-w-[150px]">
+                            Reason: {leave.rejection_reason}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-5 text-right">
                       <p className="text-sm font-bold text-gray-500">{leave.approved_by || '-'}</p>

@@ -145,7 +145,7 @@ def sync_employee_unpaid_leaves(db: Session, employee_id: int):
         account.unpaid_leaves = total_unpaid
         db.commit()
 
-def action_leave_request(db: Session, leave_id: int, status: str, manager_name: str) -> Optional[Leave]:
+def action_leave_request(db: Session, leave_id: int, status: str, manager_name: str, rejection_reason: Optional[str] = None) -> Optional[Leave]:
     """
     Approve or reject a leave request.
     """
@@ -154,6 +154,8 @@ def action_leave_request(db: Session, leave_id: int, status: str, manager_name: 
         return None
     leave.status = status
     leave.approved_by = manager_name
+    if status == "Rejected" and rejection_reason:
+        leave.rejection_reason = rejection_reason
     db.commit()
     db.refresh(leave)
     

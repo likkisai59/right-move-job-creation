@@ -46,11 +46,15 @@ export const getPendingLeaves = async (managerName) => {
   return response.data;
 };
 
-export const updateLeaveStatus = async (leaveId, status, managerName) => {
-  const response = await axios.post(`/attendance/approvals/leaves/${leaveId}/action`, {
+export const updateLeaveStatus = async (leaveId, status, managerName, rejectionReason = null) => {
+  const payload = {
     status,
     manager_name: managerName
-  });
+  };
+  if (rejectionReason) {
+    payload.rejection_reason = rejectionReason;
+  }
+  const response = await axios.post(`/attendance/approvals/leaves/${leaveId}/action`, payload);
   return response.data;
 };
 

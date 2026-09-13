@@ -3,15 +3,9 @@ import { CalendarCheck, Info, CheckCircle2, Save, AlertCircle } from 'lucide-rea
 import { markAttendance, getAttendanceHistory } from '../../api/attendanceApi';
 import { FEATURE_FLAGS } from '../../config/features';
 import { getCurrentEmployee } from '../../api/authApi';
+import { formatDate } from '../../utils/formatters';
 
 const AttendanceMarking = () => {
-  const formatDate = (date) => {
-    if (!date) return '';
-    const d = String(date.getDate()).padStart(2, '0');
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const y = date.getFullYear();
-    return `${d}/${m}/${y}`;
-  };
 
   const employee = getCurrentEmployee();
   const [weekData, setWeekData] = useState({}); // { '2024-05-10': 'P', ... }

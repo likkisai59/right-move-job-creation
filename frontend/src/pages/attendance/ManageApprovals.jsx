@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { getPendingLeaves, updateLeaveStatus, getTeamAttendance, saveApprovalsConfig } from '../../api/attendanceApi';
 import { fetchDesignations } from '../../api/designationsApi';
+import { formatDate } from '../../utils/formatters';
 
 import { getCurrentEmployee, getSystemRole } from '../../api/authApi';
 
@@ -22,6 +23,11 @@ const ManageApprovals = () => {
   const [holidaysMap, setHolidaysMap] = useState({});
   const [globalHolidays, setGlobalHolidays] = useState([]);
   const [configSubmitting, setConfigSubmitting] = useState(false);
+
+  // Reject Modal states
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectLeaveId, setRejectLeaveId] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   const employee = getCurrentEmployee();
   const managerName = employee.name || '';
@@ -128,11 +134,11 @@ const ManageApprovals = () => {
     }
   };
 
-  const handleAction = async (leaveId, action) => {
+  const handleAction = async (leaveId, action, rejectionReason = null) => {
     setError('');
     setSuccessMsg('');
     try {
-      await updateLeaveStatus(leaveId, action, managerName);
+      await updateLeaveStatus(leaveId, action, managerName, rejectionReason);
       setSuccessMsg(`Leave request has been successfully ${action.toLowerCase()}.`);
       loadData();
 
@@ -145,15 +151,26 @@ const ManageApprovals = () => {
     }
   };
 
-  const formatDateRange = (start, end) => {
-    const s = new Date(start);
-    const e = new Date(end);
-    const options = { month: 'short', day: 'numeric', year: 'numeric' };
+  const openRejectModal = (leaveId) => {
+    setRejectLeaveId(leaveId);
+    setRejectionReason('');
+    setRejectModalOpen(true);
+  };
 
-    if (start === end) {
-      return s.toLocaleDateString('en-US', options);
+  const handleRejectSubmit = async () => {
+    if (!rejectionReason.trim()) {
+      setError("Rejection reason is required.");
+      return;
     }
-    return `${s.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${e.toLocaleDateString('en-US', options)}`;
+    setRejectModalOpen(false);
+    await handleAction(rejectLeaveId, 'Rejected', rejectionReason);
+  };
+
+  const formatDateRange = (start, end) => {
+    if (start === end) {
+      return formatDate(start);
+    }
+    return `${formatDate(start)} to ${formatDate(end)}`;
   };
 
   const calculateDays = (start, end) => {
@@ -356,7 +373,7 @@ const ManageApprovals = () => {
 
                         <div className="grid grid-cols-2 gap-3 border-t border-gray-100 pt-4">
                           <button
-                            onClick={() => handleAction(leave.id, 'Rejected')}
+                            onClick={() => openRejectModal(leave.id)}
                             className="flex items-center justify-center gap-1.5 py-2.5 border border-red-200 text-red-600 font-bold rounded-xl text-xs hover:bg-red-50 transition-colors"
                           >
                             <X size={14} />
@@ -592,7 +609,7 @@ const ManageApprovals = () => {
                           <tr key={index} className="hover:bg-gray-50/30 transition-colors">
                             <td className="px-6 py-4 font-bold text-gray-800 text-sm">{h.name}</td>
                             <td className="px-6 py-4 font-semibold text-gray-500">
-                              {new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', weekday: 'short' })}
+                              {formatDate(h.date)}
                             </td>
                             <td className="px-6 py-4 text-right">
                               <button
@@ -646,6 +663,37 @@ const ManageApprovals = () => {
             </div>
           )}
         </>
+      )}
+
+      {/* Reject Modal */}
+      {rejectModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+          <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md animate-fade-in space-y-4">
+            <h3 className="text-lg font-bold text-gray-800">Reject Leave Request</h3>
+            <p className="text-xs text-gray-500">Please provide a reason for rejecting this leave request. This will be visible to the employee.</p>
+            <textarea
+              className="w-full border border-gray-200 p-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+              rows={4}
+              placeholder="E.g., Project delivery is due this week."
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+            />
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={() => setRejectModalOpen(false)}
+                className="px-4 py-2 font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 text-xs transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRejectSubmit}
+                className="px-4 py-2 font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 text-xs transition-colors"
+              >
+                Confirm Rejection
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

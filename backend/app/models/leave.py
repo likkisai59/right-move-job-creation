@@ -16,6 +16,7 @@ class Leave(Base):
     reason = Column(String(500), nullable=True)
     status = Column(String(20), default="Pending") # Pending, Approved, Rejected
     approved_by = Column(String(100), nullable=True) # Manager or Admin name
+    rejection_reason = Column(String(500), nullable=True) # Notes if rejected
     total_leaves = Column(Float, default=0.0, nullable=False)
 
     # Relationship back to employee
