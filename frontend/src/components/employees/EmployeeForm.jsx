@@ -586,7 +586,9 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     ];
     const isValid = await trigger(fieldsToValidate);
     if (isValid) {
-      onSubmit(getFilteredPayload());
+      const payload = getFilteredPayload();
+      payload.is_final_submit = true;
+      onSubmit(payload);
     }
   };
 

@@ -28,14 +28,19 @@ def generate_employee_id(db: Session) -> str:
     next_number = max_num + 1
     return f"RM{next_number:04d}"
 
-def compute_employee_completion(employee: Employee):
+def compute_employee_completion(employee: Employee, is_final_submit: bool = False):
     """
-    Computes and sets the completion_percentage and profile_status for an employee.
-    Calculates HR completion and Admin completion separately by counting individual fields.
+    Recalculates and updates the completion percentage and status
+    for HR, Admin, and the overall profile.
+    
+    Generates a password if is_final_submit is True.
     """
-    # Helper to check if a value is non-empty
     def is_filled(val):
-        return val is not None and str(val).strip() != ""
+        if val is None:
+            return False
+        if isinstance(val, str) and str(val).strip() == "":
+            return False
+        return True
 
     # 1. HR Details Fields (38 fields, plus 1 if Inactive)
     hr_fields = [
@@ -127,8 +132,8 @@ def compute_employee_completion(employee: Employee):
     else:
         employee.profile_status = "Draft"
 
-    # Generate bcrypt hashed password if both sections are 100% complete
-    if employee.completion_percentage_hr == 100 and employee.completion_percentage_admin == 100:
+    # Generate bcrypt hashed password if frontend indicates final submission
+    if is_final_submit:
         import re
         from app.core.security import get_password_hash
         # Extract digits from employee_id (e.g. RM0001 -> 0001)
@@ -139,7 +144,7 @@ def compute_employee_completion(employee: Employee):
         raw_password = f"{first_char}{last_name}@{digits}"
         # Store as bcrypt hash for security
         employee.employee_password = get_password_hash(raw_password)
-    else:
+    elif not employee.employee_password:
         employee.employee_password = None
         
 # ─────────────────────────────────────────────────────────────
@@ -214,7 +219,9 @@ def create_employee(db: Session, payload: EmployeeCreateRequest) -> Employee:
         employee_password=payload.employee_password
     )
     
-    compute_employee_completion(new_employee)
+    # Recompute completion percentage
+    is_final_submit = getattr(payload, 'is_final_submit', False)
+    compute_employee_completion(new_employee, is_final_submit=is_final_submit)
     
     db.add(new_employee)
     db.commit()
@@ -402,7 +409,8 @@ def update_employee(
     for key, value in update_data.items():
         setattr(employee, key, value)
         
-    compute_employee_completion(employee)
+    is_final_submit = getattr(payload, 'is_final_submit', False)
+    compute_employee_completion(employee, is_final_submit=is_final_submit)
 
     db.commit()
     db.refresh(employee)

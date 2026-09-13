@@ -131,7 +131,8 @@ def test_employee_password_generation_on_100_percent_completion(client: TestClie
         "email_id_configured": "Yes",
         "linkedin_configured": "Yes",
         "google_sheet_configured": "Yes",
-        "whatsapp_business_configured": "Yes"
+        "whatsapp_business_configured": "Yes",
+        "is_final_submit": True
     }
 
     up_res = client.put(f"/api/employees/{emp_id}", json=full_update_payload)

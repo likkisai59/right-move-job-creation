@@ -12,8 +12,11 @@ class EmployeeStatus(str, Enum):
 
 class EmployeeBase(BaseModel):
     """
-    Base properties shared across different employee schemas.
+    Base schema containing all common employee fields.
     """
+    is_final_submit: Optional[bool] = False
+    
+    # Personal details
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     blood_group: Optional[str] = None
@@ -138,6 +141,7 @@ class EmployeeUpdateRequest(BaseModel):
     Schema for updating an existing employee.
     All fields are optional because the user might only update some of them.
     """
+    is_final_submit: Optional[bool] = False
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     blood_group: Optional[str] = None
