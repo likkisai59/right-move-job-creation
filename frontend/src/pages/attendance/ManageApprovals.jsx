@@ -458,7 +458,7 @@ const ManageApprovals = () => {
                                     <button
                                       onClick={() => {
                                         setRejectLeaveId(leave.id);
-                                        setRejectReason('');
+                                        setRejectionReason('');
                                         setRejectModalOpen(true);
                                       }}
                                       className="flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors border border-rose-100"

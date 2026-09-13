@@ -13,7 +13,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { APP_NAME, APP_SHORT } from '../../utils/constants';
-import { getSystemRole } from '../../api/authApi';
+import { getSystemRole, getCurrentEmployee } from '../../api/authApi';
 
 const NAV_ITEMS = [
   { label: 'Home', path: '/home', icon: Home },
@@ -29,6 +29,10 @@ const NAV_ITEMS = [
 
 const Sidebar = ({ collapsed, onToggle }) => {
   const role = getSystemRole();
+  const employee = getCurrentEmployee() || {};
+  const employeeName = employee.name || 'Admin';
+  const employeeEmail = employee.official_email_id || employee.email || 'admin@rightmove.in';
+  const initials = employeeName.substring(0, 2).toUpperCase();
 
   const filteredNavItems = NAV_ITEMS.filter(({ label }) => {
     if (role === 'unassigned') return label === 'Home';
@@ -115,13 +119,13 @@ const Sidebar = ({ collapsed, onToggle }) => {
             collapsed ? 'justify-center' : '',
           ].join(' ')}
         >
-          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-semibold shrink-0">
-            AD
+          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-semibold shrink-0" title={employeeName}>
+            {initials}
           </div>
           {!collapsed && (
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-white truncate">Admin</p>
-              <p className="text-xs text-slate-400 truncate">admin@rightmove.in</p>
+            <div className="min-w-0" title={employeeEmail}>
+              <p className="text-sm font-medium text-white truncate">{employeeName}</p>
+              <p className="text-xs text-slate-400 truncate">{employeeEmail}</p>
             </div>
           )}
         </div>
