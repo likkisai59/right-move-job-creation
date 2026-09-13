@@ -45,6 +45,17 @@ class RequirementCreate(BaseModel):
             return v.strip()
         return v
 
+    @field_validator("budget", mode="before")
+    @classmethod
+    def validate_budget(cls, v):
+        try:
+            val = float(v)
+            if val <= 0:
+                raise ValueError("Budget should not be Zero")
+            return val
+        except (TypeError, ValueError):
+            raise ValueError("Budget should not be Zero")
+
     @field_validator("status", mode="before")
     @classmethod
     def validate_status(cls, v: str) -> str:

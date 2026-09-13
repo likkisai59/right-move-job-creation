@@ -81,6 +81,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
       requirements: [{ job_title: '', budget: '', experience: '', number_of_open_positions: '', min_experience: 0, max_experience: 10, location: '', required_skills: '', status: 'ACTIVE', mandatorySkill: '', noticePeriod: '', qualification: '', shifts: '', workMode: '', jobDescription: '' }],
       internalSpoc: '',
     },
+    mode: 'onChange',
   });
 
   const [organizations, setOrganizations] = React.useState([]);
@@ -370,8 +371,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
                   error={errors.requirements?.[index]?.budget?.message}
                   {...register(`requirements.${index}.budget`, { 
                     required: 'Budget is required',
-                    valueAsNumber: true,
-                    min: { value: 0, message: 'Min 0' }
+                    validate: (val) => Number(val) > 0 || 'Budget should not be Zero'
                   })}
                 />
 
