@@ -37,6 +37,7 @@ class EmployeeBase(BaseModel):
     profile_status_admin: Optional[str] = "Draft"
     completion_percentage_admin: Optional[int] = 0
     last_working_date: Optional[dt.date] = None
+    exit_type: Optional[str] = None
     date: Optional[dt.date] = None
 
     # New fields
@@ -160,6 +161,7 @@ class EmployeeUpdateRequest(BaseModel):
     profile_status_admin: Optional[str] = None
     completion_percentage_admin: Optional[int] = None
     last_working_date: Optional[dt.date] = None
+    exit_type: Optional[str] = None
     date: Optional[dt.date] = None
 
     # New fields

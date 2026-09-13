@@ -51,6 +51,7 @@ class Employee(Base):
 
     # Only filled when employee leaves — nullable by default
     last_working_date= Column(Date, nullable=True)
+    exit_type = Column(String(50), nullable=True)
 
     # Date of Employee Creation
     date = Column(Date, nullable=True)

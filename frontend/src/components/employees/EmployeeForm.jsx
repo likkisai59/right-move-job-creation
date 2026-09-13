@@ -7,6 +7,7 @@ import SearchableSelect from '../common/SearchableSelect';
 import Button from '../common/Button';
 import {
   EMPLOYEE_STATUS_OPTIONS,
+  EMPLOYEE_EXIT_TYPES,
   EMPLOYEE_GENDER_OPTIONS,
   EMPLOYEE_BLOOD_GROUP_OPTIONS,
   COUNTRY_CODES,
@@ -609,7 +610,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
         'bankName', 'bankAccountNumber', 'bankIfscCode'
       ];
       if (currentStatus === 'Inactive') {
-        fieldsToValidate.push('lastWorkingDate');
+        fieldsToValidate.push('lastWorkingDate', 'exitType');
       }
     }
 
@@ -1069,18 +1070,32 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             />
 
             {currentStatus === 'Inactive' && (
-              <div className="animate-slide-up">
-                <Input
-                  label="Last Working Date"
-                  type="date"
-                  required={currentStatus === 'Inactive'}
-                  error={errors.lastWorkingDate?.message}
-                  {...register('lastWorkingDate', {
-                    required: currentStatus === 'Inactive' ? 'Last working date is required for inactive employees' : false
-                  })}
-                  disabled={isHrDisabled}
-                />
-              </div>
+              <>
+                <div className="animate-slide-up">
+                  <Input
+                    label="Last Working Date"
+                    type="date"
+                    required={currentStatus === 'Inactive'}
+                    error={errors.lastWorkingDate?.message}
+                    {...register('lastWorkingDate', {
+                      required: currentStatus === 'Inactive' ? 'Last working date is required for inactive employees' : false
+                    })}
+                    disabled={isHrDisabled}
+                  />
+                </div>
+                <div className="animate-slide-up">
+                  <Select
+                    label="Exit Type"
+                    options={EMPLOYEE_EXIT_TYPES}
+                    required={currentStatus === 'Inactive'}
+                    error={errors.exitType?.message}
+                    {...register('exitType', {
+                      required: currentStatus === 'Inactive' ? 'Exit type is required for inactive employees' : false
+                    })}
+                    disabled={isHrDisabled}
+                  />
+                </div>
+              </>
             )}
 
             <Input

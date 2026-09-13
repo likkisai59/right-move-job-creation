@@ -188,6 +188,20 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
     });
   }
 
+  columns.push({
+    key: 'status',
+    header: 'Status',
+    render: (_, row) => (
+      <span className={`text-xs font-medium px-2 py-1 rounded whitespace-nowrap ${
+        row.status === 'Active' 
+          ? 'bg-emerald-50 text-emerald-700' 
+          : 'bg-red-50 text-red-700'
+      }`}>
+        {row.status || 'Active'}
+      </span>
+    ),
+  });
+
   columns.push(actionColumn);
 
   if (!loading && employees.length === 0) {

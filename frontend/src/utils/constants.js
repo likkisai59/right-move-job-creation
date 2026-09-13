@@ -210,6 +210,14 @@ export const EMPLOYEE_STATUS_OPTIONS = [
   { value: 'Inactive', label: 'Inactive' }
 ];
 
+export const EMPLOYEE_EXIT_TYPES = [
+  { value: 'One Day Resign', label: 'One Day Resign' },
+  { value: 'Absconding', label: 'Absconding' },
+  { value: 'Termination', label: 'Termination' },
+  { value: 'Notice Period Completed', label: 'Notice Period Completed' },
+  { value: 'Buyout notice', label: 'Buyout notice' }
+];
+
 export const EMPLOYEE_GENDER_OPTIONS = [
   { value: 'Male', label: 'Male' },
   { value: 'Female', label: 'Female' },
