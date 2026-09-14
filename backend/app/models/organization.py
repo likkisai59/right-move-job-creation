@@ -29,9 +29,10 @@ class Organization(Base):
     sgst = Column(Float, nullable=True, default=0.0)
     igst = Column(Float, nullable=True, default=0.0)
 
-    poc_country_code = Column(String(10), nullable=True)
-    poc_contact = Column(String(20), nullable=True)
-    poc_email_id = Column(String(255), nullable=True)
+    poc_name = Column(String(1000), nullable=True)
+    poc_country_code = Column(String(255), nullable=True)
+    poc_contact = Column(String(500), nullable=True)
+    poc_email_id = Column(String(1000), nullable=True)
 
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())

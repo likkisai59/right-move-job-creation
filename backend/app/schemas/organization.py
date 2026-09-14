@@ -12,8 +12,9 @@ class OrganizationCreate(BaseModel):
     country_code: Optional[str] = Field(None)
     band: Optional[str] = None
     rate: Optional[str] = None
+    poc_name: Optional[str] = None
     poc_country_code: Optional[str] = Field(None)
-    poc_contact: Optional[str] = Field(None, pattern=r'^\d*$')
+    poc_contact: Optional[str] = Field(None)
     poc_email_id: Optional[str] = None
     location: Optional[str] = None
     gst_number: Optional[str] = None
@@ -36,14 +37,16 @@ class OrganizationCreate(BaseModel):
             raise ValueError(f"Invalid status. Allowed: {', '.join(allowed)}")
         return v
 
-    @field_validator("contact_number", "poc_contact", mode="before")
+    @field_validator("poc_contact", mode="before")
     @classmethod
-    def validate_org_phone(cls, v):
+    def validate_poc_phone(cls, v):
         if v and str(v).strip():
             val = str(v).strip()
             import re
-            if not re.match(r"^\d{10}$", val):
-                raise ValueError("Phone number must be exactly 10 digits")
+            for phone in val.split(','):
+                phone = phone.strip()
+                if phone and not re.match(r"^\d+$", phone):
+                    raise ValueError("Phone numbers must be digits")
         return v
 
     @field_validator("poc_email_id", mode="before")
@@ -52,8 +55,10 @@ class OrganizationCreate(BaseModel):
         if v and str(v).strip():
             val = str(v).strip()
             import re
-            if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", val):
-                raise ValueError("Enter a valid email address")
+            for email in val.split(','):
+                email = email.strip()
+                if email and not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email):
+                    raise ValueError(f"Enter a valid email address: {email}")
         return v
 
     @field_validator("gst_number", mode="before")
@@ -83,8 +88,9 @@ class OrganizationUpdate(BaseModel):
     country_code: Optional[str] = Field(None)
     band: Optional[str] = None
     rate: Optional[str] = None
+    poc_name: Optional[str] = None
     poc_country_code: Optional[str] = Field(None)
-    poc_contact: Optional[str] = Field(None, pattern=r'^\d*$')
+    poc_contact: Optional[str] = Field(None)
     poc_email_id: Optional[str] = None
     location: Optional[str] = None
     gst_number: Optional[str] = None
@@ -122,6 +128,7 @@ class OrganizationResponse(BaseModel):
     is_active: Optional[int] = None
     band: Optional[str] = None
     rate: Optional[str] = None
+    poc_name: Optional[str] = None
     poc_country_code: Optional[str] = None
     poc_contact: Optional[str] = None
     poc_email_id: Optional[str] = None

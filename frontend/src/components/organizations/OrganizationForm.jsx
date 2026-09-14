@@ -50,9 +50,7 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
       contact_number: initialData.contact_number || '',
       country_code: initialData.country_code || '',
       rate_cards: [{ band: '', rate: '' }],
-      poc_country_code: initialData.poc_country_code || '',
-      poc_contact: initialData.poc_contact || '',
-      poc_email_id: initialData.poc_email_id || '',
+      pocs: [{ poc_name: '', poc_country_code: '+91', poc_contact: '', poc_email_id: '' }],
       contract_document_url: initialData.contract_document_url || '',
       location: initialData.location || '',
       gst_number: initialData.gst_number || '',
@@ -68,6 +66,11 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
     name: 'rate_cards',
   });
 
+  const { fields: pocFields, append: appendPoc, remove: removePoc } = useFieldArray({
+    control,
+    name: 'pocs',
+  });
+
   // Only reset form if initialData actually changes (e.g. from an API load)
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
@@ -81,12 +84,26 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
           rate: rates[i] || '',
         });
       }
+
+      const poc_names = initialData.poc_name ? initialData.poc_name.split(',') : [];
+      const poc_country_codes = initialData.poc_country_code ? initialData.poc_country_code.split(',') : [];
+      const poc_contacts = initialData.poc_contact ? initialData.poc_contact.split(',') : [];
+      const poc_emails = initialData.poc_email_id ? initialData.poc_email_id.split(',') : [];
+      const pocs = [];
+      const maxPocLength = Math.max(poc_names.length, poc_country_codes.length, poc_contacts.length, poc_emails.length);
+      for (let i = 0; i < maxPocLength; i++) {
+        pocs.push({
+          poc_name: poc_names[i] || '',
+          poc_country_code: poc_country_codes[i] || '',
+          poc_contact: poc_contacts[i] || '',
+          poc_email_id: poc_emails[i] || '',
+        });
+      }
+
       reset({
         ...initialData,
         rate_cards: rate_cards.length > 0 ? rate_cards : [{ band: '', rate: '' }],
-        poc_country_code: initialData.poc_country_code || '+91',
-        poc_contact: initialData.poc_contact || '',
-        poc_email_id: initialData.poc_email_id || '',
+        pocs: pocs.length > 0 ? pocs : [{ poc_name: '', poc_country_code: '', poc_contact: '', poc_email_id: '' }],
         contract_document_url: initialData.contract_document_url || '',
         location: initialData.location || '',
         gst_number: initialData.gst_number || '',
@@ -100,16 +117,7 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
   const organizationName = watch('organization_name');
   const signedDate = watch('contract_signed_date');
   const selectedCountryCode = watch('country_code') || '+91';
-  const selectedPocCountryCode = watch('poc_country_code') || '+91';
 
-  // Re-trigger phone validation when country code dropdown changes
-  useEffect(() => {
-    if (getValues('contact_number')) trigger('contact_number');
-  }, [selectedCountryCode, trigger, getValues]);
-
-  useEffect(() => {
-    if (getValues('poc_contact')) trigger('poc_contact');
-  }, [selectedPocCountryCode, trigger, getValues]);
 
   const handleCheckDuplicates = async () => {
     if (!organizationName || organizationName.trim().length === 0) {
@@ -165,12 +173,23 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
     const bands = validRateCards.map(rc => rc.band?.trim() || '').join(',');
     const rates = validRateCards.map(rc => rc.rate?.trim() || '').join(',');
 
+    const validPocs = (data.pocs || []).filter(p => p.poc_name?.trim() || p.poc_contact?.trim() || p.poc_email_id?.trim());
+    const poc_names = validPocs.map(p => p.poc_name?.trim() || '').join(',');
+    const poc_country_codes = validPocs.map(p => p.poc_country_code?.trim() || '').join(',');
+    const poc_contacts = validPocs.map(p => p.poc_contact?.trim() || '').join(',');
+    const poc_emails = validPocs.map(p => p.poc_email_id?.trim() || '').join(',');
+
     const payload = {
       ...data,
       band: bands || null,
       rate: rates || null,
+      poc_name: poc_names || null,
+      poc_country_code: poc_country_codes || null,
+      poc_contact: poc_contacts || null,
+      poc_email_id: poc_emails || null,
     };
     delete payload.rate_cards;
+    delete payload.pocs;
 
     onSubmit(payload);
   };
@@ -363,46 +382,84 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
 
           {/* SECTION 2: POC Details */}
           <div className="mt-6 pt-6 border-t border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-5 flex items-center gap-2">
-              <Phone size={16} className="text-blue-500" />
-              POC Details
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-              <div className="md:col-span-1">
-                <Select
-                  label="Code"
-                  options={COUNTRY_CODES}
-                  error={errors.poc_country_code?.message}
-                  {...register('poc_country_code')}
-                />
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                  <Phone size={16} className="text-blue-500" />
+                  POC Details
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">Add Point of Contacts for this organization.</p>
               </div>
-              <div className="md:col-span-3">
-                <Input
-                  label="POC Contact"
-                  placeholder="Enter POC phone number"
-                  icon={Phone}
-                  inputMode="numeric"
-                  maxLength={getPhoneValidationRules(selectedPocCountryCode).maxLength}
-                  onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
-                  onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
-                  error={errors.poc_contact?.message}
-                  {...register('poc_contact', {
-                    ...getPhoneValidationRules(selectedPocCountryCode)
-                  })}
-                />
-              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => appendPoc({ poc_name: '', poc_country_code: '', poc_contact: '', poc_email_id: '' })}
+                icon={Plus}
+              >
+                Add POC Details
+              </Button>
             </div>
-            <div className="grid grid-cols-1 gap-4">
-              <Input
-                label="POC Email ID"
-                type="email"
-                placeholder="e.g. poc@company.com"
-                icon={Mail}
-                error={errors.poc_email_id?.message}
-                {...register('poc_email_id', {
-                  pattern: { value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, message: 'Enter a valid email address (e.g. poc@company.com)' }
-                })}
-              />
+
+            <div className="space-y-4">
+              {pocFields.map((field, index) => (
+                <div key={field.id} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start bg-gray-50 p-4 rounded-xl border border-gray-100 relative animate-slide-up">
+                  <div className="md:col-span-3">
+                    <Input
+                      label="POC Name"
+                      placeholder="e.g. John Doe"
+                      error={errors.pocs?.[index]?.poc_name?.message}
+                      {...register(`pocs.${index}.poc_name`)}
+                    />
+                  </div>
+                  
+                  <div className="md:col-span-2">
+                    <Select
+                      label="Code"
+                      options={COUNTRY_CODES}
+                      error={errors.pocs?.[index]?.poc_country_code?.message}
+                      {...register(`pocs.${index}.poc_country_code`)}
+                    />
+                  </div>
+                  
+                  <div className="md:col-span-3">
+                    <Input
+                      label="POC Contact"
+                      placeholder="Phone number"
+                      icon={Phone}
+                      inputMode="numeric"
+                      error={errors.pocs?.[index]?.poc_contact?.message}
+                      {...register(`pocs.${index}.poc_contact`, {
+                        pattern: { value: /^\d+$/, message: 'Digits only' }
+                      })}
+                    />
+                  </div>
+                  
+                  <div className="md:col-span-4 relative pr-10">
+                    <Input
+                      label="POC Email ID"
+                      type="email"
+                      placeholder="e.g. poc@company.com"
+                      icon={Mail}
+                      error={errors.pocs?.[index]?.poc_email_id?.message}
+                      {...register(`pocs.${index}.poc_email_id`, {
+                        pattern: { value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, message: 'Valid email required' }
+                      })}
+                    />
+                    
+                    {pocFields.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removePoc(index)}
+                        className="absolute right-0 bottom-3 w-8 h-8 flex items-center justify-center rounded-full bg-red-50 text-red-600 hover:bg-red-100 shadow-sm transition-all hover:scale-110 active:scale-95"
+                        title="Remove POC"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
