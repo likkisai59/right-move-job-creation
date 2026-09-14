@@ -36,7 +36,11 @@ from app.models import designation  # noqa: F401
 from app.models import business_unit  # noqa: F401
 from app.models import work_mode  # noqa: F401
 from app.models import exit_type  # noqa: F401
-from app.models import account
+from app.models import account  # noqa: F401
+from app.models import payroll_config  # noqa: F401
+from app.models import invoice  # noqa: F401
+from app.models import role_permission  # noqa: F401
+from app.models import ticket  # noqa: F401
 
 # Import routers
 from app.routes import jobs
@@ -237,6 +241,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from app.routes import accounts as accounts_router
+from app.routes import tickets as tickets_router
+
 from app.routes import settings as settings_router
 
 # ── Register Routers ──────────────────────────────────────────
@@ -251,6 +258,7 @@ app.include_router(business_unit_router.router)
 app.include_router(work_mode_router.router)
 app.include_router(exit_type_router.router)
 app.include_router(accounts_router.router)
+app.include_router(tickets_router.router)
 app.include_router(settings_router.router)
 
 # ── Static Files ──────────────────────────────────────────────

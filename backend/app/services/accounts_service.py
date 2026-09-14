@@ -368,7 +368,7 @@ def list_placements(db: Session) -> List[dict]:
         
         # Get organization details through Job
         org = None
-        if job.organization_id:
+        if job and job.organization_id:
             org = db.query(Organization).filter(Organization.id == job.organization_id).first()
             
         # Look up employee details for the recruiter
@@ -389,9 +389,9 @@ def list_placements(db: Session) -> List[dict]:
             "candidate_code": candidate.candidate_code,
             "candidate_name": f"{candidate.first_name} {candidate.last_name}".strip(),
             "organization_id": org.organization_id if org else None,
-            "organization_name": org.organization_name if org else job.company_name,
+            "organization_name": org.organization_name if org else (job.company_name if job else "-"),
             "location": org.location if org else None,
-            "job_designation": job.requirements[0].job_title if job.requirements else "—",
+            "job_designation": job.requirements[0].job_title if (job and job.requirements) else "-",
             "incentive": m.incentive,
             "rate_card": m.rate_card,
             "band": m.band,
@@ -414,7 +414,7 @@ def list_invoices(db: Session) -> List[dict]:
         candidate = m.candidate
         job = m.job
         org = None
-        if job.organization_id:
+        if job and job.organization_id:
             org = db.query(Organization).filter(Organization.id == job.organization_id).first()
             
         invoice = db.query(Invoice).filter(Invoice.job_candidate_mapping_id == m.id).first()
@@ -496,9 +496,10 @@ def list_invoices(db: Session) -> List[dict]:
             
             # Read-only fields fetched from candidate placement and org
             "candidate_joined_date": m.joining_date,
+            "candidate_code": candidate.candidate_code,
             "candidate_name": f"{candidate.first_name} {candidate.last_name}".strip(),
-            "job_designation": job.requirements[0].job_title if job.requirements else "—",
-            "organization_name": org.organization_name if org else job.company_name,
+            "job_designation": job.requirements[0].job_title if (job and job.requirements) else "-",
+            "organization_name": org.organization_name if org else (job.company_name if job else "-"),
             "location": org.location if org else None,
             "offered_ctc": offered_ctc_val,
             "gst_number": org.gst_number if org else None,

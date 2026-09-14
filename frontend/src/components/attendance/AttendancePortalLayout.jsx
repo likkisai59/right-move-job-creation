@@ -37,6 +37,7 @@ const AttendancePortalLayout = () => {
     { name: 'Assigned Tasks', path: '/attendance/portal/tasks', icon: Briefcase },
     { name: 'Leave Management', path: '/attendance/portal/leaves', icon: ClipboardList },
     { name: 'Attendance Status', path: '/attendance/portal/status', icon: PieChart },
+    { name: 'Tickets', path: '/attendance/portal/tickets', icon: CheckSquare },
   ];
 
   const role = getSystemRole();

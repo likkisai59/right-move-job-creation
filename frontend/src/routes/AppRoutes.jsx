@@ -34,6 +34,7 @@ import LeaveManagement from '../pages/attendance/LeaveManagement';
 import AttendanceStatus from '../pages/attendance/AttendanceStatus';
 import ManageApprovals from '../pages/attendance/ManageApprovals';
 import AssignedTasks from '../pages/attendance/AssignedTasks';
+import TicketManagement from '../pages/attendance/TicketManagement';
 
 // ── Protected Route Component ────────────────────────────────
 const ProtectedRoute = ({ children }) => {
@@ -109,6 +110,7 @@ const AppRoutes = () => {
             </ManagerProtectedRoute>
           }
         />
+        <Route path="tickets" element={<TicketManagement />} />
       </Route>
 
       {/* Admin Dashboard & CRM Routes */}
