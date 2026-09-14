@@ -15,7 +15,7 @@ const LeaveManagement = () => {
   const [successMsg, setSuccessMsg] = useState('');
 
   // Form states
-  const [leaveType, setLeaveType] = useState('Paid Leave');
+  const [leaveType, setLeaveType] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [reason, setReason] = useState('');
@@ -51,6 +51,10 @@ const LeaveManagement = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!leaveType) {
+      setError('Please select a leave type.');
+      return;
+    }
     if (!startDate || !endDate) {
       setError('Start date and end date are required.');
       return;
@@ -215,6 +219,7 @@ const LeaveManagement = () => {
                   onChange={(e) => setLeaveType(e.target.value)}
                   className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-semibold text-gray-700"
                 >
+                  <option value="" disabled>Select</option>
                   <option>Paid Leave</option>
                   <option>Unpaid Leave</option>
                   <option>Optional Leave</option>

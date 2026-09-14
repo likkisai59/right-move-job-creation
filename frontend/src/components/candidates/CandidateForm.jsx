@@ -72,7 +72,7 @@ const DEFAULT_FORM_VALUES = {
   // Personal Details
   firstName: '',
   lastName: '',
-  countryCode: '+91',
+  countryCode: '',
   email: '',
   alternativeEmail: '',
   phone: '',
@@ -889,7 +889,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
         {/* Highest Qualification */}
         <Select
           label="Highest Qualification"
-          placeholder="Select qualification"
+
           required
           options={EDUCATION_OPTIONS}
           error={errors.highestQualification?.message}
@@ -918,7 +918,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
         {/* Business Unit */}
         <Select
           label="Business Unit"
-          placeholder="Select Business Unit"
+
           required
           options={businessUnits}
           error={errors.businessUnit?.message}
@@ -967,7 +967,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
                   isFresher ? 'bg-gray-100 cursor-not-allowed opacity-60' : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <option value="">Years</option>
+                <option value="" disabled>Select</option>
                 {YEAR_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
@@ -984,7 +984,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
                   isFresher ? 'bg-gray-100 cursor-not-allowed opacity-60' : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <option value="">Months</option>
+                <option value="" disabled>Select</option>
                 {MONTH_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
@@ -1001,7 +1001,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
         {/* Notice Period */}
         <Select
           label="Notice Period"
-          placeholder="Select notice period"
+
           required
           options={NOTICE_PERIODS}
           error={errors.noticePeriod?.message}
@@ -1094,7 +1094,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
         {/* Source */}
         <Select
           label="Source"
-          placeholder="Select source"
+
           required
           options={SOURCE_OPTIONS}
           error={errors.source?.message}
@@ -1133,7 +1133,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
               className="w-full rounded-lg border border-gray-200 bg-white text-sm text-gray-900 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all"
               {...register('recruiterName', { required: 'Please select a recruiter' })}
             >
-              <option value="">Select recruiter...</option>
+              <option value="" disabled>Select</option>
               {recruiterOptions.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}

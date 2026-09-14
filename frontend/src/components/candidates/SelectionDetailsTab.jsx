@@ -386,6 +386,7 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                 onChange={e => setSelectedJobId(e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-violet-500 outline-none mb-4"
               >
+                <option value="" disabled>Select</option>
                 <option value="">Select a job...</option>
                 {jobList.map(job => (
                   <option key={job.id} value={job.id}>{job.label}</option>
@@ -478,6 +479,7 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
               onChange={e => setSelectedJobId(e.target.value)}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-violet-500 outline-none mb-4"
             >
+              <option value="" disabled>Select</option>
               <option value="">Select a job...</option>
               {jobList.map(job => (
                 <option key={job.id} value={job.id}>{job.label}</option>
@@ -737,6 +739,7 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                             onChange={(e) => setEditForm({...editForm, status: e.target.value})}
                             className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
                           >
+                            <option value="" disabled>Select</option>
                             {CANDIDATE_PIPELINE_STATUSES.map((status) => (
                               <option key={status} value={status}>{status}</option>
                             ))}
@@ -763,6 +766,7 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                                   onChange={(e) => handleTimeChange('hour', e.target.value)}
                                   className={`w-full px-2 py-2.5 rounded-xl border ${formErrors.interview_time ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
                                 >
+                                  <option value="" disabled>Select</option>
                                   <option value="">HH</option>
                                   {HOUR_OPTIONS.map(h => (
                                     <option key={h} value={h}>{h}</option>
@@ -773,6 +777,7 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                                   onChange={(e) => handleTimeChange('minute', e.target.value)}
                                   className={`w-full px-2 py-2.5 rounded-xl border ${formErrors.interview_time ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
                                 >
+                                  <option value="" disabled>Select</option>
                                   <option value="">MM</option>
                                   {MINUTE_OPTIONS.map(m => (
                                     <option key={m} value={m}>{m}</option>

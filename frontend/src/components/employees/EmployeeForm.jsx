@@ -206,7 +206,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
       lastName: '',
       bloodGroup: '',
       gender: '',
-      countryCode: '+91',
+      countryCode: '',
       contactNumber: '',
       email: '',
       permanentAddress: '',
@@ -214,14 +214,14 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
       designation: '',
       dateOfJoining: '',
       package: '',
-      status: 'Active',
+      status: '',
       lastWorkingDate: '',
 
       // New fields
       dateOfBirth: '',
-      countrycodeOfficeContact: '+91',
+      countrycodeOfficeContact: '',
       contactNumberOffice: '',
-      countrycodeEmergencyContact: '+91',
+      countrycodeEmergencyContact: '',
       emergencyContactNumber: '',
       aadharNumber: '',
       aadharUrl: '',
@@ -394,9 +394,9 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   }, [initialData, allEmployees, setValue]);
 
   const selectedReportingDesignation = watch('reportingDesignation');
-  const selectedPersonalCountry = watch('countryCode') || '+91';
-  const selectedOfficeCountry = watch('countrycodeOfficeContact') || '+91';
-  const selectedEmergencyCountry = watch('countrycodeEmergencyContact') || '+91';
+  const selectedPersonalCountry = watch('countryCode') || '';
+  const selectedOfficeCountry = watch('countrycodeOfficeContact') || '';
+  const selectedEmergencyCountry = watch('countrycodeEmergencyContact') || '';
 
   // Re-trigger validation when country code dropdown changes
   useEffect(() => {
@@ -460,10 +460,10 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
         formattedData.dateOfBirth = formattedData.dateOfBirth.split('T')[0];
       }
       if (!formattedData.countrycodeOfficeContact) {
-        formattedData.countrycodeOfficeContact = '+91';
+        formattedData.countrycodeOfficeContact = '';
       }
       if (!formattedData.countrycodeEmergencyContact) {
-        formattedData.countrycodeEmergencyContact = '+91';
+        formattedData.countrycodeEmergencyContact = '';
       }
       reset(formattedData);
     }
@@ -1167,7 +1167,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                   error={errors.designation?.message}
                   value={field.value}
                   onChange={field.onChange}
-                  placeholder="Select designation"
+
                   showSearch={false}
                   maxHeight={200}
                   disabled={isHrDisabled}
@@ -1186,7 +1186,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
 
             <Select
               label="Reporting Designation"
-              placeholder="Select designation"
+
               options={[
                 { value: 'leader', label: 'Leader' },
                 { value: 'admin_user', label: 'Admin user' },
@@ -1204,7 +1204,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                 label="Reporting To (Manager)"
                 placeholder={
                   reportingManagerOptions.length > 0
-                    ? "Select manager"
+                    ? "Select"
                     : "No active employees with this designation — skip or add later"
                 }
                 options={reportingManagerOptions}

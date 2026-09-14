@@ -9,7 +9,7 @@ const Select = forwardRef(
       hint,
       required,
       options = [],
-      placeholder,
+      placeholder = 'Select',
       className = '',
       containerClassName = '',
       ...props

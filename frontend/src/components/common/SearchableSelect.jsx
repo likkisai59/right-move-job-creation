@@ -10,7 +10,7 @@ const SearchableSelect = ({
     onChange,           // (value) => void
     error,
     required = false,
-    placeholder = 'Select...',
+    placeholder = 'Select',
     disabled = false,
     showSearch = true,  // New prop: toggle search bar
     maxHeight = 220,    // New prop: control dropdown height

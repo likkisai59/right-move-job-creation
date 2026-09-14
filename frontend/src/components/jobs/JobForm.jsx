@@ -75,10 +75,10 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
       date: '',
       organizationId: '',
       companyName: '',
-      businessUnit: 'IT',
+      businessUnit: '',
       externalSpoc: '',
       externalSpocEmailId: '',
-      requirements: [{ job_title: '', budget: '', experience: '', number_of_open_positions: '', min_experience: 0, max_experience: 10, location: '', required_skills: '', status: 'ACTIVE', mandatorySkill: '', noticePeriod: '', qualification: '', shifts: '', workMode: '', jobDescription: '' }],
+      requirements: [{ job_title: '', budget: '', experience: '', number_of_open_positions: '', min_experience: 0, max_experience: 10, location: '', required_skills: '', status: '', mandatorySkill: '', noticePeriod: '', qualification: '', shifts: '', workMode: '', jobDescription: '' }],
       internalSpoc: '',
     },
     mode: 'onChange',
@@ -266,7 +266,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
         <SearchableSelect
           label="Organization"
           required
-          placeholder="Select Organization"
+
           options={organizations.map(o => ({ value: o.id, label: o.location ? `${o.organization_name} - ${o.location}` : o.organization_name }))}
           value={watch('organizationId')}
           onChange={(val) => {
@@ -318,7 +318,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
                 <Select
                   label="Internal SPOC"
-                  placeholder="Select Internal SPOC"
+
                   required
                   options={recruiters}
                   value={watch('internalSpoc') || ''}
@@ -422,7 +422,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
                 {/* Notice Period */}
                 <Select
                   label="Notice Period"
-                  placeholder="Select Notice Period"
+
                   options={NOTICE_PERIODS}
                   {...register(`requirements.${index}.noticePeriod`)}
                 />
@@ -433,7 +433,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
                   otherName={`requirements.${index}.qualificationOther`}
                   options={EDUCATION_OPTIONS}
                   label="Qualification"
-                  selectPlaceholder="Select Qualification"
+
                   inputPlaceholder="e.g., M.Tech"
                   register={register}
                   watch={watch}
@@ -446,7 +446,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
                   otherName={`requirements.${index}.shiftsOther`}
                   options={JOB_SHIFTS}
                   label="Shifts"
-                  selectPlaceholder="Select Shift"
+
                   inputPlaceholder="e.g., Morning 9-5"
                   register={register}
                   watch={watch}
@@ -456,7 +456,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
                 {/* Work Mode */}
                 <Select
                   label="Work Mode"
-                  placeholder="Select Work Mode"
+
                   options={workModes}
                   {...register(`requirements.${index}.workMode`)}
                 />
