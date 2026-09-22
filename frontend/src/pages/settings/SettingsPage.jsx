@@ -307,11 +307,11 @@ const SettingsPage = () => {
             {/* Tab Content 2: Permission Matrix */}
             {activeTab === 'matrix' && (
               <div className="flex-1 flex flex-col h-full min-h-0 space-y-4">
-                <h2 className="text-lg font-bold text-gray-900 shrink-0">7-Role System Permission Matrix (Excel Specification)</h2>
-                <div className="flex-1 overflow-y-auto border border-gray-200 rounded-lg">
+                <h2 className="text-lg font-bold text-gray-900 shrink-0">9-Role System Permission Matrix (Excel Specification)</h2>
+                <div className="flex-1 overflow-auto border border-gray-200 rounded-lg pb-10">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="bg-gray-900 text-white font-semibold sticky top-0 z-10">
+                      <tr className="bg-gray-900 text-white font-semibold sticky top-0 z-10 shadow-sm">
                         <th className="p-3 border border-gray-700">System Role</th>
                         <th className="p-3 border border-gray-700">Candidate</th>
                         <th className="p-3 border border-gray-700">Job Requirement</th>

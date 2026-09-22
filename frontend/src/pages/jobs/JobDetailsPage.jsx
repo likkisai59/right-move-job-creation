@@ -6,6 +6,7 @@ import {
   UserCheck,
   Calendar,
   Search,
+  FileText
 } from 'lucide-react';
 import PageContainer from '../../components/layout/PageContainer';
 import Card from '../../components/common/Card';
@@ -15,6 +16,7 @@ import EmptyState from '../../components/common/EmptyState';
 import TimeStamp from '../../components/common/TimeStamp';
 import { formatDate } from '../../utils/formatters';
 import MatchingCandidatesTable from '../../components/jobs/MatchingCandidatesTable';
+import JobDetailsView from '../../components/jobs/JobDetailsView';
 import {
   fetchJobById,
   fetchMatchingCandidates,
@@ -329,6 +331,18 @@ const JobDetailsPage = () => {
                 {shortlistedCandidates.length}
               </span>
             </button>
+
+            <button
+              onClick={() => setActiveTab('details')}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                activeTab === 'details'
+                  ? 'bg-white text-indigo-600 shadow-sm border border-gray-100'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <FileText size={16} />
+              Job Details
+            </button>
           </div>
 
           {activeTab === 'matching' && (
@@ -346,7 +360,9 @@ const JobDetailsPage = () => {
 
         {/* ── Content Area ── */}
         <div className="animate-slide-up">
-          {activeTab === 'matching' ? (
+          {activeTab === 'details' ? (
+            <JobDetailsView job={job} />
+          ) : activeTab === 'matching' ? (
             <MatchingCandidatesTable
               candidates={matchingCandidates}
               onShortlist={handleShortlist}
