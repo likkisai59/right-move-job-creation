@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ClipboardList, Plus, Clock, CheckCircle2, XCircle, Calendar, ShieldAlert } from 'lucide-react';
 import { applyLeave, getLeaveHistory, getLeaveConfig } from '../../api/attendanceApi';
+import { fetchLeaveTypes } from '../../api/leaveTypesApi';
 import { formatDate } from '../../utils/formatters';
 
 import { getCurrentEmployee } from '../../api/authApi';
@@ -13,9 +14,11 @@ const LeaveManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [leaveTypes, setLeaveTypes] = useState([]);
 
   // Form states
   const [leaveType, setLeaveType] = useState('');
+  const [sessionType, setSessionType] = useState('First Half');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [reason, setReason] = useState('');
@@ -28,14 +31,18 @@ const LeaveManagement = () => {
     setLoading(true);
     setError('');
     try {
-      const [historyData, configData] = await Promise.all([
+      const [historyData, configData, typesData] = await Promise.all([
         getLeaveHistory(employeeId),
-        getLeaveConfig(employeeId)
+        getLeaveConfig(employeeId),
+        fetchLeaveTypes({ active_only: true }).catch(() => [])
       ]);
       setLeaves(historyData || []);
       if (configData) {
         setAnnualQuota(configData.leaves ?? 30);
         setHolidays(configData.holidays || []);
+      }
+      if (typesData) {
+        setLeaveTypes(typesData.filter(lt => lt.is_active));
       }
     } catch (err) {
       console.error(err);
@@ -93,19 +100,27 @@ const LeaveManagement = () => {
 
     setError('');
     setSuccessMsg('');
+    if (leaveType === 'Half Day Leave' && startDate !== endDate) {
+      setError('Half Day Leave must be on a single day.');
+      return;
+    }
+
     try {
-      await applyLeave({
+      const payload = {
         employee_id: employeeId,
         leave_type: leaveType,
+        session_type: leaveType === 'Half Day Leave' ? sessionType : null,
         start_date: startDate,
         end_date: endDate,
-        reason: reason.trim()
-      });
+        reason: reason || null
+      };
+      await applyLeave(payload);
       setSuccessMsg('Leave application submitted successfully!');
       setShowForm(false);
 
       // Reset form
-      setLeaveType('Paid Leave');
+      setLeaveType('');
+      setSessionType('First Half');
       setStartDate('');
       setEndDate('');
       setReason('');
@@ -220,11 +235,51 @@ const LeaveManagement = () => {
                   className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-semibold text-gray-700"
                 >
                   <option value="" disabled>Select</option>
-                  <option>Paid Leave</option>
-                  <option>Unpaid Leave</option>
-                  <option>Optional Leave</option>
+                  {leaveTypes.length > 0 ? (
+                    leaveTypes.map(lt => (
+                      <option key={lt.id} value={lt.name}>{lt.name}</option>
+                    ))
+                  ) : (
+                    <>
+                      <option>Paid Leave</option>
+                      <option>Unpaid Leave</option>
+                      <option>Optional Leave</option>
+                    </>
+                  )}
                 </select>
               </div>
+              
+              {/* Half Day Session Type */}
+              {leaveType === 'Half Day Leave' && (
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Session</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer p-3 bg-gray-50 border border-gray-200 rounded-xl flex-1 hover:border-blue-300 transition-colors">
+                      <input 
+                        type="radio" 
+                        name="sessionType" 
+                        value="First Half" 
+                        checked={sessionType === 'First Half'}
+                        onChange={(e) => setSessionType(e.target.value)}
+                        className="text-blue-600 focus:ring-blue-500 w-4 h-4"
+                      />
+                      <span className="font-semibold text-sm text-gray-700">First Half</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer p-3 bg-gray-50 border border-gray-200 rounded-xl flex-1 hover:border-blue-300 transition-colors">
+                      <input 
+                        type="radio" 
+                        name="sessionType" 
+                        value="Second Half" 
+                        checked={sessionType === 'Second Half'}
+                        onChange={(e) => setSessionType(e.target.value)}
+                        className="text-blue-600 focus:ring-blue-500 w-4 h-4"
+                      />
+                      <span className="font-semibold text-sm text-gray-700">Second Half</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Start Date</label>
@@ -299,7 +354,9 @@ const LeaveManagement = () => {
                 {leaves.map((leave) => (
                   <tr key={leave.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-5">
-                      <p className="font-bold text-gray-700">{leave.leave_type}</p>
+                      <p className="font-bold text-gray-700">
+                        {leave.leave_type} {leave.session_type && <span className="text-xs text-gray-500 font-normal">({leave.session_type})</span>}
+                      </p>
                       <p className="text-[10px] text-gray-400 font-medium truncate max-w-[250px]">{leave.reason}</p>
                     </td>
                     <td className="px-6 py-5">

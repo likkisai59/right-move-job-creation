@@ -72,7 +72,10 @@ def create_leave_request(db: Session, payload: LeaveCreate) -> Leave:
     Apply for a new leave request.
     """
     # Calculate duration in days
-    num_days = float((payload.end_date - payload.start_date).days + 1)
+    if payload.leave_type.strip().lower() == "half day leave":
+        num_days = 0.5
+    else:
+        num_days = float((payload.end_date - payload.start_date).days + 1)
     
     new_leave = Leave(
         **payload.model_dump(),
@@ -118,6 +121,7 @@ def get_leaves_for_approval(db: Session, manager_name: str) -> List[dict]:
             "employee_name": f"{emp.first_name} {emp.last_name}" if emp else "Unknown",
             "employee_code": emp.employee_id if emp else "N/A",
             "leave_type": leave.leave_type,
+            "session_type": leave.session_type,
             "start_date": leave.start_date,
             "end_date": leave.end_date,
             "reason": leave.reason,

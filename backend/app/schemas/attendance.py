@@ -27,6 +27,7 @@ class AttendanceResponse(AttendanceBase):
 # ── Leave ─────────────────────────────────────────────────────
 class LeaveBase(BaseModel):
     leave_type: str
+    session_type: Optional[str] = None
     start_date: date
     end_date: date
     reason: Optional[str] = None
@@ -57,6 +58,7 @@ class TeamLeaveResponse(BaseModel):
     employee_name: str
     employee_code: str
     leave_type: str
+    session_type: Optional[str] = None
     start_date: date
     end_date: date
     reason: Optional[str] = None

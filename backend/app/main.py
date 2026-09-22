@@ -36,6 +36,7 @@ from app.models import designation  # noqa: F401
 from app.models import business_unit  # noqa: F401
 from app.models import work_mode  # noqa: F401
 from app.models import exit_type  # noqa: F401
+from app.models import leave_type  # noqa: F401
 from app.models import account  # noqa: F401
 from app.models import payroll_config  # noqa: F401
 from app.models import invoice  # noqa: F401
@@ -53,6 +54,7 @@ from app.routes import designation as designation_router
 from app.routes import business_unit as business_unit_router
 from app.routes import work_mode as work_mode_router
 from app.routes import exit_type as exit_type_router
+from app.routes import leave_types as leave_types_router
 from app.routes import accounts as accounts_router
 
 # ── Lifespan: runs once on startup ────────────────────────────
@@ -109,6 +111,15 @@ async def lifespan(app: FastAPI):
                 db.add(ExitType(name=name, is_active=True))
             db.commit()
             logger.info("✓ Seeded default exit types to database")
+            
+        # Seed Leave Types
+        from app.models.leave_type import LeaveType
+        if db.query(LeaveType).count() == 0:
+            initial_lt = ['Paid Leave', 'Unpaid Leave', 'Optional Leave']
+            for name in initial_lt:
+                db.add(LeaveType(name=name, is_active=True))
+            db.commit()
+            logger.info("✓ Seeded default leave types to database")
             
         # Seed Initial Super Admin Accounts
         from app.models.employee import Employee
@@ -257,6 +268,7 @@ app.include_router(designation_router.router)
 app.include_router(business_unit_router.router)
 app.include_router(work_mode_router.router)
 app.include_router(exit_type_router.router)
+app.include_router(leave_types_router.router)
 app.include_router(accounts_router.router)
 app.include_router(tickets_router.router)
 app.include_router(settings_router.router)

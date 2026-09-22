@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { Shield, Users, Grid, Search, Plus, CheckCircle, RefreshCw, Briefcase, Building, Monitor, LogOut, ChevronRight } from 'lucide-react';
+import { Shield, Users, Grid, Search, Plus, CheckCircle, RefreshCw, Briefcase, Building, Monitor, LogOut, ChevronRight, Calendar } from 'lucide-react';
 import { getEmployeeRoles, assignEmployeeRole, getPermissionMatrix } from '../../api/settingsApi';
 import { fetchDesignations, createDesignation, updateDesignation } from '../../api/designationsApi';
 import { fetchBusinessUnits, createBusinessUnit, updateBusinessUnit } from '../../api/businessUnitsApi';
 import { fetchWorkModes, createWorkMode, updateWorkMode } from '../../api/workModesApi';
 import { fetchExitTypes, createExitType, updateExitType } from '../../api/exitTypesApi';
+import { fetchLeaveTypes, createLeaveType, updateLeaveType } from '../../api/leaveTypesApi';
 import { getSystemRole } from '../../api/authApi';
 
 const ROLE_OPTIONS = [
@@ -27,6 +28,7 @@ const SETTINGS_NAV_ITEMS = [
   { id: 'business_units', label: 'Business Units', icon: Building, description: 'Manage department business units' },
   { id: 'work_modes', label: 'Work Modes', icon: Monitor, description: 'Manage work mode options' },
   { id: 'exit_types', label: 'Exit Types', icon: LogOut, description: 'Manage employee exit reasons' },
+  { id: 'leave_types', label: 'Leave Types', icon: Calendar, description: 'Manage employee leave types' },
 ];
 
 const SettingsPage = () => {
@@ -82,6 +84,7 @@ const SettingsPage = () => {
       else if (tab === 'business_units') res = await fetchBusinessUnits();
       else if (tab === 'work_modes') res = await fetchWorkModes();
       else if (tab === 'exit_types') res = await fetchExitTypes();
+      else if (tab === 'leave_types') res = await fetchLeaveTypes();
 
       if (res && res.success !== false) {
         setMasterData(res.data || res || []);
@@ -130,6 +133,7 @@ const SettingsPage = () => {
       else if (activeTab === 'business_units') await createBusinessUnit(newItemName.trim());
       else if (activeTab === 'work_modes') await createWorkMode(newItemName.trim());
       else if (activeTab === 'exit_types') await createExitType(newItemName.trim());
+      else if (activeTab === 'leave_types') await createLeaveType(newItemName.trim());
 
       toast.success('Item added successfully');
       setNewItemName('');
@@ -148,6 +152,7 @@ const SettingsPage = () => {
       else if (activeTab === 'business_units') await updateBusinessUnit(item.id, updated);
       else if (activeTab === 'work_modes') await updateWorkMode(item.id, updated);
       else if (activeTab === 'exit_types') await updateExitType(item.id, updated);
+      else if (activeTab === 'leave_types') await updateLeaveType(item.id, updated);
 
       toast.success('Status updated');
       fetchMasterTab(activeTab);
@@ -341,8 +346,8 @@ const SettingsPage = () => {
               </div>
             )}
 
-            {/* Tab Content 3, 4, 5, 6: Master Data Tabs */}
-            {['designations', 'business_units', 'work_modes', 'exit_types'].includes(activeTab) && (
+            {/* Tab Content 3, 4, 5, 6, 7: Master Data Tabs */}
+            {['designations', 'business_units', 'work_modes', 'exit_types', 'leave_types'].includes(activeTab) && (
               <div className="flex-1 flex flex-col h-full min-h-0 space-y-4">
                 <div className="flex items-center justify-between border-b border-gray-200 pb-4 shrink-0">
                   <div>
