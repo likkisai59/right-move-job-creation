@@ -4,7 +4,6 @@ import { UserPlus, Download, ChevronDown, FileText, FileSpreadsheet, Upload, X, 
 import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
 import CandidateTable from '../../components/candidates/CandidateTable';
-import CandidateFilters from '../../components/candidates/CandidateFilters';
 import { fetchCandidates, deleteCandidate, importCandidates, downloadCandidateTemplate } from '../../api/candidatesApi';
 import { checkPermission } from '../../api/authApi';
 
@@ -203,19 +202,14 @@ const CandidateListPage = () => {
     >
       <div className="flex flex-col gap-4 animate-fade-in">
         {/* Filters */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-          <CandidateFilters
-            filters={filters}
-            onChange={setFilters}
-            onClear={() => setFilters({ search: '', businessUnit: '', skills: '', currentLocation: '', noticePeriod: '', pipelineStatus: '', sortField: '', sortOrder: 'desc' })}
-          />
-        </div>
 
         {/* Table */}
         <CandidateTable
           candidates={candidates}
           loading={loading}
           onDelete={handleDeleteCandidate}
+          filters={filters}
+          onFilterChange={setFilters}
         />
       </div>
 

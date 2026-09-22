@@ -14,11 +14,7 @@ const OrganizationListPage = () => {
   const navigate = useNavigate();
   const [organizations, setOrganizations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [sortField, setSortField] = useState('');
-  const [sortOrder, setSortOrder] = useState('desc');
+  const [filters, setFilters] = useState({ search: '', startDate: '', endDate: '', sortField: '', sortOrder: 'desc' });
 
   const SORT_OPTIONS = [
     { label: 'Organization Name (A-Z)', value: 'organization_name:asc' },
@@ -36,8 +32,8 @@ const OrganizationListPage = () => {
         search: search.trim(),
         start_date: start,
         end_date: end,
-        sortField,
-        sortOrder
+        sortField: filters.sortField,
+        sortOrder: filters.sortOrder
       });
       setOrganizations(response.data || []);
     } catch (error) {
@@ -55,7 +51,7 @@ const OrganizationListPage = () => {
     try {
       setLoading(true);
       await deleteOrganization(id);
-      await loadOrganizations(searchTerm, startDate, endDate);
+      await loadOrganizations(filters.search, filters.startDate, filters.endDate);
     } catch (error) {
       console.error('Failed to delete organization:', error);
       alert('Error deleting organization. Please try again.');
@@ -69,20 +65,20 @@ const OrganizationListPage = () => {
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      loadOrganizations(searchTerm, startDate, endDate);
+      loadOrganizations(filters.search, filters.startDate, filters.endDate);
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, startDate, endDate, sortField, sortOrder]);
+  }, [filters]);
 
   const handleExport = async (specificIds = null) => {
     try {
       const params = {
-        search: searchTerm.trim(),
-        start_date: startDate,
-        end_date: endDate,
-        sort_by: sortField,
-        sort_order: sortOrder
+        search: filters.search.trim(),
+        start_date: filters.startDate,
+        end_date: filters.endDate,
+        sort_by: filters.sortField,
+        sort_order: filters.sortOrder
       };
 
       if (specificIds && specificIds.length > 0) {
@@ -174,66 +170,12 @@ const OrganizationListPage = () => {
           </div>
         )}
 
-        {/* Filters Bar */}
-        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-end gap-4">
-          <div className="flex-1 w-full max-w-md">
-            <Input
-              label="Search"
-              placeholder="Search by name..."
-              icon={Search}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          <div className="w-full md:w-48">
-            <Input
-              label="Contract End From"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </div>
-
-          <div className="w-full md:w-48">
-            <Input
-              label="Contract End To"
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
-
-          <div className="w-full md:w-56 mb-1">
-            <label className="text-sm font-medium text-gray-700 flex items-center gap-1 mb-1.5">
-              Sort By
-            </label>
-            <SortBy
-              options={SORT_OPTIONS}
-              sortField={sortField}
-              sortOrder={sortOrder}
-              onChange={(val) => { setSortField(val.sortField); setSortOrder(val.sortOrder); }}
-              className="w-full"
-            />
-          </div>
-
-          <Button
-            variant="secondary"
-            size="md"
-            onClick={() => {
-              setSearchTerm('');
-              setStartDate('');
-              setEndDate('');
-              setSortField('');
-              setSortOrder('desc');
-            }}
-          >
-            Clear
-          </Button>
-        </div>
+        
 
         {/* Table Component */}
         <OrganizationTable
+          filters={filters}
+          onFilterChange={setFilters}
           organizations={organizations}
           loading={loading}
           onCreate={handleCreate}

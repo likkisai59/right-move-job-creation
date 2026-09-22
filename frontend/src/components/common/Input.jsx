@@ -12,6 +12,7 @@ const Input = forwardRef(
       className = '',
       containerClassName = '',
       type = 'text',
+      autoComplete = 'off',
       ...props
     },
     ref
@@ -33,6 +34,7 @@ const Input = forwardRef(
           <input
             ref={ref}
             type={type}
+            autoComplete={autoComplete}
             className={[
               'w-full rounded-lg border bg-white text-gray-900 text-sm placeholder-gray-400',
               'transition-all duration-150',

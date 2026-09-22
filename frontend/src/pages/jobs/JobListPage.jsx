@@ -4,7 +4,6 @@ import { Plus, Download, ChevronDown, FileText, FileSpreadsheet } from 'lucide-r
 import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
 import JobTable from '../../components/jobs/JobTable';
-import JobFilters from '../../components/jobs/JobFilters';
 import { fetchJobs } from '../../api/jobsApi';
 import JobStatsModal from '../../components/jobs/JobStatsModal';
 import { checkPermission } from '../../api/authApi';
@@ -154,19 +153,16 @@ const JobListPage = () => {
         </div>
       }
     >
-      <div className="flex flex-col gap-4 animate-fade-in">
-        {/* Filters */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-          <JobFilters
+        <div className="flex flex-col gap-4 animate-fade-in">
+          {/* Table */}
+          <JobTable 
+            jobs={jobs} 
+            loading={loading} 
+            onViewStats={setSelectedJobForStats} 
             filters={filters}
-            onChange={handleFilterChange}
-            onClear={handleFilterClear}
+            onFilterChange={handleFilterChange}
           />
         </div>
-
-        {/* Table */}
-        <JobTable jobs={jobs} loading={loading} onViewStats={setSelectedJobForStats} />
-      </div>
 
       <JobStatsModal 
         isOpen={!!selectedJobForStats} 

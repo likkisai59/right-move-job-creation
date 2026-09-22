@@ -8,13 +8,16 @@ import { Users } from 'lucide-react';
 import { checkPermission } from '../../api/authApi';
 import { PIPELINE_STATUS_COLORS } from '../../utils/constants';
 
-const CandidateTable = ({ candidates = [], loading = false }) => {
+const CandidateTable = ({ candidates = [], loading = false, filters, onFilterChange }) => {
   const navigate = useNavigate();
 
   const columns = [
     {
       key: 'id',
       header: 'Candidate ID',
+      filterKey: 'candidateCode',
+      filterType: 'text',
+      filterPlaceholder: 'Search ID...',
       render: (val, row) => {
         const displayCode = row.candidateCode || row.candidate_code || `CAN${String(val).padStart(4, '0')}`;
         return (
@@ -28,6 +31,9 @@ const CandidateTable = ({ candidates = [], loading = false }) => {
       key: 'firstName',
       header: 'Full Name',
       minWidth: '150px',
+      filterKey: 'search',
+      filterType: 'text',
+      filterPlaceholder: 'Search name or code...',
       render: (_, row) => (
         <span className="font-medium text-gray-900">{`${row.firstName} ${row.lastName}`.trim()}</span>
       ),
@@ -35,6 +41,18 @@ const CandidateTable = ({ candidates = [], loading = false }) => {
     {
       key: 'businessUnit',
       header: 'Business Unit',
+      filterKey: 'businessUnit',
+      filterType: 'select',
+      filterOptions: [
+        { value: '', label: 'All Units' },
+        { value: 'IT', label: 'IT' },
+        { value: 'ITSM', label: 'ITSM' },
+        { value: 'BPO', label: 'BPO' },
+        { value: 'ITES', label: 'ITES' },
+        { value: 'Lateral', label: 'Lateral' },
+        { value: 'FLP', label: 'FLP' },
+        { value: 'F&A', label: 'F&A' },
+      ],
       render: (val) => (
         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
           {val || 'IT'}
@@ -45,6 +63,9 @@ const CandidateTable = ({ candidates = [], loading = false }) => {
       key: 'skills',
       header: 'Primary Skills',
       minWidth: '150px',
+      filterKey: 'skills',
+      filterType: 'text',
+      filterPlaceholder: 'Search skills...',
       render: (val) => {
         const skillsList = val || [];
         if (skillsList.length === 0) return <span className="text-gray-400">—</span>;
@@ -66,6 +87,9 @@ const CandidateTable = ({ candidates = [], loading = false }) => {
     {
       key: 'totalExperience',
       header: 'Experience',
+      filterKey: 'experience',
+      filterType: 'text',
+      filterPlaceholder: 'Search...',
       render: (val) => {
         if (!val) return '—';
         const s = val.toString();
@@ -80,26 +104,56 @@ const CandidateTable = ({ candidates = [], loading = false }) => {
     {
       key: 'currentCTC',
       header: 'Total CTC',
+      filterKey: 'currentCTC',
+      filterType: 'text',
+      filterPlaceholder: 'Search...',
       render: (val) => (val ? `₹${val} LPA` : '—'),
     },
     {
       key: 'expectedCTC',
       header: 'Expected CTC',
+      filterKey: 'expectedCTC',
+      filterType: 'text',
+      filterPlaceholder: 'Search...',
       render: (val) => (val ? `₹${val} LPA` : '—'),
     },
     {
       key: 'noticePeriod',
       header: 'Notice Period',
+      filterKey: 'noticePeriod',
+      filterType: 'select',
+      filterOptions: [
+        { value: '', label: 'All' },
+        { value: 'Immediate', label: 'Immediate' },
+        { value: '15 Days', label: '15 Days' },
+        { value: '30 Days', label: '30 Days' },
+        { value: '45 Days', label: '45 Days' },
+        { value: '60 Days', label: '60 Days' },
+        { value: '90 Days', label: '90 Days' },
+      ],
       render: (val) => val || '—',
     },
     {
       key: 'currentLocation',
       header: 'Current Location',
+      filterKey: 'currentLocation',
+      filterType: 'text',
+      filterPlaceholder: 'Search location...',
       render: (val) => val || '—',
     },
     {
       key: 'pipelineStatus',
       header: 'Pipeline Status',
+      filterKey: 'pipelineStatus',
+      filterType: 'select',
+      filterOptions: [
+        { value: '', label: 'All' },
+        { value: 'Submitted', label: 'Submitted' },
+        { value: 'In Progress', label: 'In Progress' },
+        { value: 'Selected', label: 'Selected' },
+        { value: 'Rejected', label: 'Rejected' },
+        { value: 'On Hold', label: 'On Hold' },
+      ],
       render: (_, row) => {
         const status = row.pipelineStatus || row.status || 'Submitted';
         const colorClass = PIPELINE_STATUS_COLORS[status] || 'bg-blue-50 text-blue-700 border-blue-100';
@@ -196,7 +250,7 @@ const CandidateTable = ({ candidates = [], loading = false }) => {
     );
   }
 
-  return <Table columns={columns} data={candidates} loading={loading} />;
+  return <Table columns={columns} data={candidates} loading={loading} filters={filters} onFilterChange={onFilterChange} />;
 };
 
 export default CandidateTable;

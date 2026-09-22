@@ -13,7 +13,7 @@ const STATUS_CONFIG = {
   cancel: { label: 'Cancel', classes: 'bg-gray-50 text-gray-700 border-gray-200' },
 };
 
-const OrganizationTable = ({ organizations = [], loading = false, onCreate, onDelete }) => {
+const OrganizationTable = ({ organizations = [], loading = false, onCreate, onDelete, filters, onFilterChange }) => {
   const navigate = useNavigate();
 
   const columns = [
@@ -30,6 +30,9 @@ const OrganizationTable = ({ organizations = [], loading = false, onCreate, onDe
       key: 'organization_name',
       header: 'Organization Name',
       minWidth: '220px',
+      filterKey: 'search',
+      filterType: 'text',
+      filterPlaceholder: 'Search name...',
       render: (val, row) => (
         <div className="flex flex-col">
           <span className="font-semibold text-gray-900">{val}</span>
@@ -45,12 +48,17 @@ const OrganizationTable = ({ organizations = [], loading = false, onCreate, onDe
     {
       key: 'location',
       header: 'Location',
+      filterKey: 'location',
+      filterType: 'text',
+      filterPlaceholder: 'Search location...',
       render: (val) => <span className="text-gray-600 text-sm font-medium">{val || '—'}</span>,
     },
 
     {
       key: 'contract_signed_date',
       header: 'Contract Signed',
+      filterKey: 'startDate',
+      filterType: 'date',
       render: (val) => {
         if (!val) return <span className="text-gray-400">-</span>;
         return <span className="text-slate-600 font-medium text-sm">{new Date(val).toLocaleDateString('en-GB')}</span>;
@@ -59,6 +67,8 @@ const OrganizationTable = ({ organizations = [], loading = false, onCreate, onDe
     {
       key: 'contract_end_date',
       header: 'Contract End',
+      filterKey: 'endDate',
+      filterType: 'date',
       render: (val) => {
         if (!val) return <span className="text-gray-400">-</span>;
 
@@ -91,6 +101,9 @@ const OrganizationTable = ({ organizations = [], loading = false, onCreate, onDe
     {
       key: 'status',
       header: 'Status',
+      filterKey: 'status',
+      filterType: 'select',
+      filterOptions: [{value: '', label: 'All Statuses'}, {value: 'active', label: 'Active'}, {value: 'complete', label: 'Complete'}, {value: 'cancel', label: 'Cancel'}],
       render: (val) => {
         const config = STATUS_CONFIG[val] || { label: val, classes: 'bg-gray-50 text-gray-500 border-gray-200' };
         return (
@@ -152,7 +165,7 @@ const OrganizationTable = ({ organizations = [], loading = false, onCreate, onDe
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-fade-in">
-      <Table columns={columns} data={organizations} loading={loading} />
+      <Table columns={columns} data={organizations} loading={loading} filters={filters} onFilterChange={onFilterChange} />
     </div>
   );
 };

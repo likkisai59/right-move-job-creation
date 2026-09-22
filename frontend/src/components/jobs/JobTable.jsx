@@ -8,7 +8,7 @@ import { formatDate } from '../../utils/formatters';
 import { checkPermission } from '../../api/authApi';
 
 
-const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats }) => {
+const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats, filters, onFilterChange }) => {
   const navigate = useNavigate();
   const [popoverId, setPopoverId] = useState(null);
   const popoverRef = useRef(null);
@@ -62,6 +62,9 @@ const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats }) => {
       key: 'companyName',
       header: 'Company Name',
       minWidth: '160px',
+      filterKey: 'company',
+      filterType: 'text',
+      filterPlaceholder: 'Search company...',
       render: (val) => (
         <span className="font-medium text-gray-900">{val}</span>
       ),
@@ -69,6 +72,18 @@ const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats }) => {
     {
       key: 'businessUnit',
       header: 'BU',
+      filterKey: 'businessUnit',
+      filterType: 'select',
+      filterOptions: [
+        { value: '', label: 'All Units' },
+        { value: 'IT', label: 'IT' },
+        { value: 'ITSM', label: 'ITSM' },
+        { value: 'BPO', label: 'BPO' },
+        { value: 'ITES', label: 'ITES' },
+        { value: 'Lateral', label: 'Lateral' },
+        { value: 'FLP', label: 'FLP' },
+        { value: 'F&A', label: 'F&A' },
+      ],
       render: (val) => (
         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
           {val || 'IT'}
@@ -154,6 +169,15 @@ const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats }) => {
     {
       key: 'status',
       header: 'Status',
+      filterKey: 'status',
+      filterType: 'select',
+      filterOptions: [
+        { value: '', label: 'All Status' },
+        { value: 'ACTIVE', label: 'Active' },
+        { value: 'INACTIVE', label: 'Inactive' },
+        { value: 'CLOSED', label: 'Closed' },
+        { value: 'HOLD', label: 'Hold' },
+      ],
       render: (_, row) => {
         if (!row.requirements || row.requirements.length === 0) return '?"';
         const statuses = row.requirements.map(r => r.status || 'ACTIVE');
@@ -228,7 +252,7 @@ const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats }) => {
     );
   }
 
-  return <Table columns={columns} data={jobs} loading={loading} />;
+  return <Table columns={columns} data={jobs} loading={loading} filters={filters} onFilterChange={onFilterChange} />;
 };
 
 export default JobTable;

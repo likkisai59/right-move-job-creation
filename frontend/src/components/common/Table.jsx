@@ -1,6 +1,14 @@
 import React from 'react';
+import Input from './Input';
+import Select from './Select';
 
-const Table = ({ columns, data, loading = false, onRowClick }) => {
+const Table = ({ columns, data, loading = false, onRowClick, filters = {}, onFilterChange }) => {
+  const handleFilterChange = (key, value) => {
+    if (onFilterChange) {
+      onFilterChange({ ...filters, [key]: value });
+    }
+  };
+
   if (loading) {
     return (
       <div className="w-full">
@@ -11,7 +19,7 @@ const Table = ({ columns, data, loading = false, onRowClick }) => {
                 {columns.map((col) => (
                   <th
                     key={col.key}
-                    className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap"
+                    className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap align-top"
                   >
                     {col.header}
                   </th>
@@ -43,10 +51,44 @@ const Table = ({ columns, data, loading = false, onRowClick }) => {
             {columns.map((col) => (
               <th
                 key={col.key}
-                className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap align-top"
                 style={{ minWidth: col.minWidth }}
               >
-                {col.header}
+                <div className="mb-2">{col.header}</div>
+                {col.filterKey && col.filterType === 'select' && (
+                  <div className="mt-1 font-normal normal-case">
+                    <Select
+                      className="py-1.5 text-xs bg-white h-8"
+                      containerClassName="gap-0"
+                      placeholder={col.filterPlaceholder || "All"}
+                      options={col.filterOptions || []}
+                      value={filters[col.filterKey] || ''}
+                      onChange={(e) => handleFilterChange(col.filterKey, e.target.value)}
+                    />
+                  </div>
+                )}
+                {col.filterKey && col.filterType === 'text' && (
+                  <div className="mt-1 font-normal normal-case">
+                    <Input
+                      className="py-1.5 text-xs bg-white h-8"
+                      containerClassName="gap-0"
+                      placeholder={col.filterPlaceholder || "Search..."}
+                      value={filters[col.filterKey] || ''}
+                      onChange={(e) => handleFilterChange(col.filterKey, e.target.value)}
+                    />
+                  </div>
+                )}
+                {col.filterKey && col.filterType === 'date' && (
+                  <div className="mt-1 font-normal normal-case">
+                    <Input
+                      type="date"
+                      className="py-1.5 text-xs bg-white h-8"
+                      containerClassName="gap-0"
+                      value={filters[col.filterKey] || ''}
+                      onChange={(e) => handleFilterChange(col.filterKey, e.target.value)}
+                    />
+                  </div>
+                )}
               </th>
             ))}
           </tr>

@@ -148,81 +148,14 @@ const EmployeeListPage = () => {
       }
     >
       <div className="flex flex-col gap-6">
-        {/* Filters */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by name, ID, or designation..."
-              value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
-              className="w-full pl-9 pr-4 h-10 text-sm bg-white border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-shadow"
-            />
-          </div>
-
-          <select
-            value={filters.status}
-            onChange={(e) => handleFilterChange('status', e.target.value)}
-            className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all"
-          >
-            <option value="ALL">All Statuses</option>
-            {EMPLOYEE_STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-
-          <select
-            value={filters.designation}
-            onChange={(e) => handleFilterChange('designation', e.target.value)}
-            className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all max-w-[160px]"
-          >
-            <option value="ALL">All Designations</option>
-            {designations.map((des) => (
-              <option key={des.id} value={des.name}>{des.name}</option>
-            ))}
-          </select>
-
-          <select
-            value={filters.bloodGroup}
-            onChange={(e) => handleFilterChange('bloodGroup', e.target.value)}
-            className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all max-w-[140px]"
-          >
-            <option value="ALL">All Blood</option>
-            {EMPLOYEE_BLOOD_GROUP_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-
-          <SortBy
-            options={[
-              { label: 'Employee ID Ascending', value: 'employee_id:asc' },
-              { label: 'Employee ID Descending', value: 'employee_id:desc' },
-              { label: 'Full Name (A-Z)', value: 'first_name:asc' },
-              { label: 'Full Name (Z-A)', value: 'first_name:desc' },
-              { label: 'Created (Newest)', value: 'id:desc' },
-              { label: 'Created (Oldest)', value: 'id:asc' },
-            ]}
-            sortField={filters.sortField}
-            sortOrder={filters.sortOrder}
-            onChange={(val) => {
-              handleFilterChange('sortField', val.sortField);
-              handleFilterChange('sortOrder', val.sortOrder);
-            }}
-          />
-
-          {(filters.search || filters.status !== 'ALL' || filters.designation !== 'ALL' || filters.bloodGroup !== 'ALL' || filters.minPackage || filters.maxPackage || filters.sortField) && (
-            <Button variant="ghost" size="sm" onClick={() => setFilters({ search: '', status: 'ALL', designation: 'ALL', bloodGroup: 'ALL', minPackage: '', maxPackage: '', sortField: '', sortOrder: 'desc' })}>
-              Clear
-            </Button>
-          )}
-        </div>
-
         <EmployeeTable
           employees={employees}
           loading={loading}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          designations={designations}
         />
       </div>
     </PageContainer>

@@ -6,7 +6,7 @@ import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
 import { formatDate } from '../../utils/formatters';
 
-const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) => {
+const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete, filters, onFilterChange, designations = [] }) => {
   const navigate = useNavigate();
 
   const userStr = localStorage.getItem('user');
@@ -17,6 +17,9 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
     {
       key: 'employeeId',
       header: 'EMPID',
+      filterKey: 'employeeId',
+      filterType: 'text',
+      filterPlaceholder: 'Search ID...',
       render: (val) => (
         <span className="font-mono text-xs text-blue-700 font-semibold bg-blue-50 px-2 py-1 rounded border border-blue-100">
           {val}
@@ -26,21 +29,33 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
     {
       key: 'firstName',
       header: 'First Name',
+      filterKey: 'search',
+      filterType: 'text',
+      filterPlaceholder: 'Search name, ID...',
       render: (val) => <span className="font-medium text-gray-900">{val || '—'}</span>,
     },
     {
       key: 'lastName',
       header: 'Last Name',
+      filterKey: 'lastName',
+      filterType: 'text',
+      filterPlaceholder: 'Search...',
       render: (val) => <span className="font-medium text-gray-900">{val || '—'}</span>,
     },
     {
       key: 'contactNumberOffice',
       header: 'Contact (Office)',
+      filterKey: 'contact',
+      filterType: 'text',
+      filterPlaceholder: 'Search...',
       render: (val) => <span className="text-gray-600 text-sm">{val || '—'}</span>,
     },
     {
       key: 'designation',
       header: 'Designation',
+      filterKey: 'designation',
+      filterType: 'select',
+      filterOptions: [{ value: 'ALL', label: 'All Designations' }, ...designations.map(d => ({ value: d.name, label: d.name }))],
       render: (val) => (
         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
           {val || '—'}
@@ -50,11 +65,16 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
     {
       key: 'reportingTo',
       header: 'Reporting Manager',
+      filterKey: 'reportingTo',
+      filterType: 'text',
+      filterPlaceholder: 'Search...',
       render: (val) => <span className="text-gray-600 text-sm">{val || '—'}</span>,
     },
     {
       key: 'dateOfJoining',
       header: 'Joining Date',
+      filterKey: 'joiningDate',
+      filterType: 'date',
       render: (val) => <span className="text-gray-600 text-sm">{formatDate(val)}</span>,
     },
     {
@@ -191,6 +211,9 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
   columns.push({
     key: 'status',
     header: 'Status',
+    filterKey: 'status',
+    filterType: 'select',
+    filterOptions: [{ value: 'ALL', label: 'All Statuses' }, { value: 'Active', label: 'Active' }, { value: 'Inactive', label: 'Inactive' }, { value: 'On Leave', label: 'On Leave' }],
     render: (_, row) => (
       <span className={`text-xs font-medium px-2 py-1 rounded whitespace-nowrap ${
         row.status === 'Active' 
@@ -221,7 +244,7 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete }) =>
     );
   }
 
-  return <Table columns={columns} data={employees} loading={loading} />;
+  return <Table columns={columns} data={employees} loading={loading} filters={filters} onFilterChange={onFilterChange} />;
 };
 
 export default EmployeeTable;
