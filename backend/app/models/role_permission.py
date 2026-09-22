@@ -85,5 +85,25 @@ DEFAULT_ROLE_PERMISSIONS = {
         "employee": "not_visible",
         "accounts": "not_visible",
         "settings": "not_visible"
+    },
+    "Temporary": {
+        display_name: "Temporary",
+        candidate: "add_edit",
+        job: "not_visible",
+        organization: "not_visible",
+        rmep: "add",
+        employee: "not_visible",
+        accounts: "not_visible",
+        settings: "not_visible"
+    },
+    "Account User":{
+        display_name: "Account User",
+        candidate: "not_visible",
+        job: "not_visible",
+        organization: "not_visible",
+        rmep: "add",
+        employee: "not_visible",
+        accounts: "all_access",
+        settings: "not_visible"
     }
 }

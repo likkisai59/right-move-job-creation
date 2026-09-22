@@ -83,6 +83,9 @@ const HomePage = () => {
   const filteredModules = modules.filter(({ label }) => {
     if (role === 'super_admin') return true;
     if (role === 'admin_admin') return true;
+    
+    if (role === 'temporary') return ['Candidates'].includes(label);
+    if (role === 'account_user') return ['RMEP', 'Accounts'].includes(label);
     if (role === 'admin_user') return ['Jobs', 'Candidates', 'Organizations', 'Employees', 'RMEP', 'Accounts'].includes(label);
     if (role === 'hr') return ['Jobs', 'Candidates', 'Organizations', 'Employees', 'RMEP'].includes(label);
     if (role === 'leader') return ['Jobs', 'Candidates', 'RMEP'].includes(label);

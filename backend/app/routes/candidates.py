@@ -882,7 +882,7 @@ def check_incentive_update_permission(role: str, user: dict = None) -> bool:
     if not role:
         return False
     r = role.lower().strip()
-    return "account" in r or r in ["admin", "administrator", "super_admin", "admin_admin", "admin_user"]
+    return "account" in r or r in ["admin", "administrator", "super_admin", "admin_admin", "admin_user", "temporary"]
 
 @router.put("/{candidate_id}/selection-details/{mapping_id}", status_code=status.HTTP_200_OK)
 def update_selection_details(

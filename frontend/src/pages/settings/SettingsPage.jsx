@@ -13,6 +13,8 @@ const ROLE_OPTIONS = [
   { value: 'leader', label: 'Leader (Team Lead)' },
   { value: 'hr', label: 'HR' },
   { value: 'admin_user', label: 'Admin User' },
+  { value: 'temporary', label: 'Temporary' },
+  { value: 'account_user', label: 'Account User' },
   { value: 'admin_admin', label: 'Admin Admin' },
   { value: 'super_admin', label: 'Super Admin' },
   { value: 'unassigned', label: 'Unassigned (Zero Access)' },

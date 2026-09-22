@@ -1190,6 +1190,8 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
               options={[
                 { value: 'leader', label: 'Leader' },
                 { value: 'admin_user', label: 'Admin user' },
+                { value: 'temporary', label: 'Temporary' },
+                { value: 'account_user', label: 'Account User' },
                 { value: 'admin_admin', label: 'Admin Admin' },
                 { value: 'super_admin', label: 'Super Admin' }
               ]}

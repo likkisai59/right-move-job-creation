@@ -127,7 +127,7 @@ export const checkPermission = (action) => {
         return ['user', 'leader', 'admin_user', 'admin_admin', 'super_admin'].includes(role);
     }
     if (action === 'add_candidate') {
-        return ['user', 'leader', 'admin_user', 'super_admin'].includes(role);
+        return ['user', 'leader', 'admin_user', 'super_admin', 'temporary'].includes(role);
     }
     if (action === 'view_settings') {
         return ['admin_admin', 'super_admin'].includes(role);
