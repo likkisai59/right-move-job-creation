@@ -36,8 +36,9 @@ const JobDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [strict, setStrict] = useState(true);
 
-  // Per-role matching: { [reqId]: Candidate[] } — prefetched all at once
+  // Per-role maps: { [reqId]: Candidate[] } — prefetched all at once
   const [roleMatching, setRoleMatching] = useState({});
+  const [roleOther, setRoleOther] = useState({});
 
   // Shared shortlisted list (job-level, not per role)
   const [shortlistedCandidates, setShortlistedCandidates] = useState([]);
@@ -45,12 +46,12 @@ const JobDetailsPage = () => {
   // Which role tab is selected
   const [selectedReqId, setSelectedReqId] = useState(null);
 
-  // 'matching' or 'shortlisted'
+  // 'matching', 'other', 'shortlisted', 'details'
   const [activeTab, setActiveTab] = useState('matching');
 
   const [processingId, setProcessingId] = useState(null);
 
-  // ── Load everything on mount (or when strict changes) ──────────────
+  // ── Load everything on mount ──────────────
   useEffect(() => {
     const loadAll = async () => {
       setLoading(true);
@@ -66,12 +67,19 @@ const JobDetailsPage = () => {
 
         // 2. Prefetch ALL roles' matching candidates simultaneously + shortlisted
         const matchingPromises = requirements.map(req =>
-          fetchMatchingCandidates(id, strict, req.id)
+          fetchMatchingCandidates(id, true, req.id)
             .then(res => {
-              const list = Array.isArray(res.data) ? res.data : (res.data?.matched_candidates || []);
-              return { reqId: req.id, candidates: list.map(c => ({ ...c, skills: normalizeSkills(c.skills) })) };
+              const data = res.data || {};
+              const matchedList = data.matched_candidates || (Array.isArray(data) ? data : []);
+              const otherList = data.other_candidates || [];
+              
+              return { 
+                reqId: req.id, 
+                matched: matchedList.map(c => ({ ...c, skills: normalizeSkills(c.skills) })),
+                other: otherList.map(c => ({ ...c, skills: normalizeSkills(c.skills) }))
+              };
             })
-            .catch(() => ({ reqId: req.id, candidates: [] }))
+            .catch(() => ({ reqId: req.id, matched: [], other: [] }))
         );
 
         const [shortlistedRes, ...matchingResults] = await Promise.all([
@@ -79,12 +87,15 @@ const JobDetailsPage = () => {
           ...matchingPromises
         ]);
 
-        // 3. Build role matching map
+        // 3. Build role matching maps
         const matchingMap = {};
-        matchingResults.forEach(({ reqId, candidates }) => {
-          matchingMap[reqId] = candidates;
+        const otherMap = {};
+        matchingResults.forEach(({ reqId, matched, other }) => {
+          matchingMap[reqId] = matched;
+          otherMap[reqId] = other;
         });
         setRoleMatching(matchingMap);
+        setRoleOther(otherMap);
 
         // 4. Set shared shortlisted
         setShortlistedCandidates(
@@ -98,7 +109,7 @@ const JobDetailsPage = () => {
     };
 
     loadAll();
-  }, [id, strict]);
+  }, [id]);
 
   // ── Shortlist ───────────────────────────────────────────────────────
   const handleShortlist = async (candidateId) => {
@@ -106,8 +117,14 @@ const JobDetailsPage = () => {
     try {
       await shortlistCandidate(id, candidateId);
 
-      // Mark as shortlisted in the current role's matching list (local update)
+      // Mark as shortlisted in the current role's matching and other lists (local update)
       setRoleMatching(prev => ({
+        ...prev,
+        [selectedReqId]: prev[selectedReqId]?.map(c =>
+          (c.candidate_id || c.id) === candidateId ? { ...c, status: 'shortlisted' } : c
+        ) || []
+      }));
+      setRoleOther(prev => ({
         ...prev,
         [selectedReqId]: prev[selectedReqId]?.map(c =>
           (c.candidate_id || c.id) === candidateId ? { ...c, status: 'shortlisted' } : c
@@ -133,6 +150,12 @@ const JobDetailsPage = () => {
       await rejectCandidate(id, candidateId);
 
       setRoleMatching(prev => ({
+        ...prev,
+        [selectedReqId]: prev[selectedReqId]?.map(c =>
+          (c.candidate_id || c.id) === candidateId ? { ...c, status: 'rejected' } : c
+        ) || []
+      }));
+      setRoleOther(prev => ({
         ...prev,
         [selectedReqId]: prev[selectedReqId]?.map(c =>
           (c.candidate_id || c.id) === candidateId ? { ...c, status: 'rejected' } : c
@@ -169,7 +192,11 @@ const JobDetailsPage = () => {
   );
 
   const hasMultipleRoles = job.requirements && job.requirements.length > 1;
-  const matchingCandidates = selectedReqId ? (roleMatching[selectedReqId] || []) : [];
+  const rawMatching = selectedReqId ? (roleMatching[selectedReqId] || []) : [];
+  const rawOther = selectedReqId ? (roleOther[selectedReqId] || []) : [];
+
+  const matchingCandidates = strict ? rawMatching : [...rawMatching, ...rawOther];
+  const otherCandidates = strict ? rawOther : [];
 
   return (
     <PageContainer>
@@ -292,12 +319,12 @@ const JobDetailsPage = () => {
           </div>
         )}
 
-        {/* ── Tab Bar: Matching | Shortlisted ── */}
+        {/* ── Tab Bar: Matching | Other | Shortlisted | Details ── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-1 bg-gray-100/50 p-1 rounded-xl w-fit border border-gray-100">
+          <div className="flex flex-wrap items-center gap-1 bg-gray-100/50 p-1 rounded-xl w-fit border border-gray-100">
             <button
               onClick={() => setActiveTab('matching')}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${
                 activeTab === 'matching'
                   ? 'bg-white text-blue-600 shadow-sm border border-gray-100'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
@@ -313,8 +340,25 @@ const JobDetailsPage = () => {
             </button>
 
             <button
+              onClick={() => setActiveTab('other')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                activeTab === 'other'
+                  ? 'bg-white text-orange-600 shadow-sm border border-gray-100'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <UserCheck size={16} />
+              Other Candidates
+              <span className={`ml-1 px-2 py-0.5 rounded-full text-[10px] ${
+                activeTab === 'other' ? 'bg-orange-100 text-orange-700' : 'bg-gray-200 text-gray-600'
+              }`}>
+                {otherCandidates.length}
+              </span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('shortlisted')}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${
                 activeTab === 'shortlisted'
                   ? 'bg-white text-emerald-600 shadow-sm border border-gray-100'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
@@ -334,7 +378,7 @@ const JobDetailsPage = () => {
 
             <button
               onClick={() => setActiveTab('details')}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${
                 activeTab === 'details'
                   ? 'bg-white text-indigo-600 shadow-sm border border-gray-100'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
@@ -370,6 +414,17 @@ const JobDetailsPage = () => {
               onBulkShortlist={handleBulkShortlist}
               processingId={processingId}
               tab="matching"
+              jobId={parseInt(id)}
+              internalSpoc={job?.internalSpoc}
+            />
+          ) : activeTab === 'other' ? (
+            <MatchingCandidatesTable
+              candidates={otherCandidates}
+              onShortlist={handleShortlist}
+              onReject={handleReject}
+              onBulkShortlist={handleBulkShortlist}
+              processingId={processingId}
+              tab="other"
               jobId={parseInt(id)}
               internalSpoc={job?.internalSpoc}
             />
