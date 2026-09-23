@@ -836,6 +836,7 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                                 {formErrors.salary_offered && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.salary_offered}</p>}
                               </div>
                             </div>
+                          </>
                         )}
 
                             {editForm.status === 'Joined' && (
