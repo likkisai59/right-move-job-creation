@@ -98,6 +98,8 @@ class PlacementResponse(BaseModel):
     band: Optional[str] = None
     employee_id: Optional[str] = None
     employee_name: Optional[str] = None
+    mapping_id: Optional[int] = None
+    candidate_id: Optional[int] = None
 
     model_config = {
         "from_attributes": True

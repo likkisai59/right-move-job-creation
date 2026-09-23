@@ -1,9 +1,10 @@
 import React from 'react';
-import { Wallet } from 'lucide-react';
+import { Wallet, Pencil } from 'lucide-react';
+import Button from '../../components/common/Button';
 import Table from '../../components/common/Table';
 import EmptyState from '../../components/common/EmptyState';
 
-const PlacementsTab = ({ data = [], loading = false }) => {
+const PlacementsTab = ({ data = [], loading = false, onEditPlacement }) => {
   const formatDate = (val) => {
     if (!val) return '—';
     try {
@@ -94,6 +95,20 @@ const PlacementsTab = ({ data = [], loading = false }) => {
       key: 'band',
       header: 'Band',
       render: (val) => <span className="text-gray-600 text-xs bg-gray-50 border px-2 py-0.5 rounded font-medium">{val || '—'}</span>,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (_, row) => (
+        <div className="flex justify-end gap-2">
+          {onEditPlacement && (
+            <Button variant="ghost" size="sm" onClick={() => onEditPlacement(row)} className="text-gray-400 hover:text-indigo-600">
+              <Pencil size={16} />
+            </Button>
+          )}
+        </div>
+      ),
     },
   ];
 

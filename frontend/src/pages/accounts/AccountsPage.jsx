@@ -25,6 +25,7 @@ import {
   exportBillingHistory,
   exportCreditDetails
 } from '../../api/accountsApi';
+import { updateSelectionDetails } from '../../api/candidatesApi';
 
 const AccountsPage = () => {
   const navigate = useNavigate();
@@ -57,6 +58,16 @@ const AccountsPage = () => {
   const [selectedCreditBank, setSelectedCreditBank] = useState('');
   const [exportingCredit, setExportingCredit] = useState(false);
 
+  // Edit placement states
+  const [isEditPlacementModalOpen, setIsEditPlacementModalOpen] = useState(false);
+  const [selectedPlacement, setSelectedPlacement] = useState(null);
+  const [editPlacementForm, setEditPlacementForm] = useState({
+    band: '',
+    incentive: '',
+    rate_card: ''
+  });
+  const [savingPlacement, setSavingPlacement] = useState(false);
+
   // Organization-wise invoice generator states
   const [isGenerateInvoiceModalOpen, setIsGenerateInvoiceModalOpen] = useState(false);
   const [selectedInvoiceOrg, setSelectedInvoiceOrg] = useState('');
@@ -79,6 +90,45 @@ const AccountsPage = () => {
       alert('Failed to export data.');
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleEditPlacement = (placement) => {
+    setSelectedPlacement(placement);
+    setEditPlacementForm({
+      band: placement.band || '',
+      incentive: placement.incentive || '',
+      rate_card: placement.rate_card || ''
+    });
+    setIsEditPlacementModalOpen(true);
+  };
+
+  const handleSavePlacement = async () => {
+    if (!selectedPlacement || !selectedPlacement.candidate_id || !selectedPlacement.mapping_id) {
+      alert('Missing candidate or mapping ID for this placement.');
+      return;
+    }
+    
+    // Validate incentive is numeric
+    if (editPlacementForm.incentive && isNaN(Number(editPlacementForm.incentive))) {
+      alert('Incentive must be numeric only');
+      return;
+    }
+
+    setSavingPlacement(true);
+    try {
+      // The API expects the payload. We only want to update these 3 fields, 
+      // but updateSelectionDetails might expect all fields or it does a partial update. 
+      // Assuming it does a partial update as typical for such endpoints.
+      await updateSelectionDetails(selectedPlacement.candidate_id, selectedPlacement.mapping_id, editPlacementForm);
+      await loadAccountsData();
+      setIsEditPlacementModalOpen(false);
+      await loadAllData();
+    } catch (error) {
+      console.error('Failed to update placement:', error);
+      alert('Error updating placement');
+    } finally {
+      setSavingPlacement(false);
     }
   };
 
@@ -112,7 +162,7 @@ const AccountsPage = () => {
     }
     const orgInvoices = invoices.filter(inv => inv.organization_name === selectedInvoiceOrg);
     setSelectedInvoiceCandidates(orgInvoices.map(inv => inv.id));
-    
+
     if (orgInvoices.length > 0) {
       const first = orgInvoices[0];
       setInvoiceOrgCgst(first.cgst || 0);
@@ -124,7 +174,7 @@ const AccountsPage = () => {
   // Sync Invoice Number dynamically whenever Organization or Invoice Date changes!
   useEffect(() => {
     if (!selectedInvoiceOrg) return;
-    
+
     // Find the first invoice of this organization to get the organization_id code
     const orgInvoices = invoices.filter(inv => inv.organization_name === selectedInvoiceOrg);
     let orgId = '';
@@ -139,12 +189,12 @@ const AccountsPage = () => {
         }
       }
     }
-    
+
     // Fallback if not found
     if (!orgId) {
       orgId = selectedInvoiceOrg.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
     }
-    
+
     let dateStr = '';
     if (invoiceOrgDate) {
       const parts = invoiceOrgDate.split('-'); // e.g. ["2026", "07", "19"]
@@ -152,7 +202,7 @@ const AccountsPage = () => {
         dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`; // "19-07-2026"
       }
     }
-    
+
     if (!dateStr) {
       const now = new Date();
       const day = String(now.getDate()).padStart(2, '0');
@@ -160,7 +210,7 @@ const AccountsPage = () => {
       const year = now.getFullYear();
       dateStr = `${day}-${month}-${year}`;
     }
-    
+
     setInvoiceOrgNumber(`INV-${orgId}-${dateStr}`);
   }, [selectedInvoiceOrg, invoiceOrgDate, invoices]);
 
@@ -802,8 +852,8 @@ const AccountsPage = () => {
             <button
               onClick={() => setActiveTab('baseline')}
               className={`px-4 py-2.5 font-semibold text-sm transition-all border-b-2 shrink-0 ${activeTab === 'baseline'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-200'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-200'
                 }`}
             >
               Employee Salary Baseline
@@ -811,8 +861,8 @@ const AccountsPage = () => {
             <button
               onClick={() => setActiveTab('placements')}
               className={`px-4 py-2.5 font-semibold text-sm transition-all border-b-2 shrink-0 ${activeTab === 'placements'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-200'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-200'
                 }`}
             >
               Candidates Hired For Organizations
@@ -820,8 +870,8 @@ const AccountsPage = () => {
             <button
               onClick={() => setActiveTab('payroll')}
               className={`px-4 py-2.5 font-semibold text-sm transition-all border-b-2 shrink-0 ${activeTab === 'payroll'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-200'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-200'
                 }`}
             >
               Payroll Calculations
@@ -829,8 +879,8 @@ const AccountsPage = () => {
             <button
               onClick={() => setActiveTab('invoices')}
               className={`px-4 py-2.5 font-semibold text-sm transition-all border-b-2 shrink-0 ${activeTab === 'invoices'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-200'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-200'
                 }`}
             >
               Organization Billing

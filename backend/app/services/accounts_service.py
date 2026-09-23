@@ -396,7 +396,9 @@ def list_placements(db: Session) -> List[dict]:
             "rate_card": m.rate_card,
             "band": m.band,
             "employee_id": rec_emp_id,
-            "employee_name": rec_emp_name
+            "employee_name": rec_emp_name,
+            "mapping_id": m.id,
+            "candidate_id": candidate.id
         })
     return placements
 # ── FOURTH TAB: INVOICING & BILLING ────────────────────────────
