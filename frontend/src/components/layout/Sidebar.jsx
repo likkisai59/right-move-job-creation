@@ -35,13 +35,15 @@ const Sidebar = ({ collapsed, onToggle }) => {
   const initials = employeeName.substring(0, 2).toUpperCase();
 
   const filteredNavItems = NAV_ITEMS.filter(({ label }) => {
+    if (label === 'Accounts') return role === 'account_user';
+
     if (role === 'unassigned') return label === 'Home';
     if (role === 'super_admin') return true;
     if (role === 'admin_admin') return true;
     
     if (role === 'temporary') return ['Candidates'].includes(label);
     if (role === 'account_user') return ['RMEP', 'Accounts'].includes(label);
-    if (role === 'admin_user') return ['Dashboard', 'Home', 'Jobs', 'Candidates', 'Organizations', 'Employees', 'RMEP', 'Accounts'].includes(label);
+    if (role === 'admin_user') return ['Dashboard', 'Home', 'Jobs', 'Candidates', 'Organizations', 'Employees', 'RMEP'].includes(label);
     if (role === 'hr') return ['Home', 'Jobs', 'Candidates', 'Organizations', 'Employees', 'RMEP'].includes(label);
     if (role === 'leader') return ['Home', 'Jobs', 'Candidates', 'RMEP'].includes(label);
     if (role === 'user') return ['Home', 'Jobs', 'Candidates', 'RMEP'].includes(label);

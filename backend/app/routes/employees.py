@@ -240,7 +240,7 @@ def list_employees(
             if (emp.completion_percentage_hr == 100 and 
                 emp.completion_percentage_admin == 100 and 
                 not emp.employee_password):
-                compute_employee_completion(emp)
+                compute_employee_completion(emp, is_final_submit=True)
                 updated_any = True
         if updated_any:
             db.commit()
@@ -277,7 +277,7 @@ def get_employee(employee_id: int, db: Session = Depends(get_db)):
             employee.completion_percentage_admin == 100 and 
             not employee.employee_password):
             from app.services.employee_service import compute_employee_completion
-            compute_employee_completion(employee)
+            compute_employee_completion(employee, is_final_submit=True)
             db.commit()
             db.refresh(employee)
             

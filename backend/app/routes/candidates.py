@@ -910,13 +910,14 @@ def update_selection_details(
         # Priority 1: Security Validation
         role = current_user.get("role", "")
         
-        if "rate_card" in update_data and update_data["rate_card"] != mapping.rate_card:
-            if role.lower() != "admin":
-                return JSONResponse(status_code=403, content=error_response("Forbidden: Only Admin can update Rate Card"))
-            
-        if "incentive" in update_data and update_data["incentive"] != mapping.incentive:
-            if not check_incentive_update_permission(role, current_user):
-                return JSONResponse(status_code=403, content=error_response("Forbidden: Only Accounts or Admin can update Incentive"))
+        restricted_fields = ["rate_card", "incentive", "band"]
+        for field in restricted_fields:
+            if field in update_data and update_data[field] != getattr(mapping, field):
+                if role.lower() != "account_user":
+                    return JSONResponse(
+                        status_code=403, 
+                        content=error_response(f"Forbidden: Only Account User can update {field.replace('_', ' ').title()}")
+                    )
             
         from app.models.job_candidate import CandidateStatusHistory
 

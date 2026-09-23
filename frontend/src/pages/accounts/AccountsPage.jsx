@@ -969,6 +969,7 @@ const AccountsPage = () => {
           <PlacementsTab
             data={filteredData}
             loading={loading}
+            onEditPlacement={handleEditPlacement}
           />
         )}
         {activeTab === 'payroll' && (
@@ -1517,6 +1518,79 @@ const AccountsPage = () => {
                 icon={Download}
               >
                 Export Excel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Edit Placement Modal */}
+      {isEditPlacementModalOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 bg-white border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                  <Settings size={20} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Edit Placement Details</h2>
+                  <p className="text-sm text-gray-500 font-medium">
+                    {selectedPlacement?.candidate_name} ({selectedPlacement?.candidate_code})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsEditPlacementModalOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 overflow-y-auto">
+              <div>
+                <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Band</label>
+                <Input
+                  type="text"
+                  placeholder="e.g. B1"
+                  value={editPlacementForm.band}
+                  onChange={(e) => setEditPlacementForm({ ...editPlacementForm, band: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Incentive</label>
+                <Input
+                  type="text"
+                  placeholder="e.g. 5000"
+                  value={editPlacementForm.incentive}
+                  onChange={(e) => setEditPlacementForm({ ...editPlacementForm, incentive: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Rate Card</label>
+                <Input
+                  type="text"
+                  placeholder="e.g. 20000"
+                  value={editPlacementForm.rate_card}
+                  onChange={(e) => setEditPlacementForm({ ...editPlacementForm, rate_card: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-2 shrink-0">
+              <Button
+                variant="secondary"
+                onClick={() => setIsEditPlacementModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSavePlacement}
+                disabled={savingPlacement}
+                loading={savingPlacement}
+                icon={Save}
+              >
+                Save Changes
               </Button>
             </div>
           </div>

@@ -50,7 +50,7 @@ def assign_employee_role(
     Assign a system role to an employee.
     Restricted to Admin Admin and Super Admin.
     """
-    allowed = {"user", "leader", "hr", "admin_user", "admin_admin", "super_admin", "unassigned", "Temporary", "Account User"}
+    allowed = {"user", "leader", "hr", "admin_user", "admin_admin", "super_admin", "unassigned", "temporary", "account_user"}
     role_to_assign = payload.system_role.strip().lower()
     
     if role_to_assign not in allowed:

@@ -53,7 +53,7 @@ DEFAULT_ROLE_PERMISSIONS = {
         "organization": "add",
         "rmep": "add_edit_approval",
         "employee": "add_edit_admin",
-        "accounts": "all_access",
+        "accounts": "not_visible",
         "settings": "not_visible"
     },
     "admin_admin": {
@@ -63,7 +63,7 @@ DEFAULT_ROLE_PERMISSIONS = {
         "organization": "all_access",
         "rmep": "add_edit_approval_holidays",
         "employee": "dashboard_access",
-        "accounts": "all_access",
+        "accounts": "not_visible",
         "settings": "view_assign_roles"
     },
     "super_admin": {
@@ -73,7 +73,7 @@ DEFAULT_ROLE_PERMISSIONS = {
         "organization": "dashboard_access",
         "rmep": "add_edit_approval_holidays",
         "employee": "view_password_access",
-        "accounts": "all_access",
+        "accounts": "not_visible",
         "settings": "all_access"
     },
     "unassigned": {
@@ -86,7 +86,7 @@ DEFAULT_ROLE_PERMISSIONS = {
         "accounts": "not_visible",
         "settings": "not_visible"
     },
-    "Temporary": {
+    "temporary": {
         "display_name": "Temporary",
         "candidate": "add_edit",
         "job": "not_visible",
@@ -96,7 +96,7 @@ DEFAULT_ROLE_PERMISSIONS = {
         "accounts": "not_visible",
         "settings": "not_visible"
     },
-    "Account User":{
+    "account_user":{
         "display_name": "Account User",
         "candidate": "not_visible",
         "job": "not_visible",
