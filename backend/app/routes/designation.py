@@ -88,7 +88,8 @@ def create_designation(payload: DesignationCreate, db: Session = Depends(get_db)
             
         new_designation = Designation(
             name=payload.name.strip(),
-            is_active=True
+            is_active=True,
+            leaves=payload.leaves or 0.0
         )
         db.add(new_designation)
         db.commit()
@@ -114,7 +115,7 @@ def create_designation(payload: DesignationCreate, db: Session = Depends(get_db)
 @router.put("/{designation_id}", response_model=DesignationResponse)
 def update_designation(designation_id: int, payload: DesignationUpdate, db: Session = Depends(get_db)):
     """
-    Update designation name or active status.
+    Update designation name, active status, or leaves quota.
     """
     try:
         designation = db.query(Designation).filter(Designation.id == designation_id).first()
@@ -143,6 +144,9 @@ def update_designation(designation_id: int, payload: DesignationUpdate, db: Sess
             
         if payload.is_active is not None:
             designation.is_active = payload.is_active
+
+        if payload.leaves is not None:
+            designation.leaves = payload.leaves
             
         db.commit()
         db.refresh(designation)

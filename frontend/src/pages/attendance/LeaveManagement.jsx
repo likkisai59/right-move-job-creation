@@ -9,7 +9,7 @@ import { getCurrentEmployee } from '../../api/authApi';
 const LeaveManagement = () => {
   const [showForm, setShowForm] = useState(false);
   const [leaves, setLeaves] = useState([]);
-  const [annualQuota, setAnnualQuota] = useState(30);
+  const [annualQuota, setAnnualQuota] = useState(0);
   const [holidays, setHolidays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -18,7 +18,7 @@ const LeaveManagement = () => {
 
   // Form states
   const [leaveType, setLeaveType] = useState('');
-  const [sessionType, setSessionType] = useState('First Half');
+  const [sessionType, setSessionType] = useState('Full Day');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [reason, setReason] = useState('');
@@ -38,11 +38,12 @@ const LeaveManagement = () => {
       ]);
       setLeaves(historyData || []);
       if (configData) {
-        setAnnualQuota(configData.leaves ?? 30);
+        setAnnualQuota(configData.leaves ?? 0);
         setHolidays(configData.holidays || []);
       }
       if (typesData) {
-        setLeaveTypes(typesData.filter(lt => lt.is_active));
+        // Exclude 'Half Day Leave' and only keep active types
+        setLeaveTypes(typesData.filter(lt => lt.is_active && lt.name.toLowerCase() !== 'half day leave'));
       }
     } catch (err) {
       console.error(err);
@@ -56,25 +57,67 @@ const LeaveManagement = () => {
     fetchLeavesAndConfig();
   }, [employeeId]);
 
+  const calculateDays = (start, end) => {
+    const s = new Date(start);
+    const e = new Date(end);
+    const diff = Math.abs(e - s);
+    return Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1;
+  };
+
+  // Dynamic Quota Calculations based on approved leaves
+  const approvedLeaves = leaves.filter(l => l.status === 'Approved');
+  const totalApprovedDays = approvedLeaves.reduce((acc, leave) => {
+    return acc + (leave.total_leaves !== undefined && leave.total_leaves !== null ? Number(leave.total_leaves) : calculateDays(leave.start_date, leave.end_date));
+  }, 0);
+
+  const approvedUnpaidLeaves = leaves.filter(l => l.status === 'Approved' && l.leave_type.toLowerCase().includes('unpaid'));
+  const totalUnpaidLeaves = approvedUnpaidLeaves.reduce((acc, leave) => {
+    return acc + (leave.total_leaves !== undefined && leave.total_leaves !== null ? Number(leave.total_leaves) : calculateDays(leave.start_date, leave.end_date));
+  }, 0);
+
+  const pendingLeavesCount = leaves.filter(l => l.status === 'Pending').length;
+  const availableBalance = Math.max(0, annualQuota - totalApprovedDays);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!leaveType) {
       setError('Please select a leave type.');
       return;
     }
-    if (!startDate || !endDate) {
+    if (!startDate || (!endDate && sessionType === 'Full Day')) {
       setError('Start date and end date are required.');
       return;
     }
 
-    if (new Date(startDate) > new Date(endDate)) {
+    const effectiveEndDate = (sessionType === 'First Half' || sessionType === 'Second Half') ? startDate : endDate;
+
+    if (new Date(startDate) > new Date(effectiveEndDate)) {
       setError('Start date cannot be after end date.');
       return;
     }
 
+    // Quota validation for Paid Leave
+    if (leaveType === 'Paid Leave') {
+      if (availableBalance <= 0) {
+        setError('You do not have enough Paid Leave quota available. Please select another leave type.');
+        return;
+      }
+      if (availableBalance === 0.5 && sessionType === 'Full Day') {
+        setError('You only have 0.5 Paid Leave quota remaining. Please select First Half or Second Half.');
+        return;
+      }
+      if (sessionType === 'Full Day') {
+        const requestedDays = calculateDays(startDate, effectiveEndDate);
+        if (requestedDays > availableBalance) {
+          setError(`You only have ${availableBalance} Paid Leave(s) available, but requested ${requestedDays} day(s).`);
+          return;
+        }
+      }
+    }
+
     // Check if any date in the applied range is a holiday
     const start = new Date(startDate);
-    const end = new Date(endDate);
+    const end = new Date(effectiveEndDate);
     const holidayDates = holidays.map(h => h.date);
 
     let current = new Date(start);
@@ -100,18 +143,14 @@ const LeaveManagement = () => {
 
     setError('');
     setSuccessMsg('');
-    if (leaveType === 'Half Day Leave' && startDate !== endDate) {
-      setError('Half Day Leave must be on a single day.');
-      return;
-    }
 
     try {
       const payload = {
         employee_id: employeeId,
         leave_type: leaveType,
-        session_type: leaveType === 'Half Day Leave' ? sessionType : null,
+        session_type: sessionType,
         start_date: startDate,
-        end_date: endDate,
+        end_date: effectiveEndDate,
         reason: reason || null
       };
       await applyLeave(payload);
@@ -120,7 +159,7 @@ const LeaveManagement = () => {
 
       // Reset form
       setLeaveType('');
-      setSessionType('First Half');
+      setSessionType('Full Day');
       setStartDate('');
       setEndDate('');
       setReason('');
@@ -137,27 +176,6 @@ const LeaveManagement = () => {
       setError('Failed to submit leave application. Please check details and try again.');
     }
   };
-
-  const calculateDays = (start, end) => {
-    const s = new Date(start);
-    const e = new Date(end);
-    const diff = Math.abs(e - s);
-    return Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1;
-  };
-
-  // Dynamic Quota Calculations based on approved leaves
-  const approvedLeaves = leaves.filter(l => l.status === 'Approved');
-  const totalApprovedDays = approvedLeaves.reduce((acc, leave) => {
-    return acc + calculateDays(leave.start_date, leave.end_date);
-  }, 0);
-
-  const approvedUnpaidLeaves = leaves.filter(l => l.status === 'Approved' && l.leave_type.toLowerCase().includes('unpaid'));
-  const totalUnpaidLeaves = approvedUnpaidLeaves.reduce((acc, leave) => {
-    return acc + calculateDays(leave.start_date, leave.end_date);
-  }, 0);
-
-  const pendingLeavesCount = leaves.filter(l => l.status === 'Pending').length;
-  const availableBalance = Math.max(0, annualQuota - totalApprovedDays);
 
   const statusColors = {
     'Approved': 'bg-emerald-50 text-emerald-600 border-emerald-100',
@@ -231,77 +249,119 @@ const LeaveManagement = () => {
                 <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Leave Type</label>
                 <select
                   value={leaveType}
-                  onChange={(e) => setLeaveType(e.target.value)}
+                  onChange={(e) => {
+                    const selected = e.target.value;
+                    setLeaveType(selected);
+                    if (selected === 'Paid Leave' && availableBalance === 0.5 && sessionType === 'Full Day') {
+                      setSessionType('First Half');
+                    }
+                  }}
                   className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-semibold text-gray-700"
                 >
                   <option value="" disabled>Select</option>
-                  {leaveTypes.length > 0 ? (
-                    leaveTypes.map(lt => (
-                      <option key={lt.id} value={lt.name}>{lt.name}</option>
-                    ))
-                  ) : (
-                    <>
-                      <option>Paid Leave</option>
-                      <option>Unpaid Leave</option>
-                      <option>Optional Leave</option>
-                    </>
-                  )}
+                  <option value="Paid Leave" disabled={availableBalance <= 0}>
+                    Paid Leave {availableBalance <= 0 ? '(No Quota Available)' : `(Balance: ${availableBalance})`}
+                  </option>
+                  <option value="Unpaid Leave">Unpaid Leave</option>
+                  <option value="Casual Leave">Casual Leave</option>
+                  <option value="Optional Leave">Optional Leave</option>
                 </select>
               </div>
               
-              {/* Half Day Session Type */}
-              {leaveType === 'Half Day Leave' && (
-                <div className="space-y-2">
+              {/* Session Type (Full Day, First Half, Second Half) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Session</label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer p-3 bg-gray-50 border border-gray-200 rounded-xl flex-1 hover:border-blue-300 transition-colors">
-                      <input 
-                        type="radio" 
-                        name="sessionType" 
-                        value="First Half" 
-                        checked={sessionType === 'First Half'}
-                        onChange={(e) => setSessionType(e.target.value)}
-                        className="text-blue-600 focus:ring-blue-500 w-4 h-4"
-                      />
-                      <span className="font-semibold text-sm text-gray-700">First Half</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer p-3 bg-gray-50 border border-gray-200 rounded-xl flex-1 hover:border-blue-300 transition-colors">
-                      <input 
-                        type="radio" 
-                        name="sessionType" 
-                        value="Second Half" 
-                        checked={sessionType === 'Second Half'}
-                        onChange={(e) => setSessionType(e.target.value)}
-                        className="text-blue-600 focus:ring-blue-500 w-4 h-4"
-                      />
-                      <span className="font-semibold text-sm text-gray-700">Second Half</span>
-                    </label>
+                  {leaveType === 'Paid Leave' && availableBalance === 0.5 && (
+                    <span className="text-[11px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                      Quota 0.5 only — Full Day disabled
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-3">
+                  <label className={`flex items-center gap-2 cursor-pointer p-3 bg-gray-50 border rounded-xl flex-1 transition-all ${
+                    leaveType === 'Paid Leave' && availableBalance === 0.5
+                      ? 'opacity-40 cursor-not-allowed border-gray-200 bg-gray-100'
+                      : sessionType === 'Full Day' ? 'border-blue-500 bg-blue-50/40 text-blue-700 font-bold' : 'border-gray-200 hover:border-blue-300'
+                  }`}>
+                    <input 
+                      type="radio" 
+                      name="sessionType" 
+                      value="Full Day" 
+                      disabled={leaveType === 'Paid Leave' && availableBalance === 0.5}
+                      checked={sessionType === 'Full Day'}
+                      onChange={(e) => setSessionType(e.target.value)}
+                      className="text-blue-600 focus:ring-blue-500 w-4 h-4"
+                    />
+                    <span className="font-semibold text-sm">Full Day</span>
+                  </label>
+                  <label className={`flex items-center gap-2 cursor-pointer p-3 bg-gray-50 border rounded-xl flex-1 transition-all ${
+                    sessionType === 'First Half' ? 'border-blue-500 bg-blue-50/40 text-blue-700 font-bold' : 'border-gray-200 hover:border-blue-300'
+                  }`}>
+                    <input 
+                      type="radio" 
+                      name="sessionType" 
+                      value="First Half" 
+                      checked={sessionType === 'First Half'}
+                      onChange={(e) => setSessionType(e.target.value)}
+                      className="text-blue-600 focus:ring-blue-500 w-4 h-4"
+                    />
+                    <span className="font-semibold text-sm">First Half</span>
+                  </label>
+                  <label className={`flex items-center gap-2 cursor-pointer p-3 bg-gray-50 border rounded-xl flex-1 transition-all ${
+                    sessionType === 'Second Half' ? 'border-blue-500 bg-blue-50/40 text-blue-700 font-bold' : 'border-gray-200 hover:border-blue-300'
+                  }`}>
+                    <input 
+                      type="radio" 
+                      name="sessionType" 
+                      value="Second Half" 
+                      checked={sessionType === 'Second Half'}
+                      onChange={(e) => setSessionType(e.target.value)}
+                      className="text-blue-600 focus:ring-blue-500 w-4 h-4"
+                    />
+                    <span className="font-semibold text-sm">Second Half</span>
+                  </label>
+                </div>
+              </div>
+
+              {sessionType === 'Full Day' ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Start Date</label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      required
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-gray-700"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">End Date</label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      required
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-gray-700"
+                    />
                   </div>
                 </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
+              ) : (
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Start Date</label>
+                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Date</label>
                   <input
                     type="date"
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setEndDate(e.target.value);
+                    }}
                     required
                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-gray-700"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">End Date</label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    required
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-gray-700"
-                  />
-                </div>
-              </div>
+              )}
             </div>
             <div className="space-y-4">
               <div>

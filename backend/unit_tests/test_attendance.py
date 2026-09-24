@@ -97,13 +97,19 @@ def test_attendance_and_leave_workflow(client: TestClient, db_session: Session):
     assert team_att.json()[0]["employee_id"] == report.id
 
     # 10. Designation config & Leave limits
+    # 10. Designation config & Leave limits (defaults to 0.0 until configured)
     config_res = client.get(f"/api/attendance/leave/config/{report.id}")
     assert config_res.status_code == 200
-    # Calculated as Trainee (monthly_rate = 1.0) * months_diff (1) = 1.0
-    assert config_res.json()["leaves"] == 1.0
+    assert config_res.json()["leaves"] == 0.0
 
-    # Save Designation configurations
+    # Save Designation configurations with 15.0 leaves
     desig_item = db_session.query(Designation).filter(Designation.name == "Trainee").first()
+    if not desig_item:
+        desig_item = Designation(name="Trainee", is_active=True, leaves=0.0)
+        db_session.add(desig_item)
+        db_session.commit()
+        db_session.refresh(desig_item)
+
     update_config_payload = [{
         "id": desig_item.id,
         "leaves": 15.0,
@@ -113,7 +119,13 @@ def test_attendance_and_leave_workflow(client: TestClient, db_session: Session):
     assert save_res.status_code == 200
     assert save_res.json()["success"] is True
 
-    # Re-fetch config to confirm update
+    # Set employee date of joining to Jan 1st of current year (full 12 months in current year or test pro-rata)
+    report.date_of_joining = date(date.today().year, 1, 1)
+    db_session.commit()
+
+    # Re-fetch config to confirm pro-rata calculation for elapsed months
     config_res_updated = client.get(f"/api/attendance/leave/config/{report.id}")
-    assert config_res_updated.json()["leaves"] == 1.0
+    assert config_res_updated.status_code == 200
+    expected_leaves = round((15.0 / 12.0) * date.today().month, 2)
+    assert config_res_updated.json()["leaves"] == expected_leaves
     assert len(config_res_updated.json()["holidays"]) == 1

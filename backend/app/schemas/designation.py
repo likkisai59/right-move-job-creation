@@ -4,16 +4,18 @@ import json
 
 class DesignationCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
+    leaves: Optional[float] = 0.0
 
 class DesignationUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     is_active: Optional[bool] = None
+    leaves: Optional[float] = None
 
 class DesignationResponse(BaseModel):
     id: int
     name: str
     is_active: bool
-    leaves: Optional[float] = 30.0
+    leaves: Optional[float] = 0.0
     holidays: Optional[List[dict]] = None
 
     @field_validator("holidays", mode="before")

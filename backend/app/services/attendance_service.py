@@ -72,7 +72,7 @@ def create_leave_request(db: Session, payload: LeaveCreate) -> Leave:
     Apply for a new leave request.
     """
     # Calculate duration in days
-    if payload.leave_type.strip().lower() == "half day leave":
+    if payload.session_type in ["First Half", "Second Half"] or payload.leave_type.strip().lower() == "half day leave":
         num_days = 0.5
     else:
         num_days = float((payload.end_date - payload.start_date).days + 1)
@@ -225,6 +225,7 @@ def get_team_attendance(db: Session, manager_name: str) -> List[dict]:
 def get_leave_config(db: Session, employee_id: int) -> Optional[dict]:
     """
     Fetch the leaves limit and holidays list configured for the employee's designation.
+    Calculates leave quota dynamically on a pro-rata basis from joining month to current month.
     """
     import json
     from datetime import date
@@ -240,42 +241,39 @@ def get_leave_config(db: Session, employee_id: int) -> Optional[dict]:
     if emp.designation:
         try:
             desg = db.query(Designation).filter(Designation.name == emp.designation).first()
-            if desg and desg.holidays:
-                try:
-                    holidays_list = json.loads(desg.holidays)
-                except Exception:
-                    print("Warning: Failed to parse holidays JSON for designation:", emp.designation)
+            if desg:
+                annual_quota = float(desg.leaves or 0.0)
+                today = date.today()
+                joining_date = emp.date_of_joining or today
+                
+                # If joined in the future
+                if joining_date > today:
+                    months_count = 0
+                else:
+                    # Calculate active months in the current year or from joining date
+                    if joining_date.year == today.year:
+                        months_count = (today.month - joining_date.month) + 1
+                    elif joining_date.year < today.year:
+                        months_count = today.month
+                    else:
+                        months_count = 0
+                    months_count = max(0, min(12, months_count))
+                
+                # Calculate monthly accrual and accrued leaves limit
+                monthly_rate = annual_quota / 12.0
+                leaves_limit = round(monthly_rate * months_count, 2)
+                
+                if desg.holidays:
+                    try:
+                        holidays_list = json.loads(desg.holidays)
+                    except Exception:
+                        print("Warning: Failed to parse holidays JSON for designation:", emp.designation)
         except Exception as e:
             if "Unknown column" in str(e) and "holidays" in str(e):
                 holidays_list = []
             else:
-                raise e
+                print("Warning: Failed to fetch designation config:", e)
                     
-    # Calculate automatic pro-rata leaves based on designation and months of service
-    today = date.today()
-    joining_date = emp.date_of_joining or today
-    
-    # Calculate months difference (inclusive of joining month)
-    months_diff = (today.year - joining_date.year) * 12 + (today.month - joining_date.month) + 1
-    if months_diff < 0:
-        months_diff = 0
-        
-    desig = emp.designation or ""
-    desig_lower = desig.lower().strip()
-    
-    if any(k in desig_lower for k in ["senior manager", "sr.manager", "sr. manager"]):
-        monthly_rate = 2.0
-    elif any(k in desig_lower for k in ["team lead", "assistant manager", "manager"]):
-        monthly_rate = 1.5
-    elif "atl" in desig_lower:
-        monthly_rate = 1.25
-    elif any(k in desig_lower for k in ["intern", "trainee", "executive", "senior executive"]):
-        monthly_rate = 1.0
-    else:
-        monthly_rate = 0.0
-        
-    leaves_limit = monthly_rate * months_diff
-    
     return {
         "leaves": leaves_limit,
         "holidays": holidays_list
