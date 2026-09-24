@@ -29,7 +29,7 @@ class EmployeeBase(BaseModel):
     designation: Optional[str] = None
     date_of_joining: Optional[dt.date] = None
     package: Optional[float] = None
-    status: EmployeeStatus = EmployeeStatus.ACTIVE
+    status: Optional[EmployeeStatus] = None
     profile_status: Optional[str] = "Draft"
     completion_percentage: Optional[int] = 0
     profile_status_hr: Optional[str] = "Draft"
@@ -83,11 +83,20 @@ class EmployeeBase(BaseModel):
     linkedin_configured: Optional[str] = None
     google_sheet_configured: Optional[str] = None
     whatsapp_business_configured: Optional[str] = None
+    id_card_admitted: Optional[str] = None
+    insurance_policy_admitted: Optional[str] = None
     employee_password: Optional[str] = None
 
     # ─────────────────────────────────────────────────────────────
     # DUAL-LAYER BACKEND VALIDATORS
     # ─────────────────────────────────────────────────────────────
+
+    @field_validator('status', mode='before')
+    @classmethod
+    def validate_status(cls, v):
+        if not v or not str(v).strip():
+            return None
+        return v
 
     @field_validator('contact_number', 'contact_number_office', 'emergency_contact_number', mode='before')
     @classmethod
@@ -206,6 +215,8 @@ class EmployeeUpdateRequest(BaseModel):
     linkedin_configured: Optional[str] = None
     google_sheet_configured: Optional[str] = None
     whatsapp_business_configured: Optional[str] = None
+    id_card_admitted: Optional[str] = None
+    insurance_policy_admitted: Optional[str] = None
     employee_password: Optional[str] = None
 
 

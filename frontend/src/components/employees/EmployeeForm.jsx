@@ -27,14 +27,7 @@ import { getCurrentUser, getSystemRole } from '../../api/authApi';
 // Add/remove fields here to update validation everywhere at once.
 // ─────────────────────────────────────────────────────────────
 const MANDATORY_HR_FIELDS = [
-  'firstName', 'lastName', 'gender', 'dateOfBirth', 'email',
-  'contactNumber', 'contactNumberOffice', 'emergencyContactNumber',
-  'currentAddress', 'presentAddressProofUrl', 'permanentAddress', 'permanentAddressProofUrl',
-  'aadharNumber', 'aadharUrl', 'panNumber', 'panUrl',
-  'marksheet10thUrl', 'marksheet12thUrl', 'marksheetGraduationUrl', 'photoUrl',
-  'dateOfJoining', 'resumeUrl', 'designation', 'assignedBusinessUnit',
-  'workMode', 'ctc', 'compliance',
-  'bankName', 'bankAccountNumber', 'bankIfscCode'
+  'firstName', 'lastName', 'gender', 'dateOfBirth', 'email', 'contactNumber', 'currentAddress', 'permanentAddress', 'aadharNumber', 'panNumber', 'dateOfJoining'
 ];
 
 const SectionTitle = ({ children }) => (
@@ -259,6 +252,8 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
       linkedinConfigured: '',
       googleSheetConfigured: '',
       whatsappBusinessConfigured: '',
+      idCardAdmitted: '',
+      insurancePolicyAdmitted: '',
       ...initialData
     }
   });
@@ -465,6 +460,14 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
       if (!formattedData.countrycodeEmergencyContact) {
         formattedData.countrycodeEmergencyContact = '';
       }
+      if (!formattedData.systemAssigned) formattedData.systemAssigned = '';
+      if (!formattedData.simCardAssigned) formattedData.simCardAssigned = '';
+      if (!formattedData.emailIdConfigured) formattedData.emailIdConfigured = '';
+      if (!formattedData.linkedinConfigured) formattedData.linkedinConfigured = '';
+      if (!formattedData.googleSheetConfigured) formattedData.googleSheetConfigured = '';
+      if (!formattedData.whatsappBusinessConfigured) formattedData.whatsappBusinessConfigured = '';
+      if (!formattedData.idCardAdmitted) formattedData.idCardAdmitted = '';
+      if (!formattedData.insurancePolicyAdmitted) formattedData.insurancePolicyAdmitted = '';
       reset(formattedData);
     }
   }, [initialData, reset]);
@@ -498,10 +501,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   };
 
   const isAdminSectionComplete = () => {
-    const adminMandatoryFields = [
-      'systemAssigned', 'simCardAssigned', 'emailIdConfigured',
-      'linkedinConfigured', 'googleSheetConfigured', 'whatsappBusinessConfigured'
-    ];
+    const adminMandatoryFields = [];
     let isComplete = true;
     for (const field of adminMandatoryFields) {
       const val = formValues[field];
@@ -530,7 +530,8 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
 
     const adminFields = [
       'systemAssigned', 'simCardAssigned', 'emailIdConfigured',
-      'linkedinConfigured', 'googleSheetConfigured', 'whatsappBusinessConfigured'
+      'linkedinConfigured', 'googleSheetConfigured', 'whatsappBusinessConfigured',
+      'idCardAdmitted', 'insurancePolicyAdmitted'
     ];
 
     if (isSuperAdminOrAdminAdmin) {
@@ -581,10 +582,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
 
   const handleAdminSubmit = async () => {
     if (isAdminDisabled) return;
-    const fieldsToValidate = [
-      'systemAssigned', 'simCardAssigned', 'emailIdConfigured',
-      'linkedinConfigured', 'googleSheetConfigured', 'whatsappBusinessConfigured'
-    ];
+    const fieldsToValidate = []; // Admin fields are no longer mandatory
     const isValid = await trigger(fieldsToValidate);
     if (isValid) {
       const payload = getFilteredPayload();
@@ -776,7 +774,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-gray-700">Contact Number (Office) <span className="text-red-500">*</span></label>
+              <label className="text-sm font-medium text-gray-700">Contact Number (Office)</label>
               <div className="flex gap-2">
                 <div className="w-28">
                   <Select
@@ -795,7 +793,6 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                     onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
                     onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
                     {...register('contactNumberOffice', {
-                      required: 'Office contact number is required',
                       ...getPhoneValidationRules(selectedOfficeCountry)
                     })}
                     disabled={isHrDisabled}
@@ -805,7 +802,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-gray-700">Emergency Contact Number (Office) <span className="text-red-500">*</span></label>
+              <label className="text-sm font-medium text-gray-700">Emergency Contact Number (Office)</label>
               <div className="flex gap-2">
                 <div className="w-28">
                   <Select
@@ -824,7 +821,6 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                     onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
                     onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
                     {...register('emergencyContactNumber', {
-                      required: 'Emergency contact number is required',
                       ...getPhoneValidationRules(selectedEmergencyCountry)
                     })}
                     disabled={isHrDisabled}
@@ -862,12 +858,10 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             <Controller
               name="aadharUrl"
               control={control}
-              rules={{ required: 'Aadhar card upload is required' }}
               render={({ field }) => (
                 <FormFileUpload
                   label="Aadhar Card (Upload PDF/Image)"
-                  required
-                  value={field.value}
+value={field.value}
                   onChange={field.onChange}
                   error={errors.aadharUrl?.message}
                   disabled={isHrDisabled}
@@ -895,12 +889,10 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             <Controller
               name="panUrl"
               control={control}
-              rules={{ required: 'PAN card upload is required' }}
               render={({ field }) => (
                 <FormFileUpload
                   label="PAN Card (Upload PDF/Image)"
-                  required
-                  value={field.value}
+value={field.value}
                   onChange={field.onChange}
                   error={errors.panUrl?.message}
                   disabled={isHrDisabled}
@@ -911,12 +903,10 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             <Controller
               name="marksheet10thUrl"
               control={control}
-              rules={{ required: '10th Marksheet upload is required' }}
               render={({ field }) => (
                 <FormFileUpload
                   label="10th Marksheet (Upload PDF/Image)"
-                  required
-                  value={field.value}
+value={field.value}
                   onChange={field.onChange}
                   error={errors.marksheet10thUrl?.message}
                   disabled={isHrDisabled}
@@ -927,12 +917,10 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             <Controller
               name="marksheet12thUrl"
               control={control}
-              rules={{ required: '12th Marksheet upload is required' }}
               render={({ field }) => (
                 <FormFileUpload
                   label="12th Marksheet (Upload PDF/Image)"
-                  required
-                  value={field.value}
+value={field.value}
                   onChange={field.onChange}
                   error={errors.marksheet12thUrl?.message}
                   disabled={isHrDisabled}
@@ -943,12 +931,10 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             <Controller
               name="marksheetGraduationUrl"
               control={control}
-              rules={{ required: 'Graduation Marksheet upload is required' }}
               render={({ field }) => (
                 <FormFileUpload
                   label="Graduation Marksheet (Upload PDF/Image)"
-                  required
-                  value={field.value}
+value={field.value}
                   onChange={field.onChange}
                   error={errors.marksheetGraduationUrl?.message}
                   disabled={isHrDisabled}
@@ -959,12 +945,10 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             <Controller
               name="photoUrl"
               control={control}
-              rules={{ required: 'Front facing photo is required' }}
               render={({ field }) => (
                 <FormFileUpload
                   label="Front facing Photo (Upload Image)"
-                  required
-                  value={field.value}
+value={field.value}
                   onChange={field.onChange}
                   error={errors.photoUrl?.message}
                   disabled={isHrDisabled}
@@ -986,12 +970,10 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             <Controller
               name="presentAddressProofUrl"
               control={control}
-              rules={{ required: 'Present address proof upload is required' }}
               render={({ field }) => (
                 <FormFileUpload
                   label="Present Address Proof (Upload)"
-                  required
-                  value={field.value}
+value={field.value}
                   onChange={field.onChange}
                   error={errors.presentAddressProofUrl?.message}
                   disabled={isHrDisabled}
@@ -1011,12 +993,10 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             <Controller
               name="permanentAddressProofUrl"
               control={control}
-              rules={{ required: 'Permanent address proof upload is required' }}
               render={({ field }) => (
                 <FormFileUpload
                   label="Permanent Address Proof (Upload)"
-                  required
-                  value={field.value}
+value={field.value}
                   onChange={field.onChange}
                   error={errors.permanentAddressProofUrl?.message}
                   disabled={isHrDisabled}
@@ -1111,12 +1091,10 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             <Controller
               name="resumeUrl"
               control={control}
-              rules={{ required: 'Resume upload is required' }}
               render={({ field }) => (
                 <FormFileUpload
                   label="Resume"
-                  required
-                  value={field.value}
+value={field.value}
                   onChange={field.onChange}
                   error={errors.resumeUrl?.message}
                   disabled={isHrDisabled}
@@ -1158,13 +1136,11 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             <Controller
               name="designation"
               control={control}
-              rules={{ required: 'Designation is required' }}
               render={({ field }) => (
                 <SearchableSelect
                   label="Designation"
                   options={designations}
-                  required
-                  error={errors.designation?.message}
+              error={errors.designation?.message}
                   value={field.value}
                   onChange={field.onChange}
 
@@ -1178,9 +1154,8 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             <Select
               label="Assigned Business Unit"
               options={businessUnits}
-              required
               error={errors.assignedBusinessUnit?.message}
-              {...register('assignedBusinessUnit', { required: 'Assigned business unit is required' })}
+              {...register('assignedBusinessUnit')}
               disabled={isHrDisabled}
             />
 
@@ -1195,9 +1170,8 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                 { value: 'admin_admin', label: 'Admin Admin' },
                 { value: 'super_admin', label: 'Super Admin' }
               ]}
-              required
               error={errors.reportingDesignation?.message}
-              {...register('reportingDesignation', { required: 'Reporting designation is required' })}
+              {...register('reportingDesignation')}
               disabled={isHrDisabled}
             />
 
@@ -1210,10 +1184,10 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                     : "No active employees with this designation — skip or add later"
                 }
                 options={reportingManagerOptions}
-                required={reportingManagerOptions.length > 0}
+required={reportingManagerOptions.length > 0}
                 error={errors.reportingTo?.message}
                 {...register('reportingTo', {
-                  required:
+required:
                     reportingManagerOptions.length > 0
                       ? 'Reporting manager is required'
                       : false
@@ -1225,9 +1199,8 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             <Select
               label="Work Mode"
               options={workModes}
-              required
               error={errors.workMode?.message}
-              {...register('workMode', { required: 'Work mode is required' })}
+              {...register('workMode')}
               disabled={isHrDisabled}
             />
 
@@ -1236,18 +1209,16 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
               type="number"
               step="0.01"
               placeholder="Enter CTC"
-              required
               error={errors.ctc?.message}
-              {...register('ctc', { required: 'CTC is required' })}
+              {...register('ctc')}
               disabled={isHrDisabled}
             />
 
             <Select
               label="Compliance"
               options={EMPLOYEE_COMPLIANCE_OPTIONS}
-              required
               error={errors.compliance?.message}
-              {...register('compliance', { required: 'Compliance option is required' })}
+              {...register('compliance')}
               disabled={isHrDisabled}
             />
           </div>
@@ -1257,11 +1228,10 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             <Input
               label="Bank Name"
               placeholder="Enter bank name"
-              required
               error={errors.bankName?.message}
               onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
               {...register('bankName', {
-                required: 'Bank name is required',
+
                 pattern: { value: /^[A-Za-z\s.-]+$/, message: 'Only alphabetic characters allowed' }
               })}
               disabled={isHrDisabled}
@@ -1270,14 +1240,13 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             <Input
               label="Bank Account Number"
               placeholder="Enter bank account number (9-18 digits)"
-              required
               inputMode="numeric"
               maxLength={18}
               error={errors.bankAccountNumber?.message}
               onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
               onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
               {...register('bankAccountNumber', {
-                required: 'Bank account number is required',
+
                 pattern: { value: /^\d{9,18}$/, message: 'Bank account number must be 9 to 18 digits' }
               })}
               disabled={isHrDisabled}
@@ -1286,13 +1255,12 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             <Input
               label="Bank IFSC Code"
               placeholder="Enter bank IFSC code (e.g. SBIN0001234)"
-              required
               maxLength={11}
               error={errors.bankIfscCode?.message}
               onKeyDown={(e) => { if (!/[A-Za-z0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
               onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^[A-Za-z0-9]+$/.test(paste)) e.preventDefault(); }}
               {...register('bankIfscCode', {
-                required: 'Bank IFSC code is required',
+
                 pattern: {
                   value: /^[A-Z]{4}0[A-Z0-9]{6}$/,
                   message: 'Invalid IFSC code format (e.g. SBIN0001234)'
@@ -1313,54 +1281,64 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
             <Select
               label="System Assigned"
               options={EMPLOYEE_YES_NO_OPTIONS}
-              required
               error={errors.systemAssigned?.message}
-              {...register('systemAssigned', { required: 'System assignment status is required' })}
+              {...register('systemAssigned')}
               disabled={isAdminDisabled}
             />
 
             <Select
               label="SIM Card Assigned"
               options={EMPLOYEE_YES_NO_OPTIONS}
-              required
               error={errors.simCardAssigned?.message}
-              {...register('simCardAssigned', { required: 'SIM card assignment status is required' })}
+              {...register('simCardAssigned')}
               disabled={isAdminDisabled}
             />
 
             <Select
               label="Email ID Configured"
               options={EMPLOYEE_YES_NO_OPTIONS}
-              required
               error={errors.emailIdConfigured?.message}
-              {...register('emailIdConfigured', { required: 'Email configuration status is required' })}
+              {...register('emailIdConfigured')}
               disabled={isAdminDisabled}
             />
 
             <Select
               label="LinkedIn Configured"
               options={EMPLOYEE_YES_NO_OPTIONS}
-              required
               error={errors.linkedinConfigured?.message}
-              {...register('linkedinConfigured', { required: 'LinkedIn configuration status is required' })}
+              {...register('linkedinConfigured')}
               disabled={isAdminDisabled}
             />
 
             <Select
               label="Google Sheet Configured"
               options={EMPLOYEE_YES_NO_OPTIONS}
-              required
               error={errors.googleSheetConfigured?.message}
-              {...register('googleSheetConfigured', { required: 'Google Sheet configuration status is required' })}
+              {...register('googleSheetConfigured')}
               disabled={isAdminDisabled}
             />
 
             <Select
               label="Whatsapp Business Configuration"
               options={EMPLOYEE_YES_NO_OPTIONS}
-              required
               error={errors.whatsappBusinessConfigured?.message}
-              {...register('whatsappBusinessConfigured', { required: 'Whatsapp Business configuration status is required' })}
+              {...register('whatsappBusinessConfigured')}
+              disabled={isAdminDisabled}
+            />
+
+            <Select
+              label="ID Card Admitted"
+              options={EMPLOYEE_YES_NO_OPTIONS}
+              error={errors.idCardAdmitted?.message}
+              {...register('idCardAdmitted')}
+              disabled={isAdminDisabled}
+            />
+
+            <Select
+              label="Insurance Policy Admitted"
+              options={EMPLOYEE_YES_NO_OPTIONS}
+              error={errors.insurancePolicyAdmitted?.message}
+              {...register('insurancePolicyAdmitted')}
               disabled={isAdminDisabled}
             />
           </div>
@@ -1448,7 +1426,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
               variant="primary"
               onClick={handleAdminSubmit}
               loading={isSubmitting}
-              disabled={isAdminDisabled || !isAdminSectionComplete() || isSubmitting}
+              disabled={isAdminDisabled || isSubmitting}
             >
               {isEditing ? 'Save Changes' : 'Submit Admin Details'}
             </Button>

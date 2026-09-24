@@ -101,6 +101,8 @@ def serialize_employee(emp: Employee) -> dict:
         "linkedin_configured": emp.linkedin_configured,
         "google_sheet_configured": emp.google_sheet_configured,
         "whatsapp_business_configured": emp.whatsapp_business_configured,
+        "id_card_admitted": emp.id_card_admitted,
+        "insurance_policy_admitted": emp.insurance_policy_admitted,
     }
 
 # ─────────────────────────────────────────────────────────────
@@ -158,7 +160,13 @@ def create_employee(payload: EmployeeCreateRequest, db: Session = Depends(get_db
         )
     except IntegrityError as exc:
         db.rollback()
-        return JSONResponse(status_code=400, content=error_response("An employee with this Employee ID or details already exists. Please try again."))
+        error_msg = str(exc.orig)
+        if "Duplicate entry" in error_msg:
+            return JSONResponse(status_code=400, content=error_response("An employee with this Employee ID or details already exists. Please try again."))
+        elif "cannot be null" in error_msg.lower():
+            # Extract the column name from "Column 'gender' cannot be null"
+            return JSONResponse(status_code=400, content=error_response(f"Missing mandatory field in database: {error_msg}"))
+        return JSONResponse(status_code=400, content=error_response("Database constraint error. Please check all mandatory fields and try again."))
     except Exception as exc:
         db.rollback()
         traceback.print_exc()
@@ -233,15 +241,14 @@ def list_employees(
             sort_by=sort_by, sort_order=sort_order
         )
         
-        # Auto-heal missing passwords for 100% completed profiles
+        # Auto-heal missing passwords for employees
         from app.services.employee_service import compute_employee_completion
         updated_any = False
         for emp in employees:
-            if (emp.completion_percentage_hr == 100 and 
-                emp.completion_percentage_admin == 100 and 
-                not emp.employee_password):
+            if not emp.employee_password:
                 compute_employee_completion(emp, is_final_submit=True)
-                updated_any = True
+                if emp.employee_password:
+                    updated_any = True
         if updated_any:
             db.commit()
             for emp in employees:
@@ -273,13 +280,12 @@ def get_employee(employee_id: int, db: Session = Depends(get_db)):
             return JSONResponse(status_code=404, content=error_response("Employee not found"))
             
         # Auto-heal password if missing
-        if (employee.completion_percentage_hr == 100 and 
-            employee.completion_percentage_admin == 100 and 
-            not employee.employee_password):
+        if not employee.employee_password:
             from app.services.employee_service import compute_employee_completion
             compute_employee_completion(employee, is_final_submit=True)
-            db.commit()
-            db.refresh(employee)
+            if employee.employee_password:
+                db.commit()
+                db.refresh(employee)
             
         data = serialize_employee(employee)
         

@@ -90,6 +90,7 @@ def test_employee_password_generation_on_100_percent_completion(client: TestClie
         "first_name": "Sarah",
         "last_name": "Connor",
         "gender": "Female",
+        "country_code": "+91",
         "blood_group": "AB+",
         "date_of_birth": "1985-05-15",
         "email": "sarah.connor@example.com",
@@ -126,12 +127,14 @@ def test_employee_password_generation_on_100_percent_completion(client: TestClie
         "bank_account_number": "98765432101",
         "bank_ifsc_code": "CHAS0001234",
         # Admin fields:
-        "system_assigned": "Laptop A",
+        "system_assigned": "Yes",
         "sim_card_assigned": "Yes",
         "email_id_configured": "Yes",
         "linkedin_configured": "Yes",
         "google_sheet_configured": "Yes",
         "whatsapp_business_configured": "Yes",
+        "id_card_admitted": "Yes",
+        "insurance_policy_admitted": "Yes",
         "is_final_submit": True
     }
 

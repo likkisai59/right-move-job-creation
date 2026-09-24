@@ -191,13 +191,12 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete, filt
       key: 'employeePassword',
       header: 'Employee Password',
       render: (_, row) => {
-        const isComplete = row.completionPercentageHr === 100 && row.completionPercentageAdmin === 100;
-        if (!isComplete) {
-          return <span className="text-gray-400 text-sm">—</span>;
-        }
         const firstChar = (row.firstName || '')[0] || '';
         const lastName = row.lastName || '';
         const digits = (row.employeeId || '').replace(/\D/g, '');
+        if (!firstChar || !digits) {
+          return <span className="text-gray-400 text-sm">—</span>;
+        }
         const derivedPassword = `${firstChar}${lastName}@${digits}`;
         return (
           <span className="font-mono text-xs text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-200 select-all cursor-text">

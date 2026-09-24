@@ -78,6 +78,8 @@ const mapToFrontend = (data) => {
     linkedinConfigured: data.linkedin_configured,
     googleSheetConfigured: data.google_sheet_configured,
     whatsappBusinessConfigured: data.whatsapp_business_configured,
+    idCardAdmitted: data.id_card_admitted,
+    insurancePolicyAdmitted: data.insurance_policy_admitted,
   };
 };
 
@@ -141,7 +143,9 @@ const mapToBackend = (data) => {
     emailIdConfigured: 'email_id_configured',
     linkedinConfigured: 'linkedin_configured',
     googleSheetConfigured: 'google_sheet_configured',
-    whatsappBusinessConfigured: 'whatsapp_business_configured'
+    whatsappBusinessConfigured: 'whatsapp_business_configured',
+    idCardAdmitted: 'id_card_admitted',
+    insurancePolicyAdmitted: 'insurance_policy_admitted'
   };
 
   Object.entries(mapping).forEach(([frontKey, backKey]) => {

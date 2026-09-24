@@ -99,17 +99,19 @@ def compute_employee_completion(employee: Employee, is_final_submit: bool = Fals
     else:
         employee.profile_status_hr = "Draft"
 
-    # 2. ADMIN Details Fields (6 fields)
+    # 2. ADMIN Details Fields (8 fields)
     admin_fields = [
         employee.system_assigned, 
         employee.sim_card_assigned, 
         employee.email_id_configured, 
         employee.linkedin_configured, 
         employee.google_sheet_configured, 
-        employee.whatsapp_business_configured
+        employee.whatsapp_business_configured,
+        employee.id_card_admitted,
+        employee.insurance_policy_admitted
     ]
     total_admin = len(admin_fields)
-    filled_admin = sum(1 for val in admin_fields if is_filled(val))
+    filled_admin = sum(1 for val in admin_fields if val and str(val).strip().lower() == "yes")
     admin_pct = int((filled_admin / total_admin) * 100) if total_admin > 0 else 0
     
     employee.completion_percentage_admin = admin_pct
@@ -132,8 +134,24 @@ def compute_employee_completion(employee: Employee, is_final_submit: bool = Fals
     else:
         employee.profile_status = "Draft"
 
-    # Generate bcrypt hashed password if frontend indicates final submission
-    if is_final_submit:
+    # Check if all strictly mandatory HR fields are filled
+    mandatory_hr_fields = [
+        employee.first_name,
+        employee.last_name,
+        employee.gender,
+        employee.date_of_birth,
+        employee.date_of_joining,
+        employee.email,
+        employee.contact_number,
+        employee.aadhar_number,
+        employee.pan_number,
+        employee.current_address,
+        employee.permanent_address
+    ]
+    all_mandatory_filled = all(is_filled(val) for val in mandatory_hr_fields)
+
+    # Generate bcrypt hashed password if first_name and employee_id exist and password not yet generated
+    if employee.first_name and employee.employee_id and not employee.employee_password:
         import re
         from app.core.security import get_password_hash
         # Extract digits from employee_id (e.g. RM0001 -> 0001)

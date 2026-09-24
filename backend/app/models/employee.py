@@ -32,7 +32,7 @@ class Employee(Base):
     package= Column(Float, nullable=True)        # Annual package (numeric)
 
     # Status: Active or Inactive
-    status= Column(Enum('Active', 'Inactive', name='employee_status'), nullable=False, default="Active")
+    status= Column(Enum('Active', 'Inactive', name='employee_status'), nullable=True, default="Active")
 
     # Draft / Profile Status tracking
     profile_status= Column(Enum('Draft', 'In Progress', 'Completed', name='employee_profile_status'), nullable=False, default="Draft")
@@ -104,6 +104,8 @@ class Employee(Base):
     linkedin_configured = Column(String(50), nullable=True)
     google_sheet_configured = Column(String(50), nullable=True)
     whatsapp_business_configured = Column(String(50), nullable=True)
+    id_card_admitted = Column(String(50), nullable=True)
+    insurance_policy_admitted = Column(String(50), nullable=True)
 
     # Generated login credentials
     employee_password = Column(String(255), nullable=True)
