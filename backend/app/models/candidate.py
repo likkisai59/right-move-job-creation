@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, Date, func
+from sqlalchemy import Column, Integer, String, DateTime, Text, Date, Float, func
 from app.core.database import Base
 
 class Candidate(Base):
@@ -28,7 +28,7 @@ class Candidate(Base):
     business_unit = Column(String(50), nullable=False, default="IT")
     current_last_company = Column(String(255), nullable=True)
     current_designation = Column(String(255), nullable=True)
-    total_experience = Column(String(100), nullable=True)
+    total_experience = Column(Float, nullable=True)
     relevant_experience_years = Column(String(100), nullable=True)
     relevant_experience_by_skill = Column(Text, nullable=True)
     skills = Column(Text, nullable=True)

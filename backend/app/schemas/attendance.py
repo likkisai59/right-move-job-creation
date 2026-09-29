@@ -99,5 +99,6 @@ class DesignationLeaveUpdateItem(BaseModel):
 class LeaveConfigResponse(BaseModel):
     leaves: Optional[float] = 30.0
     holidays: List[dict]
+    optional_holidays: List[dict] = []
 
 

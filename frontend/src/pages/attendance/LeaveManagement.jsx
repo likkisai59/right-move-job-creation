@@ -3,7 +3,6 @@ import { ClipboardList, Plus, Clock, CheckCircle2, XCircle, Calendar, ShieldAler
 import { applyLeave, getLeaveHistory, getLeaveConfig } from '../../api/attendanceApi';
 import { fetchLeaveTypes } from '../../api/leaveTypesApi';
 import { formatDate } from '../../utils/formatters';
-
 import { getCurrentEmployee } from '../../api/authApi';
 
 const LeaveManagement = () => {
@@ -11,6 +10,7 @@ const LeaveManagement = () => {
   const [leaves, setLeaves] = useState([]);
   const [annualQuota, setAnnualQuota] = useState(0);
   const [holidays, setHolidays] = useState([]);
+  const [optionalHolidays, setOptionalHolidays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -40,6 +40,7 @@ const LeaveManagement = () => {
       if (configData) {
         setAnnualQuota(configData.leaves ?? 0);
         setHolidays(configData.holidays || []);
+        setOptionalHolidays(configData.optional_holidays || []);
       }
       if (typesData) {
         // Exclude 'Half Day Leave' and only keep active types
@@ -477,6 +478,54 @@ const LeaveManagement = () => {
                     <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4">
                         <p className="font-bold text-gray-700 text-sm">{h.name}</p>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <p className="text-xs font-bold text-gray-500">
+                          {new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Optional Holiday List (read-only) */}
+      {!loading && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 bg-violet-50/50 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
+              <Calendar size={18} className="text-violet-500" />
+              Optional Holidays
+            </h3>
+            <span className="text-[10px] text-gray-400 font-medium">Organization optional holidays</span>
+          </div>
+
+          {optionalHolidays.length === 0 ? (
+            <div className="p-8 text-center text-gray-400 text-xs font-semibold">
+              No optional holidays configured yet.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-widest">
+                    <th className="px-6 py-3">Holiday Name</th>
+                    <th className="px-6 py-3">Description</th>
+                    <th className="px-6 py-3 text-right">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {optionalHolidays.map((h, idx) => (
+                    <tr key={h.id || idx} className="hover:bg-violet-50/30 transition-colors">
+                      <td className="px-6 py-4">
+                        <p className="font-bold text-gray-700 text-sm">{h.name}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-xs text-gray-400">{h.description || '—'}</p>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <p className="text-xs font-bold text-gray-500">

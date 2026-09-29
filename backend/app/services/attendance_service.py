@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.models.employee import Employee
 from app.models.attendance import Attendance
 from app.models.leave import Leave
+from app.models.optional_holiday import OptionalHoliday
 from app.schemas.attendance import AttendanceCreate, LeaveCreate
 
 def authenticate_employee(db: Session, username: str, password: str) -> Optional[Employee]:
@@ -276,7 +277,8 @@ def get_leave_config(db: Session, employee_id: int) -> Optional[dict]:
                     
     return {
         "leaves": leaves_limit,
-        "holidays": holidays_list
+        "holidays": holidays_list,
+        "optional_holidays": get_all_optional_holidays(db)
     }
 
 def save_designation_config(db: Session, config_data: List[dict]) -> bool:
@@ -308,3 +310,52 @@ def save_designation_config(db: Session, config_data: List[dict]) -> bool:
         raise e
 
 
+# ── Optional Holidays ─────────────────────────────────────────────────────────
+
+def get_all_optional_holidays(db: Session) -> List[dict]:
+    """
+    Return all active optional holidays as a list of dicts.
+    """
+    records = (
+        db.query(OptionalHoliday)
+        .filter(OptionalHoliday.is_active == True)
+        .order_by(OptionalHoliday.date.asc())
+        .all()
+    )
+    return [
+        {
+            "id": r.id,
+            "name": r.name,
+            "date": str(r.date),
+            "description": r.description or "",
+        }
+        for r in records
+    ]
+
+
+def create_optional_holiday(db: Session, name: str, date, description: str = "") -> OptionalHoliday:
+    """
+    Create a new optional holiday record.
+    """
+    record = OptionalHoliday(
+        name=name.strip(),
+        date=date,
+        description=description.strip() if description else "",
+        is_active=True,
+    )
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+def delete_optional_holiday(db: Session, holiday_id: int) -> bool:
+    """
+    Soft-delete an optional holiday by setting is_active = False.
+    """
+    record = db.query(OptionalHoliday).filter(OptionalHoliday.id == holiday_id).first()
+    if not record:
+        return False
+    record.is_active = False
+    db.commit()
+    return True

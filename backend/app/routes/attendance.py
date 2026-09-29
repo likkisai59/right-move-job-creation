@@ -132,3 +132,53 @@ def save_designation_config(payload: List[DesignationLeaveUpdateItem], db: Sessi
         )
 
 
+# ── Optional Holidays ────────────────────────────────────────────────────
+
+@router.get("/optional-holidays")
+def list_optional_holidays(db: Session = Depends(get_db)):
+    """
+    List all active optional holidays for employee view.
+    """
+    data = attendance_service.get_all_optional_holidays(db)
+    return success_response("Optional holidays fetched", data)
+
+
+@router.post("/optional-holidays")
+def add_optional_holiday(
+    name: str,
+    date: str,
+    description: str = "",
+    db: Session = Depends(get_db)
+):
+    """
+    Admin: Add a new optional holiday.
+    """
+    from datetime import date as date_type
+    try:
+        parsed_date = date_type.fromisoformat(date)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid date format. Use YYYY-MM-DD."
+        )
+    record = attendance_service.create_optional_holiday(db, name, parsed_date, description)
+    return success_response("Optional holiday added", {
+        "id": record.id,
+        "name": record.name,
+        "date": str(record.date),
+        "description": record.description,
+    })
+
+
+@router.delete("/optional-holidays/{holiday_id}")
+def remove_optional_holiday(holiday_id: int, db: Session = Depends(get_db)):
+    """
+    Admin: Soft-delete an optional holiday.
+    """
+    success = attendance_service.delete_optional_holiday(db, holiday_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Optional holiday not found."
+        )
+    return success_response("Optional holiday removed", {"id": holiday_id})

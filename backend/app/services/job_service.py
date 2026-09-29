@@ -57,7 +57,12 @@ def create_job_requirement(db: Session, payload: JobCreateRequest) -> Job:
             required_skills=req.required_skills,
             number_of_open_positions=req.number_of_open_positions,
             status=req.status or "ACTIVE",
-            mandatory_skill=req.mandatory_skill
+            mandatory_skill=req.mandatory_skill,
+            notice_period=req.notice_period,
+            qualification=req.qualification,
+            shifts=req.shifts,
+            work_mode=req.work_mode,
+            job_description=req.job_description,
         )
         new_job.requirements.append(new_requirement)
 
@@ -236,7 +241,12 @@ def update_job(
             required_skills=req.required_skills,
             number_of_open_positions=req.number_of_open_positions,
             status=req.status or "ACTIVE",
-            mandatory_skill=req.mandatory_skill
+            mandatory_skill=req.mandatory_skill,
+            notice_period=req.notice_period,
+            qualification=req.qualification,
+            shifts=req.shifts,
+            work_mode=req.work_mode,
+            job_description=req.job_description,
         )
         job.requirements.append(new_requirement)
 

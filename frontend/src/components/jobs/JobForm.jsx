@@ -11,8 +11,7 @@ import { NOTICE_PERIODS, EDUCATION_OPTIONS, JOB_SHIFTS } from '../../utils/const
 import { fetchBusinessUnits } from '../../api/businessUnitsApi';
 import { fetchWorkModes } from '../../api/workModesApi';
 import SearchableSelect from '../common/SearchableSelect';
-
-
+import CustomSelectOrInput from '../common/CustomSelectOrInput';
 
 const JOB_STATUS_OPTIONS = [
   { value: 'ACTIVE', label: 'Active' },
@@ -20,46 +19,6 @@ const JOB_STATUS_OPTIONS = [
   { value: 'CLOSED', label: 'Closed' },
   { value: 'DRAFT', label: 'Draft' },
 ];
-
-const CustomSelectOrInput = ({ 
-  name, otherName, options, label, selectPlaceholder, inputPlaceholder, 
-  register, watch, setValue 
-}) => {
-  if (watch(name) === 'Other') {
-    return (
-      <div className="relative">
-        <Input
-          label={`Specify Other ${label}`}
-          placeholder={inputPlaceholder}
-          {...register(otherName, { required: `Please specify the ${label.toLowerCase()}` })}
-        />
-        <button
-          type="button"
-          onClick={() => {
-            setValue(name, '');
-            setValue(otherName, '');
-          }}
-          className="absolute right-3 top-[34px] text-gray-400 hover:text-gray-700"
-          title="Back to options"
-        >
-          ✕
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <Select
-      label={label}
-      placeholder={selectPlaceholder}
-      options={options}
-      {...register(name)}
-    />
-  );
-};
-
-
-
 
 const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) => {
   const {
@@ -300,6 +259,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Hiring Requirements</h3>
 
+          {/* Feature flagged / Commented out: Add Requirement button
           <Button
             type="button"
             variant="secondary"
@@ -309,6 +269,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
           >
             Add Requirement
           </Button>
+          */}
         </div>
 
         <div className="space-y-6">

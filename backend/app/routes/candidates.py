@@ -839,6 +839,8 @@ def get_current_user(authorization: Optional[str] = Header(None)):
     token = authorization.split(" ")[1]
     if "admin" in token.lower():
         return {"role": "Admin", "id": 1}
+    elif "account" in token.lower():
+        return {"role": "account_user", "id": 4}
     elif "tl" in token.lower():
         return {"role": "Team Lead", "id": 2}
     else:
@@ -913,7 +915,7 @@ def update_selection_details(
         restricted_fields = ["rate_card", "incentive", "band"]
         for field in restricted_fields:
             if field in update_data and update_data[field] != getattr(mapping, field):
-                if role.lower() != "account_user":
+                if not check_incentive_update_permission(role, current_user):
                     return JSONResponse(
                         status_code=403, 
                         content=error_response(f"Forbidden: Only Account User can update {field.replace('_', ' ').title()}")

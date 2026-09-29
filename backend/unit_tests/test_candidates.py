@@ -28,7 +28,7 @@ def test_candidate_crud(client: TestClient, db_session: Session):
         "country_code": "+91",
         "business_unit": "IT",
         "skills": "Python, SQL, Linux",
-        "total_experience": "3 years",
+        "total_experience": "3.5",
         "current_ctc": "60k",
         "expected_ctc": "80k",
         "notice_period": "30 Days",
@@ -163,7 +163,7 @@ def test_candidate_job_matching_and_pipeline_stages(client: TestClient, db_sessi
     res_is = client.put(f"/api/candidates/{cand.id}/selection-details/{mapping.id}", json=up_payload)
     assert res_is.status_code == 200
 
-    # 5. Role validation checks: Rate Card update requires Admin role
+    # 5. Role validation checks: Rate Card update requires Account User role
     up_payload = {"rate_card": "100.0"}
     res_role_fail = client.put(
         f"/api/candidates/{cand.id}/selection-details/{mapping.id}", 
@@ -171,13 +171,13 @@ def test_candidate_job_matching_and_pipeline_stages(client: TestClient, db_sessi
         headers={"Authorization": "Bearer recruiter"} # Recruiter role
     )
     assert res_role_fail.status_code == 403
-    assert "Only Admin can update Rate Card" in res_role_fail.json()["message"]
+    assert "Only Account User can update Rate Card" in res_role_fail.json()["message"]
 
-    # Rate Card update success with Admin role
+    # Rate Card update success with Account User role
     res_role_pass = client.put(
         f"/api/candidates/{cand.id}/selection-details/{mapping.id}", 
         json=up_payload,
-        headers={"Authorization": "Bearer admin"} # Admin role
+        headers={"Authorization": "Bearer account_user"} # Account User role
     )
     assert res_role_pass.status_code == 200
 

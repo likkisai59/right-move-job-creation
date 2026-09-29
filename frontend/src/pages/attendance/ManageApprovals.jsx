@@ -3,7 +3,7 @@ import {
   ClipboardList, CheckCircle2, XCircle, Calendar,
   User, Clock, ShieldAlert, Check, X, Plus, Trash2
 } from 'lucide-react';
-import { getPendingLeaves, updateLeaveStatus, getTeamAttendance, saveApprovalsConfig } from '../../api/attendanceApi';
+import { getPendingLeaves, updateLeaveStatus, getTeamAttendance, saveApprovalsConfig, getOptionalHolidays, addOptionalHoliday, deleteOptionalHoliday } from '../../api/attendanceApi';
 import { fetchDesignations } from '../../api/designationsApi';
 import { formatDate } from '../../utils/formatters';
 
@@ -23,6 +23,13 @@ const ManageApprovals = () => {
   const [holidaysMap, setHolidaysMap] = useState({});
   const [globalHolidays, setGlobalHolidays] = useState([]);
   const [configSubmitting, setConfigSubmitting] = useState(false);
+
+  // Optional Holidays states
+  const [optionalHolidays, setOptionalHolidays] = useState([]);
+  const [optHolName, setOptHolName] = useState('');
+  const [optHolDate, setOptHolDate] = useState('');
+  const [optHolDesc, setOptHolDesc] = useState('');
+  const [optHolSubmitting, setOptHolSubmitting] = useState(false);
 
   // Reject Modal states
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
@@ -103,8 +110,53 @@ const ManageApprovals = () => {
     loadData();
     if (isDirector) {
       loadConfigDesignations();
+      loadOptionalHolidays();
     }
   }, [managerName, isDirector]);
+
+  const loadOptionalHolidays = async () => {
+    try {
+      const res = await getOptionalHolidays();
+      setOptionalHolidays(res.data || []);
+    } catch (err) {
+      console.error('Failed to load optional holidays:', err);
+    }
+  };
+
+  const handleAddOptionalHoliday = async () => {
+    if (!optHolName.trim() || !optHolDate) {
+      setError('Holiday name and date are required.');
+      return;
+    }
+    setOptHolSubmitting(true);
+    setError('');
+    try {
+      await addOptionalHoliday(optHolName.trim(), optHolDate, optHolDesc.trim());
+      setOptHolName('');
+      setOptHolDate('');
+      setOptHolDesc('');
+      await loadOptionalHolidays();
+      setSuccessMsg('Optional holiday added successfully!');
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to add optional holiday.');
+    } finally {
+      setOptHolSubmitting(false);
+    }
+  };
+
+  const handleDeleteOptionalHoliday = async (id) => {
+    try {
+      await deleteOptionalHoliday(id);
+      await loadOptionalHolidays();
+      setSuccessMsg('Optional holiday removed.');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to remove optional holiday.');
+    }
+  };
 
   // Save all leaves and holidays configurations to the database
   const handleSaveConfig = async () => {
@@ -294,16 +346,28 @@ const ManageApprovals = () => {
             Team Attendance
           </button>
           {isDirector && (
-            <button
-              onClick={() => setActiveTab('holidays')}
-              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${activeTab === 'holidays'
-                  ? 'bg-white text-gray-800 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-800'
-                }`}
-            >
-              <Calendar size={14} />
-              Add Holidays
-            </button>
+            <>
+              <button
+                onClick={() => setActiveTab('holidays')}
+                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${activeTab === 'holidays'
+                    ? 'bg-white text-gray-800 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-800'
+                  }`}
+              >
+                <Calendar size={14} />
+                Add Holidays
+              </button>
+              <button
+                onClick={() => setActiveTab('optional_holidays')}
+                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${activeTab === 'optional_holidays'
+                    ? 'bg-white text-gray-800 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-800'
+                  }`}
+              >
+                <Calendar size={14} />
+                Add Optional Holidays
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -689,6 +753,107 @@ const ManageApprovals = () => {
                   {configSubmitting ? 'Saving Holidays...' : 'Save & Apply Holidays'}
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* ADD OPTIONAL HOLIDAYS TAB */}
+          {activeTab === 'optional_holidays' && isDirector && (
+            <div className="bg-white p-6 md:p-8 rounded-2xl border border-gray-100 shadow-sm space-y-6 animate-fade-in">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                <div>
+                  <h3 className="text-lg font-black text-gray-800 flex items-center gap-2">
+                    <Calendar size={22} className="text-violet-500" />
+                    Optional Holidays
+                  </h3>
+                  <p className="text-xs text-gray-400 font-medium">
+                    Add optional holidays visible to employees under their Leave Management portal.
+                  </p>
+                </div>
+              </div>
+
+              {/* Add Form */}
+              <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100 space-y-4">
+                <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wide">
+                  Add New Optional Holiday
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Holiday Name (e.g. Eid ul-Fitr)"
+                      value={optHolName}
+                      onChange={(e) => setOptHolName(e.target.value)}
+                      className="w-full p-2.5 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-violet-500/20 text-xs font-semibold text-gray-700"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="date"
+                      value={optHolDate}
+                      onChange={(e) => setOptHolDate(e.target.value)}
+                      className="w-full p-2.5 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-violet-500/20 text-xs font-semibold text-gray-700"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Description (optional)"
+                      value={optHolDesc}
+                      onChange={(e) => setOptHolDesc(e.target.value)}
+                      className="flex-1 p-2.5 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-violet-500/20 text-xs font-semibold text-gray-700"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddOptionalHoliday}
+                      disabled={optHolSubmitting}
+                      className="px-4 py-2 bg-violet-600 text-white font-bold rounded-xl hover:bg-violet-700 transition-all text-xs disabled:opacity-50"
+                    >
+                      {optHolSubmitting ? '...' : 'Add'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* List */}
+              {optionalHolidays.length === 0 ? (
+                <div className="p-8 text-center text-gray-400 text-xs font-medium bg-white rounded-2xl border border-dashed border-gray-200">
+                  No optional holidays added yet.
+                </div>
+              ) : (
+                <div className="border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-bold uppercase tracking-wider text-[10px]">
+                        <th className="px-6 py-4">Holiday Name</th>
+                        <th className="px-6 py-4">Date</th>
+                        <th className="px-6 py-4">Description</th>
+                        <th className="px-6 py-4 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {optionalHolidays
+                        .sort((a, b) => new Date(a.date) - new Date(b.date))
+                        .map((h) => (
+                          <tr key={h.id} className="hover:bg-gray-50/30 transition-colors">
+                            <td className="px-6 py-4 font-bold text-gray-800 text-sm">{h.name}</td>
+                            <td className="px-6 py-4 font-semibold text-gray-500">
+                              {formatDate(h.date)}
+                            </td>
+                            <td className="px-6 py-4 text-gray-400 text-xs">{h.description || '—'}</td>
+                            <td className="px-6 py-4 text-right">
+                              <button
+                                onClick={() => handleDeleteOptionalHoliday(h.id)}
+                                className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-xl transition-colors"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </>

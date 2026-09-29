@@ -83,4 +83,22 @@ export const getAssignedJobs = async (employeeName) => {
   return response.data.data;
 };
 
+/**
+ * Optional Holidays
+ */
+export const getOptionalHolidays = async () => {
+  const response = await axios.get('/attendance/optional-holidays');
+  return response.data;
+};
 
+export const addOptionalHoliday = async (name, date, description = '') => {
+  const response = await axios.post('/attendance/optional-holidays', null, {
+    params: { name, date, description }
+  });
+  return response.data;
+};
+
+export const deleteOptionalHoliday = async (holidayId) => {
+  const response = await axios.delete(`/attendance/optional-holidays/${holidayId}`);
+  return response.data;
+};

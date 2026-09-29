@@ -107,122 +107,19 @@ const AttendanceStatus = () => {
         </div>
       </div>
 
+      {/* Attendance calendar hidden — attendance is marked via company biometric system */}
+      {/*
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        {/* Calendar Header */}
-        <div className="grid grid-cols-7 border-b border-gray-50 bg-gray-50/50">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
-              {day}
-            </div>
-          ))}
-        </div>
-
-        {/* Calendar Grid */}
-        <div className="grid grid-cols-7">
-          {days.map((day, idx) => {
-            if (!day) return <div key={`empty-${idx}`} className="h-24 md:h-32 border-r border-b border-gray-50 bg-gray-50/20" />;
-            
-            const isToday = now.getDate() === day && now.getMonth() === month && now.getFullYear() === year;
-            const date = new Date(year, month, day);
-            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-            const isFuture = date > now;
-            
-            const dayStr = String(day).padStart(2, '0');
-            const monthStr = String(month + 1).padStart(2, '0');
-            const dateKey = `${year}-${monthStr}-${dayStr}`;
-            const record = recordsMap[dateKey];
-            const holidayObj = holidaysList.find(h => h.date === dateKey);
-
-            let fhStatus = '';
-            let shStatus = '';
-            let hasRecord = false;
-            let status = 'P';
-
-            if (holidayObj) {
-              if (record) {
-                hasRecord = true;
-                fhStatus = record.first_half_status;
-                shStatus = record.second_half_status;
-              } else {
-                status = 'H';
-              }
-            } else if (isFuture) {
-              status = 'FT';
-            } else if (record) {
-              hasRecord = true;
-              fhStatus = record.first_half_status;
-              shStatus = record.second_half_status;
-            } else if (isWeekend) {
-              status = 'WO';
-            } else {
-              status = 'A';
-            }
-
-            const hasDifferentStatuses = hasRecord && fhStatus !== shStatus;
-            const config = STATUS_CONFIG[status];
-            const fhConfig = STATUS_CONFIG[fhStatus] || STATUS_CONFIG['P'];
-            const shConfig = STATUS_CONFIG[shStatus] || STATUS_CONFIG['P'];
-            const displayConfig = hasRecord ? fhConfig : config;
-
-            return (
-              <div 
-                key={day} 
-                className={`h-24 md:h-32 border-r border-b border-gray-50 p-3 flex flex-col justify-between transition-all hover:bg-gray-50/50 ${isToday ? 'bg-blue-50/30' : ''} ${holidayObj ? 'bg-rose-50/20' : ''}`}
-              >
-                <span className={`text-sm font-black ${isToday ? 'text-blue-600' : isWeekend ? 'text-gray-300' : 'text-gray-500'}`}>
-                  {day}
-                </span>
-
-                <div className="space-y-1 mt-auto w-full">
-                  {/* Always show Holiday Name if it is a holiday */}
-                  {holidayObj && (
-                    <div 
-                      className={`px-2 py-0.5 rounded border text-[9px] font-black text-center truncate ${STATUS_CONFIG.H.bg} ${STATUS_CONFIG.H.text} ${STATUS_CONFIG.H.border}`}
-                      title={holidayObj.name}
-                    >
-                      {holidayObj.name}
-                    </div>
-                  )}
-
-                  {/* Show Attendance Status if record exists */}
-                  {hasRecord ? (
-                    hasDifferentStatuses ? (
-                      <div className="grid grid-cols-1 gap-1">
-                        <div className={`px-1.5 py-0.5 rounded border text-[9px] font-bold text-center leading-tight ${fhConfig.bg} ${fhConfig.text} ${fhConfig.border}`}>
-                          FH: {fhConfig.label}
-                        </div>
-                        <div className={`px-1.5 py-0.5 rounded border text-[9px] font-bold text-center leading-tight ${shConfig.bg} ${shConfig.text} ${shConfig.border}`}>
-                          SH: {shConfig.label}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className={`px-2 py-0.5 rounded border text-[9px] font-bold text-center ${displayConfig.bg} ${displayConfig.text} ${displayConfig.border}`}>
-                        {displayConfig.label}
-                      </div>
-                    )
-                  ) : (
-                    /* Show Weekend/Absent if not a holiday and not future */
-                    !holidayObj && !isFuture && (
-                      <div className={`px-2 py-1 rounded-lg border text-[10px] font-bold text-center ${displayConfig.bg} ${displayConfig.text} ${displayConfig.border}`}>
-                        {displayConfig.label}
-                      </div>
-                    )
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        Calendar Grid (commented out — biometric handles attendance marking)
       </div>
+      */}
 
-      {/* Legend */}
-      <div className="flex flex-wrap items-center justify-center gap-6 pt-4">
-        {Object.entries(STATUS_CONFIG).filter(([k]) => k !== 'FT').map(([key, cfg]) => (
-          <div key={key} className="flex items-center gap-2">
-            <div className={`w-3 h-3 rounded-full ${cfg.bg} border ${cfg.border}`} />
-            <span className="text-xs font-bold text-gray-500">{cfg.label}</span>
-          </div>
-        ))}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+        <CalendarDays size={40} className="mx-auto text-blue-200 mb-3" />
+        <p className="text-gray-700 font-bold">Attendance is recorded via Biometric</p>
+        <p className="text-gray-400 text-sm mt-1">
+          Your attendance for {MONTHS[month]} {year} is automatically tracked through the company biometric system.
+        </p>
       </div>
 
     </div>

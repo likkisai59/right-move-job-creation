@@ -1,6 +1,6 @@
 from datetime import date, datetime
-from typing import Optional, List
-from pydantic import BaseModel, Field, field_validator, model_validator
+from typing import Optional, List, Annotated
+from pydantic import BaseModel, Field, field_validator, model_validator, BeforeValidator
 import re
 
 # ── Allowed enum values ───────────────────────────────────────────────────
@@ -10,6 +10,22 @@ VALID_NOTICE_PERIODS = {
     "Immediate", "Currently Serving",
     "15 Days", "30 Days", "45 Days", "60 Days", "90 Days",
 }
+
+
+# ── Reusable Custom Types with Annotated Validators ───────────────────────
+def parse_float_experience(v):
+    if v is None or (isinstance(v, str) and not v.strip()):
+        return None
+    try:
+        val = float(v)
+        if val < 0:
+            raise ValueError("Total experience must be 0 or greater")
+        return val
+    except (TypeError, ValueError):
+        raise ValueError("Total experience must be a valid number (e.g. 1.2, 2, 3.5)")
+
+ExperienceFloat = Annotated[Optional[float], BeforeValidator(parse_float_experience)]
+
 
 class CandidateCreateRequest(BaseModel):
     # ── Personal Details ──────────────────────────────────
@@ -29,7 +45,7 @@ class CandidateCreateRequest(BaseModel):
     business_unit: str = Field(default="IT", description="Options: IT, ITES, BPO, Lateral, FLP, F&A")
     current_last_company: Optional[str] = None
     current_designation: Optional[str] = None
-    total_experience: Optional[str] = None
+    total_experience: ExperienceFloat = None
     relevant_experience_years: Optional[str] = None
     relevant_experience_by_skill: Optional[str] = None
     skills: Optional[str] = None
@@ -129,10 +145,10 @@ class CandidateCreateRequest(BaseModel):
 
     @model_validator(mode='after')
     def validate_fresher_and_qualification(self) -> 'CandidateCreateRequest':
-        total_exp = (self.total_experience or "").lower().strip()
+        total_exp = self.total_experience
         relevant_exp = self.relevant_experience_years
 
-        if total_exp in ['fresher', '0', '0 years', '0 year']:
+        if total_exp is not None and total_exp == 0:
             if relevant_exp:
                 try:
                     num_match = re.search(r'\d+', str(relevant_exp))
@@ -171,7 +187,7 @@ class CandidateUpdateRequest(BaseModel):
     business_unit: Optional[str] = None
     current_last_company: Optional[str] = None
     current_designation: Optional[str] = None
-    total_experience: Optional[str] = None
+    total_experience: ExperienceFloat = None
     relevant_experience_years: Optional[str] = None
     relevant_experience_by_skill: Optional[str] = None
     skills: Optional[str] = None
@@ -234,7 +250,7 @@ class CandidateResponse(BaseModel):
     business_unit: str
     current_last_company: Optional[str] = None
     current_designation: Optional[str] = None
-    total_experience: Optional[str] = None
+    total_experience: Optional[float] = None
     relevant_experience_years: Optional[str] = None
     relevant_experience_by_skill: Optional[str] = None
     skills: Optional[str] = None

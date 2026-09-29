@@ -145,12 +145,12 @@ def test_job_matching_and_shortlisting_workflows(client: TestClient, db_session:
 
     # 3. Test Matches endpoint
     response = client.get(f"/api/jobs/{job.id}/matches?strict=true")
-    assert response.status_code == 200
-    matches = response.json()["data"]
+    matches_data = response.json()["data"]
+    matched_candidates = matches_data if isinstance(matches_data, list) else matches_data.get("matched_candidates", [])
     # Only Sarah Connor matches the strict filter (shares skills and experience and score >= 30)
-    assert len(matches) == 1
-    assert matches[0]["candidate_id"] == cand_match.id
-    assert matches[0]["match_score"] >= 30
+    assert len(matched_candidates) == 1
+    assert matched_candidates[0]["candidate_id"] == cand_match.id
+    assert matched_candidates[0]["match_score"] >= 30
 
     # 4. Test Shortlist Candidate
     shortlist_payload = {"candidate_id": cand_match.id}

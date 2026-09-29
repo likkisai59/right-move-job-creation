@@ -3,6 +3,7 @@ import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { Plus, Trash2, Lock, AlertTriangle, CheckCircle, Briefcase, Search, X } from 'lucide-react';
 import Input from '../common/Input';
 import Select from '../common/Select';
+import CustomSelectOrInput from '../common/CustomSelectOrInput';
 import Button from '../common/Button';
 import FileUpload from '../common/FileUpload';
 import SkillsInput from './SkillsInput';
@@ -887,27 +888,19 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
         />
 
         {/* Highest Qualification */}
-        <Select
-          label="Highest Qualification"
-
-          required
+        <CustomSelectOrInput
+          name="highestQualification"
+          otherName="otherQualification"
           options={EDUCATION_OPTIONS}
-          error={errors.highestQualification?.message}
-          {...register('highestQualification', { required: 'Highest qualification is required' })}
+          label="Highest Qualification"
+          selectPlaceholder="Select Highest Qualification"
+          inputPlaceholder="Enter qualification (e.g. Bachelor of Computer Applications)"
+          register={register}
+          watch={watch}
+          setValue={setValue}
+          required
+          error={watch('highestQualification') === 'Other' ? errors.otherQualification?.message : errors.highestQualification?.message}
         />
-
-        {/* Req 5: Other Qualification text field — shown only when 'Other' is selected */}
-        {watch('highestQualification') === 'Other' && (
-          <Input
-            label="Other Qualification"
-            placeholder="Enter qualification (e.g. Bachelor of Computer Applications)"
-            required
-            error={errors.otherQualification?.message}
-            {...register('otherQualification', {
-              required: watch('highestQualification') === 'Other' ? 'Please specify your qualification' : false,
-            })}
-          />
-        )}
 
       </div>
 
@@ -943,13 +936,25 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           {...register('currentDesignation')}
         />
 
-        {/* Total Experience — Req 2: free-text input */}
+        {/* Total Experience */}
         <Input
-          label="Total Experience"
-          placeholder="Enter total experience (e.g. 3.5 years)"
+          label="Total Experience (Years)"
+          type="number"
+          step="0.1"
+          min="0"
+          placeholder="e.g. 1.2, 2, 3.5, 4"
           required
           error={errors.totalExperience?.message}
-          {...register('totalExperience', { required: 'Total experience is required' })}
+          {...register('totalExperience', { 
+            required: 'Total experience is required',
+            validate: val => {
+              if (val === '' || val === null || val === undefined) return 'Total experience is required';
+              const num = parseFloat(val);
+              if (isNaN(num)) return 'Please enter a valid number';
+              if (num < 0) return 'Total experience must be 0 or greater';
+              return true;
+            }
+          })}
         />
 
         {/* Relevant Experience (Years & Months) — Req 11 */}
