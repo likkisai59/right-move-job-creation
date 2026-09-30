@@ -257,8 +257,9 @@ from app.routes import accounts as accounts_router
 from app.routes import tickets as tickets_router
 
 from app.routes import settings as settings_router
+from app.routes import notifications as notifications_router
 
-# ── Register Routers ──────────────────────────────────────────
+# ── Register Routers ────────────────────────────────────────── 
 app.include_router(jobs.router)
 app.include_router(candidates.router)
 app.include_router(organizations.router)
@@ -273,6 +274,7 @@ app.include_router(leave_types_router.router)
 app.include_router(accounts_router.router)
 app.include_router(tickets_router.router)
 app.include_router(settings_router.router)
+app.include_router(notifications_router.router)
 
 # ── Static Files ──────────────────────────────────────────────
 # Ensure uploads directory exists

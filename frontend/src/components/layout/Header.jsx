@@ -1,13 +1,50 @@
-import React, { useState } from 'react';
-import { Search, Bell, Menu, LogOut, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Bell, Menu, LogOut, ChevronDown, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { logout, getCurrentUser } from '../../api/authApi';
+import { fetchUnreadNotifications, markNotificationAsRead } from '../../api/notificationsApi';
 
 const Header = ({ onSidebarToggle }) => {
   const [searchValue, setSearchValue] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const navigate = useNavigate();
   const user = getCurrentUser() || { username: 'Admin', role: 'Administrator' };
+
+  useEffect(() => {
+    let interval;
+    if (user?.username) {
+      const loadNotifications = async () => {
+        try {
+          const res = await fetchUnreadNotifications(user.username);
+          if (res?.data) {
+            setNotifications(res.data);
+          }
+        } catch (err) {
+          console.error('Failed to fetch notifications', err);
+        }
+      };
+      
+      loadNotifications();
+      // Poll every 60 seconds
+      interval = setInterval(loadNotifications, 60000);
+    }
+    return () => clearInterval(interval);
+  }, [user?.username]);
+
+  const handleNotificationClick = async (notif) => {
+    try {
+      await markNotificationAsRead(notif.id);
+      setNotifications(prev => prev.filter(n => n.id !== notif.id));
+      setShowNotifications(false);
+      if (notif.link) {
+        navigate(notif.link);
+      }
+    } catch (err) {
+      console.error('Failed to mark notification as read', err);
+    }
+  };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && searchValue.trim()) {
@@ -53,10 +90,53 @@ const Header = ({ onSidebarToggle }) => {
       {/* Right actions */}
       <div className="flex items-center gap-2">
         {/* Notification bell */}
-        <button className="relative w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors">
-          <Bell size={18} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white" />
-        </button>
+        <div className="relative">
+          <button 
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="relative w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            <Bell size={18} />
+            {notifications.length > 0 && (
+              <span className="absolute top-1.5 right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 ring-2 ring-white text-[8px] font-bold text-white shadow-sm">
+                {notifications.length > 9 ? '9+' : notifications.length}
+              </span>
+            )}
+          </button>
+
+          {showNotifications && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowNotifications(false)}></div>
+              <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 py-3 z-20 animate-fade-in origin-top-right">
+                <div className="px-4 pb-2 border-b border-gray-50 flex justify-between items-center">
+                  <h3 className="text-sm font-bold text-gray-800">Notifications</h3>
+                  <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{notifications.length} New</span>
+                </div>
+                <div className="max-h-[300px] overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="px-4 py-8 text-center">
+                      <Bell className="mx-auto text-gray-200 mb-2" size={24} />
+                      <p className="text-sm text-gray-400 font-medium">No new notifications</p>
+                    </div>
+                  ) : (
+                    notifications.map(notif => (
+                      <div 
+                        key={notif.id} 
+                        onClick={() => handleNotificationClick(notif)}
+                        className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors"
+                      >
+                        <p className="text-sm text-gray-700 font-medium leading-snug">{notif.message}</p>
+                        <p className="text-[10px] text-gray-400 font-semibold mt-1.5 flex items-center gap-1">
+                          <Clock size={10} />
+                          {new Date(notif.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Divider */}
         <div className="w-px h-6 bg-gray-200 mx-1" />

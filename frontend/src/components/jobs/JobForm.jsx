@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { Plus, Trash2 } from 'lucide-react';
 import Input from '../common/Input';
 import Select from '../common/Select';
+import MultiSelect from '../common/MultiSelect';
 import Button from '../common/Button';
 import { fetchEmployees } from '../../api/employeesApi';
 import { fetchOrganizations } from '../../api/organizationsApi';
@@ -277,14 +278,25 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
             <div key={field.id} className="p-6 bg-gray-50 rounded-xl border border-gray-200 relative animate-slide-up">
               {/* SPOC Fields inside Requirement Card */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                <Select
-                  label="Internal SPOC"
-
-                  required
-                  options={recruiters}
-                  value={watch('internalSpoc') || ''}
-                  error={errors.internalSpoc?.message}
-                  {...register('internalSpoc', { required: 'Please select an Internal SPOC' })}
+                <Controller
+                  name="internalSpoc"
+                  control={control}
+                  rules={{ required: 'Please select at least one Internal SPOC' }}
+                  render={({ field }) => {
+                    const valArray = typeof field.value === 'string' && field.value
+                      ? field.value.split(',').map(s => s.trim())
+                      : (Array.isArray(field.value) ? field.value : []);
+                    return (
+                      <MultiSelect
+                        label="Internal SPOC"
+                        required
+                        options={recruiters}
+                        value={valArray}
+                        onChange={(arr) => field.onChange(arr.join(', '))}
+                        error={errors.internalSpoc?.message}
+                      />
+                    );
+                  }}
                 />
                 <Input
                   label="External SPOC"

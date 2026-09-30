@@ -82,7 +82,7 @@ def get_current_salary_cycle_range(today: date, date_of_joining: Optional[date])
 
 def get_recruiter_incentives_sum(db: Session, employee: Employee, start_date: Optional[date] = None, end_date: Optional[date] = None) -> int:
     """
-    Sum incentives for approved/joined candidates recruited by this employee.
+    Sum incentives for joined candidates recruited by this employee.
     Matches Candidate.recruiter_name case-insensitively with Employee full name.
     Optionally filters by Candidate approval date within cycle range.
     """
@@ -90,7 +90,7 @@ def get_recruiter_incentives_sum(db: Session, employee: Employee, start_date: Op
     
     query = db.query(JobCandidateMapping).join(Candidate).filter(
         func.lower(Candidate.recruiter_name) == func.lower(emp_name),
-        JobCandidateMapping.status.in_(["Candidate Approved", "Joined"])
+        JobCandidateMapping.status == "Joined"
     )
     
     if start_date and end_date:

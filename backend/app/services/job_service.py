@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.job_requirement import Job, JobRequirement
 from app.models.candidate import Candidate
 from app.models.job_candidate import JobCandidateMapping
+from app.models.notification import Notification
 from app.schemas.job_requirement import JobCreateRequest, JobUpdateRequest
 
 
@@ -69,6 +70,19 @@ def create_job_requirement(db: Session, payload: JobCreateRequest) -> Job:
     db.add(new_job)
     db.commit()
     db.refresh(new_job)
+
+    # Trigger Notification for assigned SPOCs
+    if payload.internal_spoc:
+        spocs = [s.strip() for s in payload.internal_spoc.split(",") if s.strip()]
+        for spoc in spocs:
+            notif = Notification(
+                employee_name=spoc,
+                message=f"You have been assigned a new job task: {payload.company_name} - {new_job.job_code}",
+                link="/attendance/tasks"
+            )
+            db.add(notif)
+        db.commit()
+
     return new_job
 
 
@@ -129,7 +143,7 @@ def get_all_jobs(
         query = query.filter(Job.business_unit.ilike(business_unit.strip()))
 
     if internal_spoc:
-        query = query.filter(Job.internal_spoc == internal_spoc)
+        query = query.filter(Job.internal_spoc.ilike(f"%{internal_spoc}%"))
 
     if created_by:
         query = query.filter(Job.created_by == created_by)
@@ -252,6 +266,19 @@ def update_job(
 
     db.commit()
     db.refresh(job)
+
+    # Trigger Notification for assigned SPOCs
+    if payload.internal_spoc:
+        spocs = [s.strip() for s in payload.internal_spoc.split(",") if s.strip()]
+        for spoc in spocs:
+            notif = Notification(
+                employee_name=spoc,
+                message=f"A job task has been updated and assigned to you: {payload.company_name} - {job.job_code}",
+                link="/attendance/tasks"
+            )
+            db.add(notif)
+        db.commit()
+
     return job
 
 

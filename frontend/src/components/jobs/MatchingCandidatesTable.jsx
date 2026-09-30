@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   CheckCircle2,
   XCircle,
@@ -24,6 +24,7 @@ const MatchingCandidatesTable = ({
   internalSpoc = null
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [skillFilter, setSkillFilter] = useState('');
   const [minMatch, setMinMatch] = useState(0);
@@ -279,7 +280,7 @@ const MatchingCandidatesTable = ({
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => navigate(`/candidates/${c.candidate_id || c.id}`)}
+                            onClick={() => navigate(`/candidates/${c.candidate_id || c.id}`, { state: { from: location.pathname + location.search } })}
                             title="View Profile"
                             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                           >

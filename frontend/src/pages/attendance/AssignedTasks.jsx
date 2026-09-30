@@ -61,6 +61,8 @@ const AssignedTasks = () => {
         return ['interview scheduled', 'interview selected', 'interview completed', 'interviewing', 'interview rejected', 'candidate approved', 'selected', 'joined'].includes(status);
       } else if (type === 'approved') {
         return ['candidate approved', 'selected', 'joined'].includes(status);
+      } else if (type === 'joined') {
+        return status === 'joined';
       }
       return false;
     });
@@ -165,20 +167,24 @@ const AssignedTasks = () => {
         // Group jobs by recruiter (internalSpoc)
         const recruiterGroups = {};
         jobs.forEach(job => {
-          const recruiter = (job.internalSpoc || '').trim();
-          if (!recruiter) return;
-          if (!recruiterGroups[recruiter]) {
-            recruiterGroups[recruiter] = {
-              name: recruiter,
-              jobs: [],
-              stats: {
-                shortlisted: 0,
-                interviewing: 0,
-                candidateApproved: 0
-              }
-            };
-          }
-          recruiterGroups[recruiter].jobs.push(job);
+          const recruiterStr = (job.internalSpoc || '').trim();
+          if (!recruiterStr) return;
+          const recruiters = recruiterStr.split(',').map(r => r.trim()).filter(Boolean);
+          recruiters.forEach(recruiter => {
+            if (!recruiterGroups[recruiter]) {
+              recruiterGroups[recruiter] = {
+                name: recruiter,
+                jobs: [],
+                stats: {
+                  shortlisted: 0,
+                  interviewing: 0,
+                  candidateApproved: 0,
+                  joined: 0
+                }
+              };
+            }
+            recruiterGroups[recruiter].jobs.push({ ...job });
+          });
         });
 
         const recruiterList = Object.values(recruiterGroups);
@@ -188,42 +194,58 @@ const AssignedTasks = () => {
           let totalShortlisted = 0;
           let totalInterviewing = 0;
           let totalApproved = 0;
+          let totalJoined = 0;
           let recruiterCandidates = [];
 
           await Promise.all(rec.jobs.map(async (job) => {
+            let jobTotalJoined = 0;
             try {
               const candRes = await fetchShortlistedCandidates(job.id);
               const candidates = candRes.data || [];
               candidates.forEach(cand => {
-                const candWithJob = {
-                  ...cand,
-                  jobId: job.id,
-                  jobCode: job.jobCode,
-                  companyName: job.companyName,
-                  jobTitle: job.jobTitle
-                };
-                recruiterCandidates.push(candWithJob);
-
                 const status = (cand.status || '').trim().toLowerCase();
-                if (['shortlisted', 'shortlist', 'matched', 'interview scheduled', 'interview selected', 'interview completed', 'interviewing', 'interview rejected', 'candidate approved', 'selected', 'joined', 'candidate rejected'].includes(status)) {
-                  totalShortlisted++;
+                if (status === 'joined') {
+                   jobTotalJoined++;
                 }
-                if (['interview scheduled', 'interview selected', 'interview completed', 'interviewing', 'interview rejected', 'candidate approved', 'selected', 'joined'].includes(status)) {
-                  totalInterviewing++;
-                }
-                if (['candidate approved', 'selected', 'joined'].includes(status)) {
-                  totalApproved++;
+
+                const candRecruiter = (cand.recruiter_name || cand.recruiterName || '').trim().toLowerCase();
+                const isMyCand = candRecruiter === rec.name.trim().toLowerCase();
+                
+                if (isMyCand) {
+                  const candWithJob = {
+                    ...cand,
+                    jobId: job.id,
+                    jobCode: job.jobCode,
+                    companyName: job.companyName,
+                    jobTitle: job.jobTitle
+                  };
+                  recruiterCandidates.push(candWithJob);
+
+                  if (['shortlisted', 'shortlist', 'matched', 'interview scheduled', 'interview selected', 'interview completed', 'interviewing', 'interview rejected', 'candidate approved', 'selected', 'joined', 'candidate rejected'].includes(status)) {
+                    totalShortlisted++;
+                  }
+                  if (['interview scheduled', 'interview selected', 'interview completed', 'interviewing', 'interview rejected', 'candidate approved', 'selected', 'joined'].includes(status)) {
+                    totalInterviewing++;
+                  }
+                  if (['candidate approved', 'selected', 'joined'].includes(status)) {
+                    totalApproved++;
+                  }
+                  if (status === 'joined') {
+                    totalJoined++;
+                  }
                 }
               });
             } catch (err) {
               console.error(`Failed to fetch candidates for job ${job.id}:`, err);
             }
+            job.stats = { ...job.stats, totalJoined: jobTotalJoined }; // attach overall joined count to the job
           }));
 
           rec.stats = {
             shortlisted: totalShortlisted,
             interviewing: totalInterviewing,
-            candidateApproved: totalApproved
+            candidateApproved: totalApproved,
+            joined: totalJoined
           };
           rec.candidatesList = recruiterCandidates;
         }));
@@ -242,34 +264,46 @@ const AssignedTasks = () => {
           let jobShortlisted = 0;
           let jobInterviewing = 0;
           let jobApproved = 0;
-          let jobJoined = 0;
+          let jobJoinedByMe = 0;
+          let jobJoinedTotal = 0;
           let jobCandidates = [];
           try {
             const candRes = await fetchShortlistedCandidates(job.id);
             const candidates = candRes.data || [];
-            jobCandidates = candidates.map(cand => ({
-              ...cand,
-              jobId: job.id,
-              jobCode: job.jobCode,
-              companyName: job.companyName,
-              jobTitle: job.jobTitle
-            }));
-            jobCandidates.forEach(cand => {
+            
+            candidates.forEach(cand => {
               const status = (cand.status || '').trim().toLowerCase();
-              if (['shortlisted', 'shortlist', 'matched', 'interview scheduled', 'interview selected', 'interview completed', 'interviewing', 'interview rejected', 'candidate approved', 'selected', 'joined', 'candidate rejected'].includes(status)) {
-                jobShortlisted++;
-                totalShortlisted++;
-              }
-              if (['interview scheduled', 'interview selected', 'interview completed', 'interviewing', 'interview rejected', 'candidate approved', 'selected', 'joined'].includes(status)) {
-                jobInterviewing++;
-                totalInterviewing++;
-              }
-              if (['candidate approved', 'selected', 'joined'].includes(status)) {
-                jobApproved++;
-                totalApproved++;
-              }
               if (status === 'joined') {
-                jobJoined++;
+                jobJoinedTotal++;
+              }
+
+              const candRecruiter = (cand.recruiter_name || cand.recruiterName || '').trim().toLowerCase();
+              const isMyCand = candRecruiter === employeeName.trim().toLowerCase();
+
+              if (isMyCand) {
+                jobCandidates.push({
+                  ...cand,
+                  jobId: job.id,
+                  jobCode: job.jobCode,
+                  companyName: job.companyName,
+                  jobTitle: job.jobTitle
+                });
+
+                if (['shortlisted', 'shortlist', 'matched', 'interview scheduled', 'interview selected', 'interview completed', 'interviewing', 'interview rejected', 'candidate approved', 'selected', 'joined', 'candidate rejected'].includes(status)) {
+                  jobShortlisted++;
+                  totalShortlisted++;
+                }
+                if (['interview scheduled', 'interview selected', 'interview completed', 'interviewing', 'interview rejected', 'candidate approved', 'selected', 'joined'].includes(status)) {
+                  jobInterviewing++;
+                  totalInterviewing++;
+                }
+                if (['candidate approved', 'selected', 'joined'].includes(status)) {
+                  jobApproved++;
+                  totalApproved++;
+                }
+                if (status === 'joined') {
+                  jobJoinedByMe++;
+                }
               }
             });
           } catch (err) {
@@ -282,7 +316,8 @@ const AssignedTasks = () => {
               shortlisted: jobShortlisted,
               interviewing: jobInterviewing,
               candidateApproved: jobApproved,
-              joined: jobJoined
+              joined: jobJoinedByMe,
+              totalJoined: jobJoinedTotal
             }
           };
         }));
@@ -343,31 +378,6 @@ const AssignedTasks = () => {
             </div>
           </div>
 
-          {/* Candidate Pipeline Cards (Visible when not loading) */}
-          {!loading && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {[
-                { label: 'Shortlisted', val: pipelineStats.shortlisted, color: 'purple', icon: Users, type: 'shortlisted' },
-                { label: 'Interview Selected', val: pipelineStats.interviewing, color: 'indigo', icon: Clock, type: 'interviewing' },
-                { label: 'Candidate Approved', val: pipelineStats.candidateApproved, color: 'emerald', icon: CheckCircle2, type: 'approved' },
-              ].map(item => (
-                <div 
-                  key={item.label} 
-                  onClick={() => openCandidatesModal(`${item.label} Candidates`, tasks.flatMap(j => j.candidatesList || []), item.type)}
-                  className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between cursor-pointer hover:shadow-md hover:border-blue-200 transition-all duration-200 active:scale-[0.98]"
-                >
-                  <div className="space-y-1">
-                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">{item.label}</p>
-                    <p className={`text-2xl font-black text-${item.color}-600`}>{item.val}</p>
-                  </div>
-                  <div className={`p-3 rounded-lg bg-${item.color}-50 text-${item.color}-500`}>
-                    <item.icon size={20} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* Loading / Empty State */}
           {loading ? (
             <div className="bg-white p-12 rounded-xl border border-gray-100 flex flex-col items-center justify-center gap-2 shadow-sm min-h-[250px]">
@@ -417,24 +427,27 @@ const AssignedTasks = () => {
                         </div>
                       </div>
 
-                      <div className="p-5 bg-gray-50/50 grid grid-cols-3 gap-2 text-center border-b border-gray-50">
+                      <div className="p-5 bg-gray-50/50 grid grid-cols-1 gap-2 text-center border-b border-gray-50">
                         {[
-                          { label: 'Shortlisted', val: job.stats?.shortlisted || 0, color: 'purple', type: 'shortlisted' },
-                          { label: 'Interview Selected', val: job.stats?.interviewing || 0, color: 'indigo', type: 'interviewing' },
-                          { label: 'Candidate Approved', val: job.stats?.candidateApproved || 0, color: 'emerald', type: 'approved' },
+                          { label: 'Candidate Joined', val: job.stats?.joined || 0, color: 'emerald', type: 'joined' },
                         ].map(stat => (
                           <div 
                             key={stat.label} 
-                            onClick={() => openCandidatesModal(`${stat.label} Candidates for ${job.jobTitle}`, job.candidatesList || [], stat.type)}
-                            className="bg-white p-2.5 rounded-xl border border-gray-100 shadow-2xs flex flex-col items-center cursor-pointer hover:shadow-md hover:border-blue-200 transition-all duration-200 active:scale-[0.98]"
+                            onClick={() => openCandidatesModal(`${stat.label} for ${job.jobTitle}`, job.candidatesList || [], stat.type)}
+                            className="bg-white p-3 rounded-xl border border-gray-100 shadow-2xs flex flex-col items-center cursor-pointer hover:shadow-md hover:border-emerald-200 transition-all duration-200 active:scale-[0.98] group"
                           >
-                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">{stat.label}</span>
-                            <span className={`text-lg font-black text-${stat.color}-600`}>{stat.val}</span>
+                            <span className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">{stat.label}</span>
+                            <span className={`text-2xl font-black text-${stat.color}-600`}>{stat.val}</span>
+                            <span className="text-[10px] text-gray-300 font-medium mt-1 group-hover:text-emerald-500 transition-colors opacity-80">(click to view)</span>
                           </div>
                         ))}
                       </div>
 
                       <div className="p-5 space-y-2.5 bg-white text-xs text-gray-600">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-400 font-semibold">Positions Filled:</span>
+                          <span className="font-bold text-gray-800">{job.stats?.totalJoined || 0} Joined</span>
+                        </div>
                         <div className="flex justify-between items-center">
                           <span className="text-gray-400 font-semibold">Total Open Positions:</span>
                           <span className="font-bold text-gray-800">{currentOpen} Positions</span>
