@@ -195,7 +195,8 @@ const SettingsPage = () => {
   );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6 font-inter">
+    <div className="flex-1 h-full overflow-hidden bg-gray-50 flex flex-col font-inter relative">
+      <div className="w-full max-w-7xl mx-auto p-6 flex flex-col flex-1 min-h-0 space-y-6">
       {/* Header - Strictly Anchored & Fixed Height */}
       <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between shrink-0 h-[100px]">
         <div>
@@ -209,12 +210,12 @@ const SettingsPage = () => {
         </div>
       </div>
 
-      {/* Main Layout: Uniform 650px Fixed Height for Zero Shifting Across All Tabs */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[650px]">
+      {/* Main Layout: Flex-1 to fill space */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-1 min-h-0">
         
-        {/* Left Sub-Sidebar Navigation - Uniform 650px High */}
-        <div className="lg:col-span-1 h-[650px] shrink-0">
-          <div className="bg-white rounded-xl border border-gray-200 p-3 shadow-sm h-[650px] flex flex-col justify-between overflow-y-auto">
+        {/* Left Sub-Sidebar Navigation */}
+        <div className="lg:col-span-1 h-full flex flex-col min-h-0 shrink-0">
+          <div className="bg-white rounded-xl border border-gray-200 p-3 shadow-sm h-full flex flex-col justify-between overflow-y-auto">
             <div className="space-y-1">
               <div className="px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
                 Settings Navigation
@@ -249,9 +250,9 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        {/* Right Content Area - Uniform 650px High */}
-        <div className="lg:col-span-3 h-[650px] shrink-0">
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 h-[650px] flex flex-col overflow-hidden">
+        {/* Right Content Area */}
+        <div className="lg:col-span-3 h-full flex flex-col min-h-0 shrink-0">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 h-full flex flex-col min-h-0">
 
             {/* Tab Content 1: Roles Assignment */}
             {activeTab === 'roles' && (
@@ -337,10 +338,10 @@ const SettingsPage = () => {
 
             {/* Tab Content 2: Permission Matrix */}
             {activeTab === 'matrix' && (
-              <div className="flex-1 flex flex-col h-full min-h-0 space-y-4">
-                <h2 className="text-lg font-bold text-gray-900 shrink-0">9-Role System Permission Matrix (Excel Specification)</h2>
-                <div className="flex-1 overflow-auto border border-gray-200 rounded-lg pb-10">
-                  <table className="w-full text-left text-xs border-collapse">
+              <div className="flex-1 flex flex-col h-full min-h-0 pb-8">
+                <h2 className="text-lg font-bold text-gray-900 mb-4 shrink-0">9-Role System Permission Matrix (Excel Specification)</h2>
+                <div className="flex-1 w-full overflow-auto border border-gray-200 rounded-lg min-h-0">
+                  <table className="w-full text-left text-xs border-collapse bg-white">
                     <thead>
                       <tr className="bg-gray-900 text-white font-semibold sticky top-0 z-10 shadow-sm">
                         <th className="p-3 border border-gray-700">System Role</th>
@@ -542,6 +543,7 @@ const SettingsPage = () => {
           </div>
         </div>
 
+      </div>
       </div>
     </div>
   );

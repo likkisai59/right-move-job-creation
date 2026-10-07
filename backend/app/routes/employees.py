@@ -9,6 +9,7 @@ import shutil
 from datetime import datetime
 
 from app.core.database import get_db
+from app.utils.s3 import upload_to_s3
 from app.utils.response import success_response, error_response
 from app.schemas.employee import EmployeeCreateRequest, EmployeeUpdateRequest
 from app.services import employee_service
@@ -110,27 +111,20 @@ def serialize_employee(emp: Employee) -> dict:
 # ─────────────────────────────────────────────────────────────
 
 @router.post("/upload")
-def upload_employee_file(file: UploadFile = File(...)):
+async def upload_employee_file(file: UploadFile = File(...)):
     """
     POST /api/employees/upload
     Uploads a document or photo for an employee.
     Returns the static URL of the uploaded file.
     """
     try:
-        # Create uploads folder if it doesn't exist
-        if not os.path.exists("uploads"):
-            os.makedirs("uploads")
-            
-        filename = f"{int(datetime.now().timestamp())}_{file.filename.replace(' ', '_')}"
-        filepath = os.path.join("uploads", filename)
-        with open(filepath, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        url = await upload_to_s3(file, folder="employees")
         
         return JSONResponse(
             status_code=200,
             content=success_response(
                 "File uploaded successfully", 
-                {"url": f"/uploads/{filename}", "filename": file.filename}
+                {"url": url, "filename": file.filename}
             )
         )
     except Exception as exc:

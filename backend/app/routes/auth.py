@@ -68,7 +68,8 @@ def login(payload: EmployeeLoginRequest, db: Session = Depends(get_db)):
                         "username": f"{target_employee.first_name} {target_employee.last_name}".strip(),
                         "role": target_employee.designation,
                         "system_role": user_system_role,
-                        "email": target_employee.email or f"{target_employee.first_name.lower()}@rightmove.in"
+                        "email": target_employee.email or f"{target_employee.first_name.lower()}@rightmove.in",
+                        "photo_url": target_employee.photo_url
                     }
                 })
             )
@@ -86,7 +87,8 @@ def login(payload: EmployeeLoginRequest, db: Session = Depends(get_db)):
                         "designation": target_employee.designation,
                         "email": target_employee.email,
                         "contact": target_employee.contact_number,
-                        "system_role": user_system_role
+                        "system_role": user_system_role,
+                        "photo_url": target_employee.photo_url
                     }
                 })
             )

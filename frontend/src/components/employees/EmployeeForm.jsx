@@ -173,15 +173,17 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   const [businessUnits, setBusinessUnits] = useState([]);
   const [workModes, setWorkModes] = useState([]);
 
-  // Access check based on System Role (3-Stage Onboarding)
+  // Access check based on System Role
   const systemRole = getSystemRole();
-  const isHrRole = systemRole === 'hr';
-  const isAdminUserRole = systemRole === 'admin_user';
   const isSuperAdminOrAdminAdmin = systemRole === 'super_admin' || systemRole === 'admin_admin';
 
-  // Restrictions logic: HR role edits HR form; Admin User role edits Admin form; Super Admin edits both.
-  const isHrDisabled = isAdminUserRole && !isSuperAdminOrAdminAdmin;
-  const isAdminDisabled = isHrRole && !isSuperAdminOrAdminAdmin;
+  // Restrictions logic:
+  // HR role can only edit HR form (Admin form disabled)
+  // Admin User role can only edit Admin form (HR form disabled)
+  // Account User cannot edit any (Both forms disabled)
+  // Super Admin and Admin Admin can edit both
+  const isHrDisabled = !isSuperAdminOrAdminAdmin && systemRole !== 'hr';
+  const isAdminDisabled = !isSuperAdminOrAdminAdmin && systemRole !== 'admin_user';
 
   const {
     register,

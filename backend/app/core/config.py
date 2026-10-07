@@ -54,6 +54,12 @@ class Settings(BaseSettings):
 
     # Gemini API Key (Using VITE_ prefix as it's shared with frontend in .env)
     VITE_GEMINI_API_KEY: Optional[str] = None
+    
+    # AWS S3 Settings
+    AWS_ACCESS_KEY_ID: Optional[str] = None
+    AWS_SECRET_ACCESS_KEY: Optional[str] = None
+    AWS_REGION: Optional[str] = "ap-south-1"
+    AWS_BUCKET_NAME: Optional[str] = None
 
     @model_validator(mode="after")
     def assemble_db_url(self) -> Self:

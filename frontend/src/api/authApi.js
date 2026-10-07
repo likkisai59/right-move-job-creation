@@ -25,13 +25,26 @@ export const getCurrentUser = () => {
     const user = localStorage.getItem('user');
     const employee = localStorage.getItem('employee_data');
     
-    if (user) return JSON.parse(user);
+    let photo_url = null;
+    if (employee) {
+        try {
+            photo_url = JSON.parse(employee).photo_url;
+        } catch(e) {}
+    }
+
+    if (user) {
+        const parsedUser = JSON.parse(user);
+        if (photo_url) parsedUser.photo_url = photo_url;
+        return parsedUser;
+    }
+    
     if (employee) {
         const empData = JSON.parse(employee);
         return {
             username: empData.name,
             role: 'employee',
-            email: empData.email
+            email: empData.email,
+            photo_url: empData.photo_url
         };
     }
     return null;
@@ -39,9 +52,12 @@ export const getCurrentUser = () => {
 
 export const getCurrentEmployee = () => {
     const employee = localStorage.getItem('employee_data');
+    let photo_url = null;
     if (employee) {
         try {
-            return JSON.parse(employee);
+            const empData = JSON.parse(employee);
+            photo_url = empData.photo_url;
+            return empData;
         } catch (e) {}
     }
     const user = localStorage.getItem('user');
@@ -55,7 +71,8 @@ export const getCurrentEmployee = () => {
                 designation: userData.role,
                 email: userData.email,
                 contact: userData.contact || 'N/A',
-                system_role: userData.system_role
+                system_role: userData.system_role,
+                photo_url: photo_url || userData.photo_url
             };
         } catch (e) {}
     }
@@ -115,19 +132,22 @@ export const checkPermission = (action) => {
     const role = getSystemRole();
 
     if (role === 'unassigned') return false;
-    if (role === 'super_admin' || role === 'admin_admin') return true;
+    if (role === 'super_admin') return true;
+
+    // Admin Admin has extensive rights, but no access to Candidate/Job
+    if (role === 'admin_admin' && !['add_job', 'add_candidate'].includes(action)) return true;
 
     if (action === 'add_employee') {
-        return ['hr', 'admin_user', 'super_admin'].includes(role);
+        return ['hr', 'admin_user', 'admin_admin', 'super_admin'].includes(role);
     }
     if (action === 'add_organization') {
         return ['admin_user', 'admin_admin', 'super_admin'].includes(role);
     }
     if (action === 'add_job') {
-        return ['user', 'leader', 'admin_user', 'admin_admin', 'super_admin'].includes(role);
+        return ['leader', 'super_admin'].includes(role);
     }
     if (action === 'add_candidate') {
-        return ['user', 'leader', 'admin_user', 'super_admin', 'temporary'].includes(role);
+        return ['user', 'leader', 'super_admin', 'temporary'].includes(role);
     }
     if (action === 'view_settings') {
         return ['admin_admin', 'super_admin'].includes(role);

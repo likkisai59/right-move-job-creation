@@ -57,6 +57,7 @@ from app.routes import work_mode as work_mode_router
 from app.routes import exit_type as exit_type_router
 from app.routes import leave_types as leave_types_router
 from app.routes import accounts as accounts_router
+from app.routes import media as media_router
 
 # ── Lifespan: runs once on startup ────────────────────────────
 @asynccontextmanager
@@ -275,6 +276,7 @@ app.include_router(accounts_router.router)
 app.include_router(tickets_router.router)
 app.include_router(settings_router.router)
 app.include_router(notifications_router.router)
+app.include_router(media_router.router, prefix="/api/media", tags=["Media"])
 
 # ── Static Files ──────────────────────────────────────────────
 # Ensure uploads directory exists

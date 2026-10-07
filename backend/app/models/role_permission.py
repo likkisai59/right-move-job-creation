@@ -19,9 +19,9 @@ DEFAULT_ROLE_PERMISSIONS = {
     "user": {
         "display_name": "User",
         "candidate": "all_access",
-        "job": "all_access",
+        "job": "mapping_only",
         "organization": "not_visible",
-        "rmep": "add",
+        "rmep": "apply_leaves_raise_tickets",
         "employee": "not_visible",
         "accounts": "not_visible",
         "settings": "not_visible"
@@ -31,50 +31,60 @@ DEFAULT_ROLE_PERMISSIONS = {
         "candidate": "all_access",
         "job": "all_access",
         "organization": "not_visible",
-        "rmep": "add_edit_approval",
+        "rmep": "apply_leaves_raise_tickets_approval",
         "employee": "not_visible",
-        "accounts": "not_visible",
-        "settings": "not_visible"
-    },
-    "hr": {
-        "display_name": "HR",
-        "candidate": "view",
-        "job": "view",
-        "organization": "view",
-        "rmep": "add",
-        "employee": "add_edit_hr",
         "accounts": "not_visible",
         "settings": "not_visible"
     },
     "admin_user": {
         "display_name": "Admin User",
-        "candidate": "dashboard_access",
-        "job": "all_access",
+        "candidate": "not_visible",
+        "job": "not_visible",
         "organization": "add",
-        "rmep": "add_edit_approval",
-        "employee": "add_edit_admin",
+        "rmep": "apply_approve_leaves_tickets",
+        "employee": "add_edit_admin_delete",
         "accounts": "not_visible",
         "settings": "not_visible"
     },
     "admin_admin": {
         "display_name": "Admin Admin",
-        "candidate": "view",
-        "job": "view_add_rate_incentive",
+        "candidate": "not_visible",
+        "job": "not_visible",
         "organization": "all_access",
-        "rmep": "add_edit_approval_holidays",
-        "employee": "dashboard_access",
-        "accounts": "not_visible",
-        "settings": "view_assign_roles"
+        "rmep": "all_access",
+        "employee": "all_access",
+        "accounts": "view",
+        "settings": "all_access"
     },
     "super_admin": {
         "display_name": "Super Admin",
-        "candidate": "view",
-        "job": "view",
-        "organization": "dashboard_access",
-        "rmep": "add_edit_approval_holidays",
-        "employee": "view_password_access",
-        "accounts": "not_visible",
+        "candidate": "all_access",
+        "job": "all_access",
+        "organization": "all_access",
+        "rmep": "all_access",
+        "employee": "all_access",
+        "accounts": "all_access",
         "settings": "all_access"
+    },
+    "hr": {
+        "display_name": "HR",
+        "candidate": "not_visible",
+        "job": "not_visible",
+        "organization": "not_visible",
+        "rmep": "apply_leaves_approve_tickets",
+        "employee": "add_edit_hr_delete",
+        "accounts": "not_visible",
+        "settings": "not_visible"
+    },
+    "account_user": {
+        "display_name": "Account User",
+        "candidate": "not_visible",
+        "job": "not_visible",
+        "organization": "view",
+        "rmep": "apply_leaves",
+        "employee": "view",
+        "accounts": "all_access",
+        "settings": "not_visible"
     },
     "unassigned": {
         "display_name": "Unassigned (Zero Access)",
@@ -91,19 +101,9 @@ DEFAULT_ROLE_PERMISSIONS = {
         "candidate": "add_edit",
         "job": "not_visible",
         "organization": "not_visible",
-        "rmep": "add",
+        "rmep": "apply_leaves",
         "employee": "not_visible",
         "accounts": "not_visible",
-        "settings": "not_visible"
-    },
-    "account_user":{
-        "display_name": "Account User",
-        "candidate": "not_visible",
-        "job": "not_visible",
-        "organization": "not_visible",
-        "rmep": "add",
-        "employee": "not_visible",
-        "accounts": "all_access",
         "settings": "not_visible"
     }
 }

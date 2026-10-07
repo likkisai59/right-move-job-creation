@@ -1,6 +1,7 @@
 import React, { useRef, useState, useCallback } from 'react';
 import { Upload, X, FileText, CheckCircle, Eye } from 'lucide-react';
 import { ALLOWED_RESUME_TYPES, MAX_RESUME_SIZE_MB } from '../../utils/constants';
+import { getSecureMediaUrl } from '../../utils/mediaUtils';
 
 const FileUpload = ({ onFileSelect, accept, maxSizeMB = MAX_RESUME_SIZE_MB, value, title = "Drag & drop your file here", subtitle = "or click to browse" }) => {
   const inputRef = useRef(null);
@@ -117,7 +118,7 @@ const FileUpload = ({ onFileSelect, accept, maxSizeMB = MAX_RESUME_SIZE_MB, valu
             <div className="flex items-center gap-3 mt-1">
               {value.url && (
                 <a
-                  href={value.url.startsWith('http') ? value.url : `${import.meta.env.VITE_API_BASE_URL ? import.meta.env.VITE_API_BASE_URL.replace('/api', '') : 'http://localhost:8000'}${value.url.startsWith('/') ? '' : '/'}${value.url}`}
+                  href={getSecureMediaUrl(value.url)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 text-xs font-medium text-blue-500 hover:text-blue-700 bg-blue-50 px-2 py-1 rounded"

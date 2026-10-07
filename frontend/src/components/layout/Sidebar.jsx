@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { APP_NAME, APP_SHORT } from '../../utils/constants';
 import { getSystemRole, getCurrentEmployee } from '../../api/authApi';
+import { getSecureMediaUrl } from '../../utils/mediaUtils';
 
 const NAV_ITEMS = [
   { label: 'Home', path: '/home', icon: Home },
@@ -35,19 +36,35 @@ const Sidebar = ({ collapsed, onToggle }) => {
   const initials = employeeName.substring(0, 2).toUpperCase();
 
   const filteredNavItems = NAV_ITEMS.filter(({ label }) => {
-    if (label === 'Accounts') return role === 'account_user';
+    // Everyone sees Home (or Dashboard instead, but we'll leave Home for basics)
+    if (label === 'Home') return true;
 
-    if (role === 'unassigned') return label === 'Home';
+    // Based on the user's explicit instructions:
     if (role === 'super_admin') return true;
-    if (role === 'admin_admin') return true;
     
+    if (role === 'admin_admin') {
+      return ['Organization', 'Organizations', 'Employees', 'RMEP', 'Settings', 'Accounts', 'Home'].includes(label);
+    }
+    
+    if (role === 'admin_user') {
+      return ['Employees', 'Organization', 'Organizations', 'RMEP', 'Home'].includes(label);
+    }
+    
+    if (role === 'hr') {
+      return ['Employees', 'RMEP', 'Home'].includes(label);
+    }
+    
+    if (role === 'account_user') {
+      return ['Employees', 'Organization', 'Organizations', 'RMEP', 'Accounts', 'Home'].includes(label);
+    }
+    
+    if (role === 'leader' || role === 'user') {
+      return ['Candidates', 'Jobs', 'RMEP', 'Home'].includes(label);
+    }
+
     if (role === 'temporary') return ['Candidates'].includes(label);
-    if (role === 'account_user') return ['RMEP', 'Accounts'].includes(label);
-    if (role === 'admin_user') return ['Dashboard', 'Home', 'Jobs', 'Candidates', 'Organizations', 'Employees', 'RMEP'].includes(label);
-    if (role === 'hr') return ['Home', 'Jobs', 'Candidates', 'Organizations', 'Employees', 'RMEP'].includes(label);
-    if (role === 'leader') return ['Home', 'Jobs', 'Candidates', 'RMEP'].includes(label);
-    if (role === 'user') return ['Home', 'Jobs', 'Candidates', 'RMEP'].includes(label);
-    return ['Home', 'Jobs', 'Candidates', 'RMEP'].includes(label);
+
+    return false;
   });
 
   return (
@@ -124,8 +141,12 @@ const Sidebar = ({ collapsed, onToggle }) => {
             collapsed ? 'justify-center' : '',
           ].join(' ')}
         >
-          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-semibold shrink-0" title={employeeName}>
-            {initials}
+          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-semibold shrink-0 overflow-hidden" title={employeeName}>
+            {employee?.photo_url ? (
+              <img src={getSecureMediaUrl(employee.photo_url)} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              initials
+            )}
           </div>
           {!collapsed && (
             <div className="min-w-0" title={employeeEmail}>

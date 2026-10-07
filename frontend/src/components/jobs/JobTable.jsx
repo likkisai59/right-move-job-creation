@@ -208,16 +208,18 @@ const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats, filters, on
           >
             <Eye size={15} />
           </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/jobs/edit/${row.id}`);
-            }}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
-            title="Edit job"
-          >
-            <Pencil size={15} />
-          </button>
+          {checkPermission('add_job') && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/jobs/edit/${row.id}`);
+              }}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+              title="Edit job"
+            >
+              <Pencil size={15} />
+            </button>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();

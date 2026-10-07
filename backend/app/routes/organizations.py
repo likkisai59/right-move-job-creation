@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from datetime import datetime
 
 from app.core.database import get_db
+from app.utils.s3 import upload_to_s3
 from app.schemas.organization import OrganizationCreate, OrganizationUpdate, OrganizationResponse
 from app.services.organization_service import (
     create_organization,
@@ -40,16 +41,9 @@ def add_organization(payload: OrganizationCreate, db: Session = Depends(get_db))
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=error_response(str(exc)))
 
 @router.post("/upload", status_code=status.HTTP_201_CREATED)
-def upload_contract_document(file: UploadFile = File(...)):
-    import os, shutil
+async def upload_contract_document(file: UploadFile = File(...)):
     try:
-        filename = f"{int(datetime.now().timestamp())}_{file.filename}"
-        os.makedirs("uploads", exist_ok=True)
-        filepath = os.path.join("uploads", filename)
-        with open(filepath, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        
-        file_url = f"/uploads/{filename}"
+        file_url = await upload_to_s3(file, folder="organizations")
         return JSONResponse(
             status_code=201, 
             content=success_response("Contract document uploaded successfully", {"file_url": file_url})

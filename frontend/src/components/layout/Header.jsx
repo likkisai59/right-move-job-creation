@@ -3,6 +3,7 @@ import { Search, Bell, Menu, LogOut, ChevronDown, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { logout, getCurrentUser } from '../../api/authApi';
 import { fetchUnreadNotifications, markNotificationAsRead } from '../../api/notificationsApi';
+import { getSecureMediaUrl } from '../../utils/mediaUtils';
 
 const Header = ({ onSidebarToggle }) => {
   const [searchValue, setSearchValue] = useState('');
@@ -147,8 +148,12 @@ const Header = ({ onSidebarToggle }) => {
             onClick={() => setShowUserMenu(!showUserMenu)}
             className="flex items-center gap-2.5 cursor-pointer group hover:bg-gray-50 p-1.5 rounded-xl transition-colors border border-transparent hover:border-gray-100"
           >
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-semibold text-white shadow-sm ring-2 ring-blue-50">
-              {user.username.substring(0, 2).toUpperCase()}
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-semibold text-white shadow-sm ring-2 ring-blue-50 overflow-hidden">
+              {user?.photo_url ? (
+                <img src={getSecureMediaUrl(user.photo_url)} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                user?.username?.substring(0, 2).toUpperCase() || 'SU'
+              )}
             </div>
             <div className="hidden sm:block text-left">
               <p className="text-sm font-bold text-gray-800 leading-none">{user.username}</p>

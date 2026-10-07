@@ -7,6 +7,7 @@ import Button from '../common/Button';
 import { Users } from 'lucide-react';
 import { checkPermission } from '../../api/authApi';
 import { PIPELINE_STATUS_COLORS } from '../../utils/constants';
+import { getSecureMediaUrl } from '../../utils/mediaUtils';
 
 const CandidateTable = ({ candidates = [], loading = false, filters, onFilterChange }) => {
   const navigate = useNavigate();
@@ -200,11 +201,8 @@ const CandidateTable = ({ candidates = [], loading = false, filters, onFilterCha
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                const base = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
-                const url = encodeURI(`${base}${row.resumeUrl}`);
-                const fallback = `${base}/api/candidates/${row.id}/resume`;
-                const win = window.open(url, '_blank');
-                if (!win) window.open(fallback, '_blank');
+                const url = getSecureMediaUrl(row.resumeUrl);
+                window.open(url, '_blank');
               }}
               className="w-8 h-8 flex items-center justify-center rounded-lg text-emerald-500 hover:bg-emerald-50 transition-colors"
               title="View Resume"

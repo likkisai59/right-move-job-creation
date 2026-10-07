@@ -1,10 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, Trash2, Users } from 'lucide-react';
+import { Pencil, Trash2, Users, Eye } from 'lucide-react';
 import Table from '../common/Table';
 import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
 import { formatDate } from '../../utils/formatters';
+import { checkPermission } from '../../api/authApi';
 
 const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete, filters, onFilterChange, designations = [] }) => {
   const navigate = useNavigate();
@@ -154,32 +155,48 @@ const EmployeeTable = ({ employees = [], loading = false, onEdit, onDelete, filt
     },
   ];
   
+  const canEditOrDelete = checkPermission('add_employee');
   const actionColumn = {
       key: 'actions',
       header: 'Actions',
       render: (_, row) => (
         <div className="flex items-center gap-1">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit && onEdit(row.id);
-            }}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
-            title="Edit employee"
-          >
-            <Pencil size={15} />
-          </button>
+          {canEditOrDelete ? (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit && onEdit(row.id);
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+                title="Edit employee"
+              >
+                <Pencil size={15} />
+              </button>
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete && onDelete(row.id);
-            }}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-            title="Delete employee"
-          >
-            <Trash2 size={15} />
-          </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete && onDelete(row.id);
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                title="Delete employee"
+              >
+                <Trash2 size={15} />
+              </button>
+            </>
+          ) : (
+             <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit && onEdit(row.id);
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+                title="View employee"
+              >
+                <Eye size={15} />
+              </button>
+          )}
         </div>
       ),
     };

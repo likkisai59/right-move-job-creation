@@ -20,7 +20,8 @@ const TicketManagement = () => {
     assigned_to: ''
   });
 
-  const isRequester = ['user', 'leader'].includes(role);
+  const canRaiseTicket = ['user', 'leader', 'admin_admin', 'super_admin'].includes(role);
+  const canResolveTicket = ['leader', 'admin_user', 'admin_admin', 'super_admin', 'hr'].includes(role);
 
   useEffect(() => {
     loadData();
@@ -31,7 +32,7 @@ const TicketManagement = () => {
       setLoading(true);
       const [ticketsData, assigneesData] = await Promise.all([
         fetchTickets(role, employee.employee_id),
-        isRequester ? fetchTicketAssignees() : Promise.resolve([])
+        canRaiseTicket ? fetchTicketAssignees() : Promise.resolve([])
       ]);
       setTickets(ticketsData);
       setAssignees(assigneesData);
@@ -88,7 +89,7 @@ const TicketManagement = () => {
     { key: 'resolved_on', header: 'Resolved On', render: (val) => val ? formatDate(val) : '-' },
   ];
 
-  if (!isRequester) {
+  if (canResolveTicket) {
     columns.push({
       key: 'actions',
       header: 'Actions',
@@ -114,11 +115,11 @@ const TicketManagement = () => {
         <div>
           <h2 className="text-lg font-semibold text-gray-900">Tickets</h2>
           <p className="text-sm text-gray-500">
-            {isRequester ? 'View and raise support tickets.' : 'Review tickets assigned to you.'}
+            View, raise, and resolve support tickets based on your access.
           </p>
         </div>
         
-        {isRequester && (
+        {canRaiseTicket && (
           <button
             onClick={() => setModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

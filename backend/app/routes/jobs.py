@@ -30,6 +30,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from pydantic import BaseModel
 from app.core.database import get_db
+from app.utils.s3 import upload_to_s3
 from app.schemas.candidate import CandidateResponse
 from app.schemas.job_requirement import (
     JobCreateRequest,
@@ -117,19 +118,9 @@ def create_job(
     description="Uploads a job description file and returns its stored path.",
     status_code=status.HTTP_201_CREATED,
 )
-def upload_job_description(file: UploadFile = File(...)):
+async def upload_job_description(file: UploadFile = File(...)):
     try:
-        from datetime import datetime
-        filename = f"{int(datetime.now().timestamp())}_{file.filename}"
-        
-        # Ensure uploads directory exists
-        os.makedirs("uploads", exist_ok=True)
-        
-        filepath = os.path.join("uploads", filename)
-        with open(filepath, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-            
-        file_url = f"/uploads/{filename}"
+        file_url = await upload_to_s3(file, folder="job-descriptions")
         return JSONResponse(
             status_code=201, 
             content=success_response("File uploaded successfully", {"file_url": file_url})

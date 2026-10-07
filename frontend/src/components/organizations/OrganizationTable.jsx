@@ -16,7 +16,7 @@ const STATUS_CONFIG = {
 const OrganizationTable = ({ organizations = [], loading = false, onCreate, onDelete, filters, onFilterChange }) => {
   const navigate = useNavigate();
 
-  const columns = [
+  const baseColumns = [
     {
       key: 'organization_id',
       header: 'Org ID',
@@ -113,7 +113,12 @@ const OrganizationTable = ({ organizations = [], loading = false, onCreate, onDe
         );
       },
     },
-    {
+  ];
+
+  const columns = [...baseColumns];
+  
+  if (checkPermission('add_organization')) {
+    columns.push({
       key: 'actions',
       header: 'Actions',
       render: (_, row) => (
@@ -141,8 +146,9 @@ const OrganizationTable = ({ organizations = [], loading = false, onCreate, onDe
           </button>
         </div>
       ),
-    },
-  ];
+    });
+  }
+
 
   if (!loading && organizations.length === 0) {
     return (

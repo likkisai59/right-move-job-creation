@@ -9,6 +9,7 @@ import {
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
 import SelectionDetailsTab from '../../components/candidates/SelectionDetailsTab';
+import { getSecureMediaUrl } from '../../utils/mediaUtils';
 
 const DetailItem = ({ icon: IconComponent, label, value, iconColor = "text-gray-600" }) => (
   <div className="flex items-center gap-4 group p-2 rounded-xl hover:bg-gray-50/50 transition-all duration-200">
@@ -297,13 +298,8 @@ const CandidateDetails = () => {
               {candidate.resumeUrl ? (
                 <button
                   onClick={() => {
-                    // Req 3: encode URL to handle filenames with spaces, fallback to API stream endpoint
-                    const base = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
-                    const url = encodeURI(`${base}${candidate.resumeUrl}`);
-                    const fallback = `${base}/api/candidates/${candidate.id}/resume`;
-                    // Attempt the direct URL first; API endpoint as reliable fallback
-                    const win = window.open(url, '_blank');
-                    if (!win) window.open(fallback, '_blank');
+                    const url = getSecureMediaUrl(candidate.resumeUrl);
+                    window.open(url, '_blank');
                   }}
                   className="mt-3 px-6 py-2 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 hover:shadow-lg transition-all active:scale-95"
                 >

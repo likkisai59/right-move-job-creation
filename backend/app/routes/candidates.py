@@ -18,6 +18,7 @@ from fastapi import Header, HTTPException
 from pydantic import ValidationError
 from sqlalchemy import func
 from app.core.database import get_db
+from app.utils.s3 import upload_to_s3
 from app.models.job_candidate import JobCandidateMapping
 from app.models.job_requirement import Job, JobRequirement
 from app.schemas.job_candidate import SelectionDetailsResponse, SelectionDetailsUpdate
@@ -122,11 +123,7 @@ async def add_candidate(
         resume_file_name = None
 
         if file:
-            filename = f"{int(datetime.now().timestamp())}_{file.filename}"
-            filepath = os.path.join("uploads", filename)
-            with open(filepath, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
-            resume_url = f"/uploads/{filename}"
+            resume_url = await upload_to_s3(file, folder="resumes")
             resume_file_name = file.filename
 
         # Parse lwd date string to date object
@@ -253,11 +250,7 @@ async def edit_candidate(
         resume_file_name = existing.resume_file_name
 
         if file:
-            filename = f"{int(datetime.now().timestamp())}_{file.filename}"
-            filepath = os.path.join("uploads", filename)
-            with open(filepath, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
-            resume_url = f"/uploads/{filename}"
+            resume_url = await upload_to_s3(file, folder="resumes")
             resume_file_name = file.filename
 
         parsed_lwd = None
