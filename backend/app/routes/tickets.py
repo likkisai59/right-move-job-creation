@@ -8,8 +8,8 @@ from app.services import ticket_service
 router = APIRouter(prefix="/api/tickets", tags=["tickets"])
 
 @router.get("/assignees", response_model=List[TicketAssignee])
-def get_assignees(db: Session = Depends(get_db)):
-    return ticket_service.list_assignable_admins(db)
+def get_assignees(emp_id: str = Query(None), db: Session = Depends(get_db)):
+    return ticket_service.list_assignable_admins(db, emp_id)
 
 @router.post("/", response_model=TicketResponse)
 def create_ticket(

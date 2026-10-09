@@ -23,3 +23,5 @@ class TicketAssignee(BaseModel):
     employee_id: str
     name: str
     role: str
+    is_active: bool = True
+    is_manager: bool = False

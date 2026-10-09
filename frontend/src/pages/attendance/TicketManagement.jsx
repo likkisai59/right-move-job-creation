@@ -21,7 +21,7 @@ const TicketManagement = () => {
   });
 
   const canRaiseTicket = ['user', 'leader', 'admin_admin', 'super_admin'].includes(role);
-  const canResolveTicket = ['leader', 'admin_user', 'admin_admin', 'super_admin', 'hr'].includes(role);
+  const canResolveTicket = ['leader', 'admin_user', 'admin_admin', 'super_admin', 'hr', 'account_user'].includes(role);
 
   useEffect(() => {
     loadData();
@@ -32,7 +32,7 @@ const TicketManagement = () => {
       setLoading(true);
       const [ticketsData, assigneesData] = await Promise.all([
         fetchTickets(role, employee.employee_id),
-        canRaiseTicket ? fetchTicketAssignees() : Promise.resolve([])
+        canRaiseTicket ? fetchTicketAssignees(employee.employee_id) : Promise.resolve([])
       ]);
       setTickets(ticketsData);
       setAssignees(assigneesData);
@@ -163,13 +163,22 @@ const TicketManagement = () => {
                 <select
                   className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500"
                   value={formData.assigned_to}
-                  onChange={(e) => setFormData({...formData, assigned_to: e.target.value})}
+                  onChange={(e) => {
+                    const selectedId = e.target.value;
+                    const selectedEmp = assignees.find(a => a.employee_id === selectedId);
+                    if (selectedEmp && selectedEmp.is_active === false) {
+                      toast.error("Your reporting manager is currently inactive. Please assign the ticket to HR or an Admin.");
+                      setFormData({...formData, assigned_to: ''});
+                      return;
+                    }
+                    setFormData({...formData, assigned_to: selectedId});
+                  }}
                   required
                 >
                   <option value="">Select Assignee</option>
                   {assignees.map(emp => (
                     <option key={emp.employee_id} value={emp.employee_id}>
-                      {emp.name} ({emp.employee_id}) - {emp.role.replace('_', ' ').toUpperCase()}
+                      {emp.name} ({emp.employee_id}) - {emp.role.replace('_', ' ').toUpperCase()} {emp.is_manager ? '(Reporting Manager)' : ''} {emp.is_active === false ? '(Inactive)' : ''}
                     </option>
                   ))}
                 </select>

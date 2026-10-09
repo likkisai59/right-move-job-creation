@@ -10,8 +10,8 @@ export const createTicket = async (ticketData, empId) => {
   return response.data;
 };
 
-export const fetchTicketAssignees = async () => {
-  const response = await api.get('/tickets/assignees');
+export const fetchTicketAssignees = async (empId = '') => {
+  const response = await api.get(`/tickets/assignees?emp_id=${empId}`);
   return response.data;
 };
 

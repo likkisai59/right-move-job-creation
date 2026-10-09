@@ -5,19 +5,36 @@ from app.models.ticket import Ticket
 from app.models.employee import Employee
 from app.schemas.ticket import TicketCreate
 
-def list_assignable_admins(db: Session):
-    roles = ["hr", "admin_user", "admin_admin", "super_admin"]
+def list_assignable_admins(db: Session, emp_id: str = None):
+    roles = ["hr", "admin_user", "admin_admin", "super_admin", "account_user"]
     employees = db.query(Employee).filter(
         Employee.system_role.in_(roles),
         Employee.status == "Active" # Assuming active employees only
     ).all()
+    
+    manager = None
+    # Add reporting manager if emp_id is provided
+    if emp_id:
+        current_emp = db.query(Employee).filter(Employee.employee_id == emp_id).first()
+        if current_emp and current_emp.reporting_to:
+            manager_name = current_emp.reporting_to.strip().lower()
+            # Search all employees, not just active ones
+            for e in db.query(Employee).all():
+                if f"{e.first_name} {e.last_name}".strip().lower() == manager_name:
+                    manager = e
+                    break
+            
+            if manager and manager not in employees:
+                employees.append(manager)
     
     result = []
     for emp in employees:
         result.append({
             "employee_id": emp.employee_id,
             "name": f"{emp.first_name} {emp.last_name}".strip(),
-            "role": emp.system_role
+            "role": emp.system_role,
+            "is_active": (emp.status == "Active"),
+            "is_manager": (manager is not None and emp.id == manager.id)
         })
     return result
 
