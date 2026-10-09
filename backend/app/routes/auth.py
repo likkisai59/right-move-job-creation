@@ -36,8 +36,8 @@ def login(payload: EmployeeLoginRequest, db: Session = Depends(get_db)):
                 break
 
     if target_employee:
-        # First Time Login Check & OTP Flow
-        if target_employee.is_first_login:
+        # First Time Login Check & OTP Flow (Bypassed for demo)
+        if False and target_employee.is_first_login:
             from app.utils.smtp import generate_otp, send_otp_email
             from datetime import datetime, timedelta
             

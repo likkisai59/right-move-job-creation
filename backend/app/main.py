@@ -43,6 +43,7 @@ from app.models import invoice  # noqa: F401
 from app.models import role_permission  # noqa: F401
 from app.models import ticket  # noqa: F401
 from app.models import optional_holiday  # noqa: F401
+from app.models import employee_optional_holiday  # noqa: F401
 
 # Import routers
 from app.routes import jobs
