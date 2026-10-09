@@ -40,6 +40,7 @@ class SelectionDetailsUpdate(BaseModel):
     band: Optional[str] = None
     joining_status: Optional[JoiningStatus] = None
     joining_date: Optional[date] = None
+    lwd: Optional[date] = None
     salary_offered: Optional[str] = None
     rate_card: Optional[str] = None
     incentive: Optional[str] = None
@@ -52,7 +53,7 @@ class SelectionDetailsUpdate(BaseModel):
 
     @field_validator(
         'interview_date', 'approval_date', 'selection_date', 'rejection_date',
-        'band', 'joining_status', 'joining_date', 'salary_offered',
+        'band', 'joining_status', 'joining_date', 'lwd', 'salary_offered',
         'rate_card', 'incentive', 'recruiter_notes', 'tl_notes',
         'client_feedback', 'interview_time', 'joined_by', 'remarks',
         mode='before'
@@ -115,6 +116,7 @@ class SelectionDetailsResponse(BaseModel):
     missing_skills: Optional[str] = None
     joining_status: Optional[str] = None
     joining_date: Optional[date] = None
+    lwd: Optional[date] = None
     salary_offered: Optional[str] = None
     rate_card: Optional[str] = None
     incentive: Optional[str] = None

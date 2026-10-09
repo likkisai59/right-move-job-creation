@@ -27,6 +27,7 @@ class JobCandidateMapping(Base):
     # Joining Information
     joining_status = Column(String(50), nullable=True, default="Pending") # Pending, Joined, Not Joined
     joining_date = Column(Date, nullable=True)
+    lwd = Column(Date, nullable=True)
     
     # Commercial Details
     salary_offered = Column(String(100), nullable=True)

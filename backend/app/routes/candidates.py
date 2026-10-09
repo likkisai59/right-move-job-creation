@@ -952,6 +952,14 @@ def update_selection_details(
             if missing:
                 return JSONResponse(status_code=400, content=error_response(f"Mandatory fields missing for Joined: {', '.join(missing)}"))
             # Req 31: Same candidate can join multiple companies without being blocked
+            
+        elif check_status == "Offered":
+            missing = []
+            if not update_data.get("joining_date") and not mapping.joining_date: missing.append("DOJ")
+            if not update_data.get("lwd") and not mapping.lwd: missing.append("LWD")
+            if not update_data.get("salary_offered") and not mapping.salary_offered: missing.append("CTC Offered")
+            if missing:
+                return JSONResponse(status_code=400, content=error_response(f"Mandatory fields missing for Offered: {', '.join(missing)}"))
         elif check_status == "Candidate Rejected":
             if not update_data.get("rejection_date") and not mapping.rejection_date:
                 return JSONResponse(status_code=400, content=error_response("Rejection Date is mandatory for Candidate Rejected status"))

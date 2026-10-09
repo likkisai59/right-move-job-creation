@@ -112,6 +112,7 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
       band: selection.band || '',
       joining_status: selection.joining_status || 'Pending',
       joining_date: selection.joining_date || '',
+      lwd: selection.lwd || '',
       salary_offered: selection.salary_offered || '',
       rate_card: selection.rate_card || '',
       incentive: selection.incentive || '',
@@ -170,6 +171,11 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
       }
       if (statusToCheck === 'Joined') {
         if (!payload.joining_date) errors.joining_date = 'Joining Date is required';
+      }
+      if (statusToCheck === 'Offered') {
+        if (!payload.joining_date) errors.joining_date = 'DOJ is required';
+        if (!payload.lwd) errors.lwd = 'LWD is required';
+        if (!payload.salary_offered) errors.salary_offered = 'CTC Offered is required';
       }
       if (statusToCheck === 'Candidate Rejected' && !payload.rejection_date) {
         errors.rejection_date = 'Rejection Date is required';
@@ -612,7 +618,7 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                         </div>
                       </div>
 
-                      {(selection.interview_date || selection.approval_date || selection.rejection_date || selection.joining_date) && (
+                      {(selection.interview_date || selection.approval_date || selection.rejection_date || selection.joining_date || selection.lwd) && (
                         <div>
                           <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                             <Clock size={14} className="text-indigo-500" /> Workflow Dates & Details
@@ -632,8 +638,14 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                             )}
                             {selection.joining_date && (
                               <div>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Joining Date</p>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">{selection.status === 'Offered' ? 'DOJ' : 'Joining Date'}</p>
                                 <p className="text-sm font-semibold text-gray-900">{selection.joining_date}</p>
+                              </div>
+                            )}
+                            {selection.lwd && (
+                              <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">LWD</p>
+                                <p className="text-sm font-semibold text-gray-900">{selection.lwd}</p>
                               </div>
                             )}
                             {selection.rejection_date && (
@@ -657,7 +669,7 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                           <div className="bg-gray-50/50 p-5 rounded-2xl border border-gray-100 space-y-3">
                             {selection.salary_offered && (
                               <div className="flex justify-between items-center border-b border-gray-200 pb-2">
-                                <span className="text-sm font-semibold text-gray-600">Salary</span>
+                                <span className="text-sm font-semibold text-gray-600">{selection.status === 'Offered' ? 'CTC Offered' : 'Salary'}</span>
                                 <span className="text-sm font-bold text-gray-900">{selection.salary_offered}</span>
                               </div>
                             )}
@@ -837,6 +849,45 @@ const SelectionDetailsTab = ({ candidateId, onUpdate, jobId = null }) => {
                               </div>
                             </div>
                           </>
+                        )}
+
+                        {editForm.status === 'Offered' && (
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">DOJ (Date of Joining) *</label>
+                              <input
+                                type="date"
+                                value={editForm.joining_date || ''}
+                                onChange={(e) => setEditForm({ ...editForm, joining_date: e.target.value })}
+                                className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.joining_date ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
+                              />
+                              {formErrors.joining_date && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.joining_date}</p>}
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">LWD (Last Working Date) *</label>
+                              <input
+                                type="date"
+                                value={editForm.lwd || ''}
+                                onChange={(e) => setEditForm({ ...editForm, lwd: e.target.value })}
+                                className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.lwd ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
+                              />
+                              {formErrors.lwd && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.lwd}</p>}
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">CTC Offered *</label>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                placeholder="e.g. 500000"
+                                onKeyDown={(e) => { if (!/[0-9.]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
+                                onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d*\.?\d*$/.test(paste)) e.preventDefault(); }}
+                                value={editForm.salary_offered || ''}
+                                onChange={(e) => setEditForm({ ...editForm, salary_offered: e.target.value })}
+                                className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.salary_offered ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} bg-white text-sm font-semibold focus:ring-2 outline-none`}
+                              />
+                              {formErrors.salary_offered && <p className="text-red-500 text-[10px] mt-1 font-semibold">{formErrors.salary_offered}</p>}
+                            </div>
+                          </div>
                         )}
 
                             {editForm.status === 'Joined' && (
