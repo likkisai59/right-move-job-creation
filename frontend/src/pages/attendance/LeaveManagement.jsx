@@ -4,6 +4,7 @@ import { applyLeave, getLeaveHistory, getLeaveConfig, selectOptionalHoliday } fr
 import { fetchLeaveTypes } from '../../api/leaveTypesApi';
 import { formatDate } from '../../utils/formatters';
 import { getCurrentEmployee } from '../../api/authApi';
+import toast from 'react-hot-toast';
 
 const LeaveManagement = () => {
   const [showForm, setShowForm] = useState(false);
@@ -12,6 +13,7 @@ const LeaveManagement = () => {
   const [monthlyQuota, setMonthlyQuota] = useState(0);
   const [holidays, setHolidays] = useState([]);
   const [optionalHolidays, setOptionalHolidays] = useState([]);
+  const [pendingOptionalHolidays, setPendingOptionalHolidays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -180,16 +182,24 @@ const LeaveManagement = () => {
     }
   };
 
-  const handleSelectOptionalHoliday = async (holidayId) => {
+  const toggleOptionalHoliday = (holidayId) => {
+    setPendingOptionalHolidays(prev => 
+      prev.includes(holidayId) ? prev.filter(id => id !== holidayId) : [...prev, holidayId]
+    );
+  };
+
+  const handleSubmitOptionalHolidays = async () => {
+    if (pendingOptionalHolidays.length === 0) return;
+    if (!window.confirm("Are you sure? Once submitted, you cannot change these optional holidays.")) return;
+    
     try {
       setLoading(true);
-      await selectOptionalHoliday(holidayId, employeeId);
-      setSuccessMsg('Optional holiday selected successfully.');
+      await Promise.all(pendingOptionalHolidays.map(id => selectOptionalHoliday(id, employeeId)));
+      toast.success('Optional holidays saved successfully.');
+      setPendingOptionalHolidays([]);
       await fetchLeavesAndConfig();
-      setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to select optional holiday.');
-      setTimeout(() => setError(''), 5000);
+      toast.error(err.response?.data?.detail || 'Failed to save optional holidays.');
     } finally {
       setLoading(false);
     }
@@ -526,8 +536,9 @@ const LeaveManagement = () => {
               No optional holidays configured yet.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-widest">
                     <th className="px-6 py-3">Holiday Name</th>
@@ -537,43 +548,70 @@ const LeaveManagement = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {optionalHolidays.map((h, idx) => (
-                    <tr key={h.id || idx} className="hover:bg-violet-50/30 transition-colors">
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-gray-700 text-sm">{h.name}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-xs text-gray-400">{h.description || '—'}</p>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <p className="text-xs font-bold text-gray-500">
-                          {formatDate(h.date)}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        {h.is_selected ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-violet-50 text-violet-600 text-xs font-bold border border-violet-100">
-                            <CheckCircle2 size={12} /> Selected
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handleSelectOptionalHoliday(h.id)}
-                            disabled={optionalHolidays.filter(oh => oh.is_selected).length >= 2}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all ${
-                              optionalHolidays.filter(oh => oh.is_selected).length >= 2
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                : 'bg-white border border-gray-200 text-gray-700 hover:border-violet-300 hover:text-violet-600'
-                            }`}
-                          >
-                            Select
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {optionalHolidays.map((h, idx) => {
+                    const isPast = new Date(h.date) < new Date(new Date().setHours(0,0,0,0));
+                    const isAlreadySelected = h.is_selected;
+                    const isPendingSelected = pendingOptionalHolidays.includes(h.id);
+                    const selectedCount = optionalHolidays.filter(oh => oh.is_selected).length + pendingOptionalHolidays.length;
+                    const canSelectMore = selectedCount < 2;
+
+                    return (
+                      <tr key={h.id || idx} className={`hover:bg-violet-50/30 transition-colors ${isPast && !isAlreadySelected ? 'opacity-60' : ''}`}>
+                        <td className="px-6 py-4">
+                          <p className="font-bold text-gray-700 text-sm">{h.name}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-xs text-gray-400">{h.description || '—'}</p>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <p className="text-xs font-bold text-gray-500">
+                            {formatDate(h.date)}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {isAlreadySelected ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-50 text-emerald-600 text-xs font-bold border border-emerald-100">
+                              <CheckCircle2 size={12} /> Approved
+                            </span>
+                          ) : isPast ? (
+                            <span className="text-xs text-gray-400 font-medium cursor-not-allowed" title="This date has already passed">
+                              Expired
+                            </span>
+                          ) : (
+                            <label className="flex items-center justify-end gap-2 cursor-pointer">
+                              <input 
+                                type="checkbox"
+                                className="w-4 h-4 text-violet-600 rounded border-gray-300 focus:ring-violet-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                checked={isPendingSelected}
+                                disabled={!isPendingSelected && !canSelectMore}
+                                onChange={() => toggleOptionalHoliday(h.id)}
+                              />
+                              <span className="text-xs font-semibold text-gray-600">Select</span>
+                            </label>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
+            
+            {optionalHolidays.some(h => !h.is_selected && new Date(h.date) >= new Date(new Date().setHours(0,0,0,0))) && (
+              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-500">
+                  Selected: {optionalHolidays.filter(oh => oh.is_selected).length + pendingOptionalHolidays.length} / 2
+                </span>
+                <button
+                  onClick={handleSubmitOptionalHolidays}
+                  disabled={pendingOptionalHolidays.length === 0}
+                  className="px-5 py-2 bg-violet-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Submit Selections
+                </button>
+              </div>
+            )}
+          </>
           )}
         </div>
       )}

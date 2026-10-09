@@ -55,7 +55,8 @@ def get_designations(
                         "id": row[0],
                         "name": row[1],
                         "is_active": bool(row[2]),
-                        "leaves": 30,
+                        "leaves": 0,
+                        "monthly_leaves": 0,
                         "holidays": []
                     })
                 return JSONResponse(
