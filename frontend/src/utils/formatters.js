@@ -14,7 +14,8 @@ export const formatDate = (dateInput) => {
   if (isNaN(date.getTime())) return '—';
 
   const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = months[date.getMonth()];
   const year = date.getFullYear();
   return `${day}-${month}-${year}`;
 };

@@ -481,7 +481,7 @@ const LeaveManagement = () => {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <p className="text-xs font-bold text-gray-500">
-                          {new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          {formatDate(h.date)}
                         </p>
                       </td>
                     </tr>
@@ -529,7 +529,7 @@ const LeaveManagement = () => {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <p className="text-xs font-bold text-gray-500">
-                          {new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          {formatDate(h.date)}
                         </p>
                       </td>
                     </tr>

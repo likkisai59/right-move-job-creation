@@ -592,7 +592,7 @@ const ManageApprovals = () => {
                                 {day.toLocaleDateString('en-US', { weekday: 'short' })}
                               </span>
                               <span className="block text-[8px] text-gray-400 font-medium">
-                                {day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                {formatDate(day)}
                               </span>
                             </th>
                           ))}
