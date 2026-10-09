@@ -36,6 +36,29 @@ def login(payload: EmployeeLoginRequest, db: Session = Depends(get_db)):
                 break
 
     if target_employee:
+        # First Time Login Check & OTP Flow
+        if target_employee.is_first_login:
+            from app.utils.smtp import generate_otp, send_otp_email
+            from datetime import datetime, timedelta
+            
+            otp = generate_otp()
+            target_employee.otp_code = otp
+            target_employee.otp_expiry = datetime.now() + timedelta(minutes=10)
+            db.commit()
+            
+            emp_name = f"{target_employee.first_name} {target_employee.last_name}".strip()
+            # In a real scenario, this is sent. We also log it for debugging if SMTP isn't configured.
+            send_otp_email(target_employee.email, otp, emp_name)
+            
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content=success_response("First login detected. OTP sent for password change.", {
+                    "require_password_change": True,
+                    "employee_id": target_employee.employee_id,
+                    "email": target_employee.email
+                })
+            )
+
         from app.core.security import ROLE_MAP_BY_DESIGNATION
         user_system_role = target_employee.system_role
         if not user_system_role or user_system_role == "unassigned":
@@ -96,4 +119,57 @@ def login(payload: EmployeeLoginRequest, db: Session = Depends(get_db)):
     return JSONResponse(
         status_code=status.HTTP_401_UNAUTHORIZED,
         content=error_response("Invalid username or password")
+    )
+
+
+from pydantic import BaseModel
+
+class ResetPasswordRequest(BaseModel):
+    employee_id: str
+    otp_code: str
+    new_password: str
+
+@router.post("/verify-otp-and-reset-password")
+def verify_otp_and_reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+    from datetime import datetime
+    from app.core.security import get_password_hash
+    
+    emp_id_clean = payload.employee_id.strip().lower()
+    
+    # Find employee
+    target_employee = None
+    for emp in db.query(Employee).all():
+        if (emp.employee_id or "").strip().lower() == emp_id_clean:
+            target_employee = emp
+            break
+            
+    if not target_employee:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=error_response("Employee not found.")
+        )
+        
+    if not target_employee.otp_code or target_employee.otp_code != payload.otp_code:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content=error_response("Invalid OTP.")
+        )
+        
+    if not target_employee.otp_expiry or target_employee.otp_expiry < datetime.now():
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content=error_response("OTP has expired. Please request a new one.")
+        )
+        
+    # Update password and mark first login as False
+    target_employee.employee_password = get_password_hash(payload.new_password)
+    target_employee.is_first_login = False
+    target_employee.otp_code = None
+    target_employee.otp_expiry = None
+    
+    db.commit()
+    
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=success_response("Password updated successfully. You can now login.")
     )

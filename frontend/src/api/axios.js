@@ -34,8 +34,19 @@ const HTTP_ERROR_MESSAGES = {
   503: 'Service is under maintenance. Please try again soon.',
 };
 
-// Helper: dispatch a toast event that any component can listen to
+// Helper: dispatch a toast event that any component can listen to.
+// Uses a debounce/throttle mechanism to prevent duplicate toasts for the same message in quick succession.
+let lastToastMessage = null;
+let lastToastTime = 0;
+
 const dispatchToast = (message, type = 'error') => {
+  const now = Date.now();
+  // Prevent showing the exact same message if it was shown less than 1 second ago
+  if (message === lastToastMessage && now - lastToastTime < 1000) {
+    return;
+  }
+  lastToastMessage = message;
+  lastToastTime = now;
   window.dispatchEvent(new CustomEvent('app:toast', { detail: { message, type } }));
 };
 
@@ -51,6 +62,12 @@ api.interceptors.response.use(
       localStorage.removeItem('employee_token');
       localStorage.removeItem('user');
       localStorage.removeItem('employee_data');
+    }
+
+    // Handle Network Errors / Server unreachable (no response received)
+    if (!error.response) {
+      dispatchToast('Unable to connect to the server. Please check your connection.', 'error');
+      return Promise.reject(error);
     }
 
     // Use backend message if available, otherwise fall back to status-code mapping

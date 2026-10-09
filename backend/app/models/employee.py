@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Date, Float, Enum, func
+from sqlalchemy import Column, Integer, String, DateTime, Date, Float, Enum, func, Boolean
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -109,3 +109,8 @@ class Employee(Base):
 
     # Generated login credentials
     employee_password = Column(String(255), nullable=True)
+    
+    # Authentication & Security
+    is_first_login = Column(Boolean, default=True, nullable=False)
+    otp_code = Column(String(10), nullable=True)
+    otp_expiry = Column(DateTime, nullable=True)

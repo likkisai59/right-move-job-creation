@@ -44,8 +44,14 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     
     # Initial Super Admin Seed Credentials
-    SUPERADMIN_SUNMEET_PASS: str = "SSingh@0011"
-    SUPERADMIN_SAURABH_PASS: str = "SJadge@0013"
+    SUPER_ADMIN_EMAIL: str = "admin@rightmove.com"
+    SUPER_ADMIN_PASSWORD: str = "Admin@123"
+
+    # SMTP Configuration for OTP
+    SMTP_SERVER: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
 
     # JWT Authentication
     JWT_SECRET_KEY: str = "3070498a58a74e2d93e1a0b3c53a65ce85cbd17488a7de44ab38c96c53a65ce8"

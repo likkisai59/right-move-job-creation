@@ -123,17 +123,17 @@ async def lifespan(app: FastAPI):
             db.commit()
             logger.info("✓ Seeded default leave types to database")
             
-        # Seed Initial Super Admin Accounts
+        # Seed Initial Super Admin Account
         from app.models.employee import Employee
         from app.core.security import get_password_hash
 
-        sunmeet = db.query(Employee).filter(Employee.employee_id == "RM0011").first()
-        if not sunmeet:
-            sunmeet = Employee(
-                employee_id="RM0011",
-                first_name="Sunmeet",
-                last_name="Singh",
-                designation="Director",
+        super_admin = db.query(Employee).filter(Employee.email == settings.SUPER_ADMIN_EMAIL).first()
+        if not super_admin:
+            super_admin = Employee(
+                employee_id="RM_ADMIN",
+                first_name="Super",
+                last_name="Admin",
+                designation="Founder/CEO",
                 system_role="super_admin",
                 status="Active",
                 profile_status="Completed",
@@ -145,72 +145,20 @@ async def lifespan(app: FastAPI):
                 gender="Male",
                 blood_group="O+",
                 country_code="+91",
-                email="sunmeet980@gmail.com",
+                email=settings.SUPER_ADMIN_EMAIL,
                 contact_number="9999999999",
                 date_of_joining="2024-01-01",
                 date_of_birth="1990-01-01",
                 date="2024-01-01",
-                permanent_address="Hyderabad",
-                current_address="Hyderabad",
-                bank_name="State Bank Of India",
-                bank_account_number="1234567890",
-                bank_ifsc_code="SBIN0001234",
-                assigned_business_unit="IT",
-                reporting_to="Self",
-                work_mode="Office",
-                ctc=25.0,
-                compliance="TDS",
-                employee_password=get_password_hash(settings.SUPERADMIN_SUNMEET_PASS)
+                is_first_login=True,
+                employee_password=get_password_hash(settings.SUPER_ADMIN_PASSWORD)
             )
-            db.add(sunmeet)
+            db.add(super_admin)
             db.commit()
-            logger.info("✓ Seeded Sunmeet Singh super admin account")
+            logger.info(f"✓ Seeded Default Super Admin account: {settings.SUPER_ADMIN_EMAIL}")
         else:
-            sunmeet.employee_password = get_password_hash(settings.SUPERADMIN_SUNMEET_PASS)
-            sunmeet.system_role = "super_admin"
-            db.commit()
-
-        saurabh = db.query(Employee).filter(Employee.employee_id == "RM0013").first()
-        if not saurabh:
-            saurabh = Employee(
-                employee_id="RM0013",
-                first_name="Saurabh",
-                last_name="Jadge",
-                designation="HR",
-                system_role="super_admin",
-                status="Active",
-                profile_status="Completed",
-                completion_percentage=100,
-                profile_status_hr="Completed",
-                completion_percentage_hr=100,
-                profile_status_admin="Completed",
-                completion_percentage_admin=100,
-                gender="Male",
-                blood_group="A+",
-                country_code="+91",
-                email="saurabh123@gmail.com",
-                contact_number="8888888888",
-                date_of_joining="2024-01-01",
-                date_of_birth="1990-01-01",
-                date="2024-01-01",
-                permanent_address="Hyderabad",
-                current_address="Hyderabad",
-                bank_name="State Bank Of India",
-                bank_account_number="0987654321",
-                bank_ifsc_code="SBIN0001234",
-                assigned_business_unit="HR",
-                reporting_to="Sunmeet Singh",
-                work_mode="Office",
-                ctc=8.0,
-                compliance="TDS",
-                employee_password=get_password_hash(settings.SUPERADMIN_SAURABH_PASS)
-            )
-            db.add(saurabh)
-            db.commit()
-            logger.info("✓ Seeded Saurabh Jadge super admin account")
-        else:
-            saurabh.employee_password = get_password_hash(settings.SUPERADMIN_SAURABH_PASS)
-            saurabh.system_role = "super_admin"
+            # Ensure super_admin role and credentials are correct if it exists
+            super_admin.system_role = "super_admin"
             db.commit()
             
     except Exception as e:

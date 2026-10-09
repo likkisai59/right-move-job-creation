@@ -8,6 +8,18 @@ export const login = async (username, password) => {
         throw error;
     }
 };
+export const verifyOtpAndResetPassword = async (employee_id, otp_code, new_password) => {
+    try {
+        const response = await api.post('/auth/verify-otp-and-reset-password', {
+            employee_id,
+            otp_code,
+            new_password
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
 
 export const logout = () => {
     localStorage.removeItem('token');
