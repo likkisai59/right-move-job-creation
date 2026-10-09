@@ -109,11 +109,12 @@ const OrganizationListPage = () => {
 
   const expiringOrgs = organizations.filter(org => {
     if (!org.contract_end_date) return false;
+    if (org.status !== 'active') return false;
     const endDate = new Date(org.contract_end_date);
     const today = new Date();
     const diffTime = endDate - today;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays >= 0 && diffDays <= 30;
+    return diffDays <= 30;
   });
 
   return (
@@ -146,8 +147,7 @@ const OrganizationListPage = () => {
                 <div>
                   <h4 className="text-base font-bold text-slate-900">Contract Renewal Notice</h4>
                   <p className="text-sm text-slate-600 mt-1 leading-relaxed">
-                    The following organizations have contracts reaching their termination date within the next <span className="font-bold text-indigo-600">30 days</span>.
-                    Please ensure necessary renewal documentation is processed to maintain service continuity.
+                    The following active organizations have contracts that are already expired or reaching their termination date within the next <span className="font-bold text-indigo-600">30 days</span>.
                   </p>
                 </div>
                 <Button
