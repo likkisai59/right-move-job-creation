@@ -3,6 +3,7 @@ import { Search } from 'lucide-react';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import SortBy from '../common/SortBy';
+import { CANDIDATE_PIPELINE_STATUSES } from '../../utils/constants';
 
 const SORT_OPTIONS = [
   { label: 'Candidate ID Ascending', value: 'candidate_code:asc' },
@@ -39,10 +40,7 @@ const NOTICE_PERIOD_OPTIONS = [
 
 const PIPELINE_STATUS_FILTER_OPTIONS = [
   { value: '', label: 'All Pipeline Statuses' },
-  { value: 'In process', label: 'In process' },
-  { value: 'Selected', label: 'Selected' },
-  { value: 'Joined', label: 'Joined' },
-  { value: 'Dropped', label: 'Dropped' },
+  ...CANDIDATE_PIPELINE_STATUSES.map(status => ({ value: status, label: status }))
 ];
 
 const CandidateFilters = ({ filters, onChange, onClear }) => {

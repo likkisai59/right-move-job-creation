@@ -137,7 +137,7 @@ const TicketManagement = () => {
       {/* Raise Ticket Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
               <h3 className="text-lg font-semibold text-gray-900">Raise a Ticket</h3>
               <button onClick={() => setModalOpen(false)} className="text-gray-400 hover:text-gray-600">
@@ -159,13 +159,13 @@ const TicketManagement = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Assign To</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Assign To <span className="text-red-500">*</span></label>
                 <select
                   className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500"
                   value={formData.assigned_to}
                   onChange={(e) => {
                     const selectedId = e.target.value;
-                    const selectedEmp = assignees.find(a => a.employee_id === selectedId);
+                    const selectedEmp = assignees.find(a => String(a.employee_id) === String(selectedId));
                     if (selectedEmp && selectedEmp.is_active === false) {
                       toast.error("Your reporting manager is currently inactive. Please assign the ticket to HR or an Admin.");
                       setFormData({...formData, assigned_to: ''});
@@ -176,9 +176,11 @@ const TicketManagement = () => {
                   required
                 >
                   <option value="">Select Assignee</option>
-                  {assignees.map(emp => (
+                  {assignees.map((emp) => (
                     <option key={emp.employee_id} value={emp.employee_id}>
-                      {emp.name} ({emp.employee_id}) - {emp.role.replace('_', ' ').toUpperCase()} {emp.is_manager ? '(Reporting Manager)' : ''} {emp.is_active === false ? '(Inactive)' : ''}
+                      {emp.name} ({emp.employee_id}) - {emp.role.replace('_', ' ').toUpperCase()}
+                      {emp.is_manager ? ' (Reporting Manager)' : ''}
+                      {emp.is_active === false ? ' (Inactive)' : ''}
                     </option>
                   ))}
                 </select>

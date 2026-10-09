@@ -6,7 +6,7 @@ import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
 import { Users } from 'lucide-react';
 import { checkPermission } from '../../api/authApi';
-import { PIPELINE_STATUS_COLORS } from '../../utils/constants';
+import { PIPELINE_STATUS_COLORS, CANDIDATE_PIPELINE_STATUSES } from '../../utils/constants';
 import { getSecureMediaUrl } from '../../utils/mediaUtils';
 
 const CandidateTable = ({ candidates = [], loading = false, filters, onFilterChange }) => {
@@ -149,11 +149,7 @@ const CandidateTable = ({ candidates = [], loading = false, filters, onFilterCha
       filterType: 'select',
       filterOptions: [
         { value: '', label: 'All' },
-        { value: 'Submitted', label: 'Submitted' },
-        { value: 'In Progress', label: 'In Progress' },
-        { value: 'Selected', label: 'Selected' },
-        { value: 'Rejected', label: 'Rejected' },
-        { value: 'On Hold', label: 'On Hold' },
+        ...CANDIDATE_PIPELINE_STATUSES.map(s => ({ value: s, label: s }))
       ],
       render: (_, row) => {
         const status = row.pipelineStatus || row.status || 'Submitted';
