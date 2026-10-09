@@ -81,7 +81,7 @@ DEFAULT_ROLE_PERMISSIONS = {
         "candidate": "not_visible",
         "job": "not_visible",
         "organization": "view",
-        "rmep": "apply_leaves",
+        "rmep": "apply_leaves_approve_tickets",
         "employee": "view",
         "accounts": "all_access",
         "settings": "not_visible"
