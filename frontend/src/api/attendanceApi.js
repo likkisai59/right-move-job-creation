@@ -98,6 +98,13 @@ export const addOptionalHoliday = async (name, date, description = '') => {
   return response.data;
 };
 
+export const selectOptionalHoliday = async (holidayId, employeeId) => {
+  const response = await axios.post(`/attendance/optional-holidays/${holidayId}/select`, null, {
+    params: { employee_id: employeeId }
+  });
+  return response.data;
+};
+
 export const deleteOptionalHoliday = async (holidayId) => {
   const response = await axios.delete(`/attendance/optional-holidays/${holidayId}`);
   return response.data;

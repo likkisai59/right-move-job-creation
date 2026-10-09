@@ -135,11 +135,11 @@ def save_designation_config(payload: List[DesignationLeaveUpdateItem], db: Sessi
 # ── Optional Holidays ────────────────────────────────────────────────────
 
 @router.get("/optional-holidays")
-def list_optional_holidays(db: Session = Depends(get_db)):
+def list_optional_holidays(employee_id: str = None, db: Session = Depends(get_db)):
     """
     List all active optional holidays for employee view.
     """
-    data = attendance_service.get_all_optional_holidays(db)
+    data = attendance_service.get_all_optional_holidays(db, employee_id=employee_id)
     return success_response("Optional holidays fetched", data)
 
 
@@ -168,6 +168,25 @@ def add_optional_holiday(
         "date": str(record.date),
         "description": record.description,
     })
+
+
+@router.post("/optional-holidays/{holiday_id}/select")
+def select_optional_holiday(
+    holiday_id: int,
+    employee_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Employee: Select an optional holiday.
+    """
+    try:
+        attendance_service.select_optional_holiday(db, employee_id, holiday_id)
+        return success_response("Optional holiday selected successfully")
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 
 @router.delete("/optional-holidays/{holiday_id}")

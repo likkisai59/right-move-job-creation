@@ -370,7 +370,6 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     loadAllEmployees();
   }, []);
 
-
   // Set reportingDesignation once allEmployees and initialData are loaded
   useEffect(() => {
     if (initialData?.reportingTo && allEmployees.length > 0) {
@@ -1167,8 +1166,6 @@ value={field.value}
               options={[
                 { value: 'leader', label: 'Leader' },
                 { value: 'admin_user', label: 'Admin user' },
-                { value: 'temporary', label: 'Temporary' },
-                { value: 'account_user', label: 'Account User' },
                 { value: 'admin_admin', label: 'Admin Admin' },
                 { value: 'super_admin', label: 'Super Admin' }
               ]}

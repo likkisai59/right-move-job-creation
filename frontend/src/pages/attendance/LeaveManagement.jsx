@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ClipboardList, Plus, Clock, CheckCircle2, XCircle, Calendar, ShieldAlert } from 'lucide-react';
-import { applyLeave, getLeaveHistory, getLeaveConfig } from '../../api/attendanceApi';
+import { applyLeave, getLeaveHistory, getLeaveConfig, selectOptionalHoliday } from '../../api/attendanceApi';
 import { fetchLeaveTypes } from '../../api/leaveTypesApi';
 import { formatDate } from '../../utils/formatters';
 import { getCurrentEmployee } from '../../api/authApi';
@@ -175,6 +175,21 @@ const LeaveManagement = () => {
     } catch (err) {
       console.error(err);
       setError('Failed to submit leave application. Please check details and try again.');
+    }
+  };
+
+  const handleSelectOptionalHoliday = async (holidayId) => {
+    try {
+      setLoading(true);
+      await selectOptionalHoliday(holidayId, employeeId);
+      setSuccessMsg('Optional holiday selected successfully.');
+      await fetchLeavesAndConfig();
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to select optional holiday.');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -515,7 +530,8 @@ const LeaveManagement = () => {
                   <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-widest">
                     <th className="px-6 py-3">Holiday Name</th>
                     <th className="px-6 py-3">Description</th>
-                    <th className="px-6 py-3 text-right">Date</th>
+                    <th className="px-6 py-3 text-center">Date</th>
+                    <th className="px-6 py-3 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -527,10 +543,29 @@ const LeaveManagement = () => {
                       <td className="px-6 py-4">
                         <p className="text-xs text-gray-400">{h.description || '—'}</p>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-6 py-4 text-center">
                         <p className="text-xs font-bold text-gray-500">
                           {formatDate(h.date)}
                         </p>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {h.is_selected ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-violet-50 text-violet-600 text-xs font-bold border border-violet-100">
+                            <CheckCircle2 size={12} /> Selected
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleSelectOptionalHoliday(h.id)}
+                            disabled={optionalHolidays.filter(oh => oh.is_selected).length >= 2}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all ${
+                              optionalHolidays.filter(oh => oh.is_selected).length >= 2
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'bg-white border border-gray-200 text-gray-700 hover:border-violet-300 hover:text-violet-600'
+                            }`}
+                          >
+                            Select
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}

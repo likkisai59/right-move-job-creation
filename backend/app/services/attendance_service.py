@@ -278,7 +278,7 @@ def get_leave_config(db: Session, employee_id: int) -> Optional[dict]:
     return {
         "leaves": leaves_limit,
         "holidays": holidays_list,
-        "optional_holidays": get_all_optional_holidays(db)
+        "optional_holidays": get_all_optional_holidays(db, employee_id=employee_id)
     }
 
 def save_designation_config(db: Session, config_data: List[dict]) -> bool:
@@ -312,22 +312,34 @@ def save_designation_config(db: Session, config_data: List[dict]) -> bool:
 
 # ── Optional Holidays ─────────────────────────────────────────────────────────
 
-def get_all_optional_holidays(db: Session) -> List[dict]:
+def get_all_optional_holidays(db: Session, employee_id: int = None) -> List[dict]:
     """
     Return all active optional holidays as a list of dicts.
+    If employee_id is provided, checks if the employee selected them.
     """
+    from app.models.employee_optional_holiday import EmployeeOptionalHoliday
+
     records = (
         db.query(OptionalHoliday)
         .filter(OptionalHoliday.is_active == True)
         .order_by(OptionalHoliday.date.asc())
         .all()
     )
+
+    selected_ids = []
+    if employee_id:
+        selections = db.query(EmployeeOptionalHoliday.optional_holiday_id).filter(
+            EmployeeOptionalHoliday.employee_id == employee_id
+        ).all()
+        selected_ids = [s[0] for s in selections]
+
     return [
         {
             "id": r.id,
             "name": r.name,
             "date": str(r.date),
             "description": r.description or "",
+            "is_selected": r.id in selected_ids
         }
         for r in records
     ]
@@ -347,6 +359,46 @@ def create_optional_holiday(db: Session, name: str, date, description: str = "")
     db.commit()
     db.refresh(record)
     return record
+
+
+def select_optional_holiday(db: Session, employee_id: int, holiday_id: int):
+    """
+    Allows an employee to select an optional holiday. Max 2 per year.
+    """
+    from app.models.employee_optional_holiday import EmployeeOptionalHoliday
+    
+    # Check if holiday exists and is active
+    holiday = db.query(OptionalHoliday).filter(OptionalHoliday.id == holiday_id, OptionalHoliday.is_active == True).first()
+    if not holiday:
+        raise ValueError("Invalid or inactive optional holiday.")
+    
+    # Check if already selected
+    existing = db.query(EmployeeOptionalHoliday).filter(
+        EmployeeOptionalHoliday.employee_id == employee_id,
+        EmployeeOptionalHoliday.optional_holiday_id == holiday_id
+    ).first()
+    
+    if existing:
+        raise ValueError("You have already selected this optional holiday.")
+        
+    # Check max limit for the year
+    year = holiday.date.year
+    from sqlalchemy import extract
+    count = db.query(EmployeeOptionalHoliday).join(OptionalHoliday).filter(
+        EmployeeOptionalHoliday.employee_id == employee_id,
+        extract('year', OptionalHoliday.date) == year
+    ).count()
+    
+    if count >= 2:
+        raise ValueError("You have already reached the maximum limit of 2 optional holidays for this year.")
+        
+    new_selection = EmployeeOptionalHoliday(
+        employee_id=employee_id,
+        optional_holiday_id=holiday_id
+    )
+    db.add(new_selection)
+    db.commit()
+    return True
 
 
 def delete_optional_holiday(db: Session, holiday_id: int) -> bool:
