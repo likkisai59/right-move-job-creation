@@ -4,17 +4,20 @@ import json
 
 class DesignationCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
+    monthly_leaves: Optional[float] = 0.0
     leaves: Optional[float] = 0.0
 
 class DesignationUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     is_active: Optional[bool] = None
+    monthly_leaves: Optional[float] = None
     leaves: Optional[float] = None
 
 class DesignationResponse(BaseModel):
     id: int
     name: str
     is_active: bool
+    monthly_leaves: Optional[float] = 0.0
     leaves: Optional[float] = 0.0
     holidays: Optional[List[dict]] = None
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Eye, EyeOff, Lock, User, LogIn, AlertCircle, CheckCircle2, ShieldCheck, Mail } from 'lucide-react';
-import { login as loginApi, verifyOtpAndResetPassword } from '../api/authApi';
+import { login as loginApi, verifyOtpAndResetPassword, clearAuthSession } from '../api/authApi';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 
@@ -57,6 +57,9 @@ const LoginPage = () => {
         setSuccess(true);
         setSuccessMessage('Login successful! Redirecting...');
         const { role, token } = response.data;
+        
+        // Clear previous sessions
+        clearAuthSession();
         
         if (role === 'admin') {
           localStorage.setItem('token', token);

@@ -9,6 +9,7 @@ const LeaveManagement = () => {
   const [showForm, setShowForm] = useState(false);
   const [leaves, setLeaves] = useState([]);
   const [annualQuota, setAnnualQuota] = useState(0);
+  const [monthlyQuota, setMonthlyQuota] = useState(0);
   const [holidays, setHolidays] = useState([]);
   const [optionalHolidays, setOptionalHolidays] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +40,7 @@ const LeaveManagement = () => {
       setLeaves(historyData || []);
       if (configData) {
         setAnnualQuota(configData.leaves ?? 0);
+        setMonthlyQuota(configData.monthly_leaves ?? 0);
         setHolidays(configData.holidays || []);
         setOptionalHolidays(configData.optional_holidays || []);
       }
@@ -220,7 +222,7 @@ const LeaveManagement = () => {
       {/* Summary Row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {[
-          { label: 'Annual Leave Quota', val: annualQuota, color: 'blue' },
+          { label: 'Monthly Quota', val: monthlyQuota, color: 'blue' },
           { label: 'Leaves Taken (Approved)', val: approvedLeaves.length, color: 'rose' },
           { label: 'Total Unpaid Leaves', val: totalUnpaidLeaves, color: 'red' },
           { label: 'Pending Requests', val: pendingLeavesCount, color: 'amber' },

@@ -21,11 +21,15 @@ export const verifyOtpAndResetPassword = async (employee_id, otp_code, new_passw
     }
 };
 
-export const logout = () => {
+export const clearAuthSession = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('employee_token');
     localStorage.removeItem('employee_data');
+};
+
+export const logout = () => {
+    clearAuthSession();
     window.location.href = '/login';
 };
 

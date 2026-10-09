@@ -89,6 +89,7 @@ def create_designation(payload: DesignationCreate, db: Session = Depends(get_db)
         new_designation = Designation(
             name=payload.name.strip(),
             is_active=True,
+            monthly_leaves=payload.monthly_leaves or 0.0,
             leaves=payload.leaves or 0.0
         )
         db.add(new_designation)
@@ -144,6 +145,9 @@ def update_designation(designation_id: int, payload: DesignationUpdate, db: Sess
             
         if payload.is_active is not None:
             designation.is_active = payload.is_active
+
+        if payload.monthly_leaves is not None:
+            designation.monthly_leaves = payload.monthly_leaves
 
         if payload.leaves is not None:
             designation.leaves = payload.leaves

@@ -49,6 +49,7 @@ const SettingsPage = () => {
   const [newItemName, setNewItemName] = useState('');
   const [adding, setAdding] = useState(false);
   const [quotaValues, setQuotaValues] = useState({});
+  const [monthlyQuotaValues, setMonthlyQuotaValues] = useState({});
   const [savingQuotaId, setSavingQuotaId] = useState(null);
 
   const canManage = ['admin_admin', 'super_admin'].includes(currentRole);
@@ -94,10 +95,13 @@ const SettingsPage = () => {
         setMasterData(data);
         if (tab === 'leave_quota') {
           const qMap = {};
+          const mMap = {};
           data.forEach(d => {
             qMap[d.id] = d.leaves !== undefined && d.leaves !== null ? d.leaves : 0;
+            mMap[d.id] = d.monthly_leaves !== undefined && d.monthly_leaves !== null ? d.monthly_leaves : 0;
           });
           setQuotaValues(qMap);
+          setMonthlyQuotaValues(mMap);
         }
       }
     } catch (err) {
@@ -139,7 +143,8 @@ const SettingsPage = () => {
     setSavingQuotaId(item.id);
     try {
       const quota = parseFloat(quotaValues[item.id]) || 0;
-      await updateDesignation(item.id, { leaves: quota });
+      const mQuota = parseFloat(monthlyQuotaValues[item.id]) || 0;
+      await updateDesignation(item.id, { leaves: quota, monthly_leaves: mQuota });
       toast.success(`Leave quota for '${item.name}' set to ${quota} days`);
       fetchMasterTab('leave_quota');
     } catch (err) {
@@ -482,7 +487,8 @@ const SettingsPage = () => {
                           <tr className="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-600 uppercase tracking-wider">
                             <th className="p-3.5 pl-4">Designation</th>
                             <th className="p-3.5">Status</th>
-                            <th className="p-3.5 w-48">Annual Leave Quota</th>
+                            <th className="p-3.5 w-40">Monthly Quota</th>
+                            <th className="p-3.5 w-40">Annual Quota</th>
                             <th className="p-3.5 pr-4 text-right">Actions</th>
                           </tr>
                         </thead>
@@ -505,14 +511,24 @@ const SettingsPage = () => {
                                     type="number"
                                     min="0"
                                     step="0.5"
-                                    value={quotaValues[item.id] !== undefined ? quotaValues[item.id] : 0}
+                                    value={monthlyQuotaValues[item.id] !== undefined ? monthlyQuotaValues[item.id] : 0}
                                     onChange={(e) => {
                                       const val = e.target.value;
-                                      setQuotaValues(prev => ({ ...prev, [item.id]: val }));
+                                      setMonthlyQuotaValues(prev => ({ ...prev, [item.id]: val }));
+                                      setQuotaValues(prev => ({ ...prev, [item.id]: (parseFloat(val) || 0) * 12 }));
                                     }}
-                                    className="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                    className="w-20 px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                                   />
-                                  <span className="text-xs text-gray-500 font-medium">days</span>
+                                </div>
+                              </td>
+                              <td className="p-3.5">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="number"
+                                    readOnly
+                                    value={quotaValues[item.id] !== undefined ? quotaValues[item.id] : 0}
+                                    className="w-20 px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-bold text-gray-500 bg-gray-50 cursor-not-allowed"
+                                  />
                                 </div>
                               </td>
                               <td className="p-3.5 pr-4 text-right">

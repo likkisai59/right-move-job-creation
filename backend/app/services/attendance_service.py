@@ -244,6 +244,7 @@ def get_leave_config(db: Session, employee_id: int) -> Optional[dict]:
             desg = db.query(Designation).filter(Designation.name == emp.designation).first()
             if desg:
                 annual_quota = float(desg.leaves or 0.0)
+                monthly_quota = float(desg.monthly_leaves or 0.0)
                 today = date.today()
                 joining_date = emp.date_of_joining or today
                 
@@ -277,6 +278,7 @@ def get_leave_config(db: Session, employee_id: int) -> Optional[dict]:
                     
     return {
         "leaves": leaves_limit,
+        "monthly_leaves": monthly_quota if 'monthly_quota' in locals() else 0.0,
         "holidays": holidays_list,
         "optional_holidays": get_all_optional_holidays(db, employee_id=employee_id)
     }
