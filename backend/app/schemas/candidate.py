@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field, field_validator, model_validator, BeforeV
 import re
 
 # ── Allowed enum values ───────────────────────────────────────────────────
-VALID_BUSINESS_UNITS = {"IT", "ITES", "BPO", "Lateral", "FLP", "F&A"}
 VALID_SOURCES = {"Naukri", "LinkedIn", "Monster", "Shine", "Referral"}
 VALID_NOTICE_PERIODS = {
     "Immediate", "Currently Serving",
@@ -114,8 +113,10 @@ class CandidateCreateRequest(BaseModel):
     @field_validator('business_unit')
     @classmethod
     def validate_business_unit(cls, v: str) -> str:
-        if v and v not in VALID_BUSINESS_UNITS:
-            raise ValueError(f"Business unit must be one of: {', '.join(sorted(VALID_BUSINESS_UNITS))}")
+        if v:
+            v = v.strip()
+            if not v:
+                raise ValueError("Business unit cannot be empty")
         return v
 
     @field_validator('source')

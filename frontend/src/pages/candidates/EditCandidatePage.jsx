@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import PageContainer from '../../components/layout/PageContainer';
 import Card from '../../components/common/Card';
+import ErrorBoundary from '../../components/common/ErrorBoundary';
 import CandidateForm from '../../components/candidates/CandidateForm';
 import { fetchCandidateById, updateCandidate } from '../../api/candidatesApi';
 import { getCurrentUser } from '../../api/authApi';
@@ -121,12 +122,14 @@ const EditCandidatePage = () => {
               <p className="text-sm font-medium">Loading candidate details...</p>
             </div>
           ) : candidateData ? (
-            <CandidateForm
-              defaultValues={candidateData}
-              onSubmit={handleSubmit}
-              onCancel={handleCancel}
-              loading={loading}
-            />
+            <ErrorBoundary>
+              <CandidateForm
+                defaultValues={candidateData}
+                onSubmit={handleSubmit}
+                onCancel={handleCancel}
+                loading={loading}
+              />
+            </ErrorBoundary>
           ) : null}
 
         </Card>

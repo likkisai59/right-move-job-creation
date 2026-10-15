@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import Card from '../common/Card';
 import { formatDate } from '../../utils/formatters';
+import { getSecureMediaUrl } from '../../utils/mediaUtils';
 
 const InfoItem = ({ icon: Icon, label, value }) => (
   <div className="flex gap-3 items-start">
@@ -122,7 +123,7 @@ const JobDetailsView = ({ job }) => {
                   
                   {req.jobDescription ? (
                     <a 
-                      href={`http://localhost:8000${req.jobDescription}`} 
+                      href={getSecureMediaUrl(req.jobDescription)} 
                       target="_blank" 
                       rel="noreferrer"
                       className="flex items-center gap-3 p-4 rounded-xl border border-indigo-100 bg-indigo-50/50 hover:bg-indigo-50 transition-colors group"

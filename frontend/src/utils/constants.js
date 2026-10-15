@@ -29,6 +29,21 @@ export const NOTICE_PERIODS = [
   { value: '90 Days', label: '90 Days' },
 ];
 
+export const CANDIDATE_BUSINESS_UNIT_OPTIONS = [
+  { value: 'IT', label: 'IT' },
+  { value: 'ITES', label: 'ITES' },
+  { value: 'BPO', label: 'BPO' },
+  { value: 'Lateral', label: 'Lateral' },
+  { value: 'FLP', label: 'FLP' },
+  { value: 'F&A', label: 'F&A' },
+];
+
+export const EMPLOYEE_BUSINESS_UNIT_OPTIONS = [
+  { value: 'HR', label: 'HR' },
+  { value: 'Admin', label: 'Admin' },
+  { value: 'Accounts', label: 'Accounts' },
+];
+
 
 export const SOURCE_OPTIONS = [
   { value: 'Naukri', label: 'Naukri' },

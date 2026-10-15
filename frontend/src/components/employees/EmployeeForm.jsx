@@ -13,10 +13,10 @@ import {
   COUNTRY_CODES,
   EMPLOYEE_COMPLIANCE_OPTIONS,
   EMPLOYEE_YES_NO_OPTIONS,
+  EMPLOYEE_BUSINESS_UNIT_OPTIONS,
   getPhoneValidationRules
 } from '../../utils/constants';
 import { fetchDesignations } from '../../api/designationsApi';
-import { fetchBusinessUnits } from '../../api/businessUnitsApi';
 import { fetchWorkModes } from '../../api/workModesApi';
 import { uploadEmployeeFile, fetchEmployees } from '../../api/employeesApi';
 import { getCurrentUser, getSystemRole } from '../../api/authApi';
@@ -38,7 +38,7 @@ const SectionTitle = ({ children }) => (
   </div>
 );
 
-const FormFileUpload = ({ label, required, value, onChange, error, disabled }) => {
+const FormFileUpload = ({ label, required, value, onChange, error, disabled, accept = ".pdf,.jpg,.jpeg,.png" }) => {
   const [uploading, setUploading] = useState(false);
   const [fileName, setFileName] = useState('');
   const [localError, setLocalError] = useState('');
@@ -62,16 +62,15 @@ const FormFileUpload = ({ label, required, value, onChange, error, disabled }) =
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file format (PDF / Image)
-    const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
+    const allowedExtensions = accept.split(',').map(ext => ext.trim().replace('.', '').toLowerCase());
     const fileExt = file.name.split('.').pop().toLowerCase();
     if (!allowedExtensions.includes(fileExt)) {
-      setLocalError('Invalid file format. Only PDF, JPG, JPEG, and PNG files are allowed.');
+      setLocalError(`Invalid format. Only ${allowedExtensions.map(e => e.toUpperCase()).join(', ')} are allowed.`);
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setLocalError('File size must not exceed 5MB.');
+    if (file.size > 500 * 1024) {
+      setLocalError('File size must not exceed 500KB.');
       return;
     }
 
@@ -105,13 +104,13 @@ const FormFileUpload = ({ label, required, value, onChange, error, disabled }) =
 
   return (
     <div className="flex flex-col gap-1.5 w-full">
-      <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
-        {label} {required && <span className="text-red-500">*</span>}
+      <label className="text-sm font-medium text-gray-700 flex items-center justify-between gap-1">
+        <span>{label} {required && <span className="text-red-500">*</span>}</span>
       </label>
 
       <div
         onClick={() => !disabled && !uploading && !value && fileInputRef.current?.click()}
-        className={`relative flex items-center justify-between p-3 rounded-xl border border-dashed transition-all duration-200 min-h-[48px] ${value
+        className={`relative flex items-center justify-between p-3 rounded-xl border border-dashed transition-all duration-200 min-h-[64px] ${value
           ? 'border-emerald-300 bg-emerald-50/50'
           : uploading
             ? 'border-blue-300 bg-blue-50/30'
@@ -125,22 +124,31 @@ const FormFileUpload = ({ label, required, value, onChange, error, disabled }) =
           type="file"
           className="hidden"
           onChange={handleFileChange}
-          accept=".pdf,.jpg,.jpeg,.png"
+          accept={accept}
           disabled={disabled}
         />
 
-        <div className="flex items-center gap-2.5 overflow-hidden flex-1 mr-2">
-          {uploading ? (
-            <Loader2 size={16} className="text-blue-500 animate-spin flex-shrink-0" />
-          ) : value ? (
-            <CheckCircle2 size={16} className="text-emerald-500 flex-shrink-0" />
-          ) : (
-            <Upload size={16} className="text-gray-400 flex-shrink-0" />
-          )}
+        <div className="flex items-start gap-3 overflow-hidden flex-1 mr-2">
+          <div className="mt-0.5">
+            {uploading ? (
+              <Loader2 size={18} className="text-blue-500 animate-spin flex-shrink-0" />
+            ) : value ? (
+              <CheckCircle2 size={18} className="text-emerald-500 flex-shrink-0" />
+            ) : (
+              <Upload size={18} className="text-gray-400 flex-shrink-0" />
+            )}
+          </div>
 
-          <span className={`text-sm truncate ${value ? 'text-emerald-700 font-medium' : uploading ? 'text-blue-600' : 'text-gray-500'}`}>
-            {uploading ? 'Uploading document...' : value ? (fileName || 'Document Uploaded ✓') : disabled ? 'No document proof uploaded' : 'Choose document proof'}
-          </span>
+          <div className="flex flex-col">
+            <span className={`text-sm truncate ${value ? 'text-emerald-700 font-medium' : uploading ? 'text-blue-600 font-medium' : 'text-gray-700 font-medium'}`}>
+              {uploading ? 'Uploading document...' : value ? (fileName || 'Document Uploaded ✓') : disabled ? 'No document proof uploaded' : 'Click to upload or drag and drop'}
+            </span>
+            {!value && !uploading && !disabled && (
+              <span className="text-xs text-gray-400 mt-0.5">
+                {accept.split(',').map(e => e.trim().replace('.', '').toUpperCase()).join(', ')} (Max: 500KB)
+              </span>
+            )}
+          </div>
         </div>
 
         {value && !disabled && (
@@ -196,6 +204,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     trigger,
     formState: { errors }
   } = useForm({
+    mode: 'onChange',
     defaultValues: {
       firstName: '',
       lastName: '',
@@ -291,35 +300,19 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     loadDesignations();
   }, [initialData]);
 
-  // Fetch active business units and format for select options
+  // Set fixed employee business units: HR, Admin, Accounts
   useEffect(() => {
-    const loadBusinessUnits = async () => {
-      try {
-        const res = await fetchBusinessUnits({ active_only: true });
-        if (res.success) {
-          let options = res.data.map(bu => ({
-            value: bu.name,
-            label: bu.name
-          }));
-
-          if (initialData?.assignedBusinessUnit) {
-            const hasCurrent = options.some(opt => opt.value === initialData.assignedBusinessUnit);
-            if (!hasCurrent) {
-              options.push({
-                value: initialData.assignedBusinessUnit,
-                label: `${initialData.assignedBusinessUnit} (Inactive)`
-              });
-            }
-          }
-
-          setBusinessUnits(options);
-        }
-      } catch (err) {
-        console.error('Failed to load business units for form:', err);
+    let options = [...EMPLOYEE_BUSINESS_UNIT_OPTIONS];
+    if (initialData?.assignedBusinessUnit) {
+      const hasCurrent = options.some(opt => opt.value.toLowerCase() === initialData.assignedBusinessUnit.toLowerCase());
+      if (!hasCurrent) {
+        options.push({
+          value: initialData.assignedBusinessUnit,
+          label: `${initialData.assignedBusinessUnit} (Inactive)`
+        });
       }
-    };
-
-    loadBusinessUnits();
+    }
+    setBusinessUnits(options);
   }, [initialData]);
 
   // Fetch active work modes and format for select options
@@ -482,13 +475,6 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
       fields.push('lastWorkingDate');
     }
 
-    if (reportingManagerOptions.length > 0) {
-      fields.push('reportingDesignation');
-      fields.push('reportingTo');
-    } else if (selectedReportingDesignation) {
-      fields.push('reportingDesignation');
-    }
-
     // Evaluate ALL fields without short-circuiting so React Hook Form's watch() 
     // proxy subscribes to every field's changes and triggers re-renders correctly.
     let isComplete = true;
@@ -566,14 +552,6 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     const fieldsToValidate = [...MANDATORY_HR_FIELDS];
     if (currentStatus === 'Inactive') {
       fieldsToValidate.push('lastWorkingDate');
-    }
-    // Only validate reporting fields if managers are available for the selected designation
-    if (reportingManagerOptions.length > 0) {
-      fieldsToValidate.push('reportingDesignation');
-      fieldsToValidate.push('reportingTo');
-    } else if (selectedReportingDesignation) {
-      // Designation selected but no managers exist — still validate the designation field
-      fieldsToValidate.push('reportingDesignation');
     }
     const isValid = await trigger(fieldsToValidate);
     if (isValid) {
@@ -766,7 +744,13 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                     onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
                     {...register('contactNumber', {
                       required: 'Personal contact number is required',
-                      ...getPhoneValidationRules(selectedPersonalCountry)
+                      validate: (val) => {
+                        const rules = getPhoneValidationRules(getValues('countryCode'));
+                        if (val && (String(val).trim().length < rules.minLength.value || String(val).trim().length > rules.maxLength)) {
+                          return rules.minLength.message;
+                        }
+                        return rules.validate(val);
+                      }
                     })}
                     disabled={isHrDisabled}
                   />
@@ -794,7 +778,14 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                     onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
                     onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
                     {...register('contactNumberOffice', {
-                      ...getPhoneValidationRules(selectedOfficeCountry)
+                      validate: (val) => {
+                        if (!val) return true;
+                        const rules = getPhoneValidationRules(getValues('countrycodeOfficeContact'));
+                        if (String(val).trim().length < rules.minLength.value || String(val).trim().length > rules.maxLength) {
+                          return rules.minLength.message;
+                        }
+                        return rules.validate(val);
+                      }
                     })}
                     disabled={isHrDisabled}
                   />
@@ -822,7 +813,14 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
                     onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
                     onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
                     {...register('emergencyContactNumber', {
-                      ...getPhoneValidationRules(selectedEmergencyCountry)
+                      validate: (val) => {
+                        if (!val) return true;
+                        const rules = getPhoneValidationRules(getValues('countrycodeEmergencyContact'));
+                        if (String(val).trim().length < rules.minLength.value || String(val).trim().length > rules.maxLength) {
+                          return rules.minLength.message;
+                        }
+                        return rules.validate(val);
+                      }
                     })}
                     disabled={isHrDisabled}
                   />
@@ -861,7 +859,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
               control={control}
               render={({ field }) => (
                 <FormFileUpload
-                  label="Aadhar Card (Upload PDF/Image)"
+                  label="Aadhar Card"
 value={field.value}
                   onChange={field.onChange}
                   error={errors.aadharUrl?.message}
@@ -892,7 +890,7 @@ value={field.value}
               control={control}
               render={({ field }) => (
                 <FormFileUpload
-                  label="PAN Card (Upload PDF/Image)"
+                  label="PAN Card"
 value={field.value}
                   onChange={field.onChange}
                   error={errors.panUrl?.message}
@@ -906,7 +904,7 @@ value={field.value}
               control={control}
               render={({ field }) => (
                 <FormFileUpload
-                  label="10th Marksheet (Upload PDF/Image)"
+                  label="10th Marksheet"
 value={field.value}
                   onChange={field.onChange}
                   error={errors.marksheet10thUrl?.message}
@@ -920,7 +918,7 @@ value={field.value}
               control={control}
               render={({ field }) => (
                 <FormFileUpload
-                  label="12th Marksheet (Upload PDF/Image)"
+                  label="12th Marksheet"
 value={field.value}
                   onChange={field.onChange}
                   error={errors.marksheet12thUrl?.message}
@@ -934,7 +932,7 @@ value={field.value}
               control={control}
               render={({ field }) => (
                 <FormFileUpload
-                  label="Graduation Marksheet (Upload PDF/Image)"
+                  label="Graduation Marksheet"
 value={field.value}
                   onChange={field.onChange}
                   error={errors.marksheetGraduationUrl?.message}
@@ -948,7 +946,7 @@ value={field.value}
               control={control}
               render={({ field }) => (
                 <FormFileUpload
-                  label="Front facing Photo (Upload Image)"
+                  label="Front facing Photo"
 value={field.value}
                   onChange={field.onChange}
                   error={errors.photoUrl?.message}
@@ -973,7 +971,7 @@ value={field.value}
               control={control}
               render={({ field }) => (
                 <FormFileUpload
-                  label="Present Address Proof (Upload)"
+                  label="Present Address Proof"
 value={field.value}
                   onChange={field.onChange}
                   error={errors.presentAddressProofUrl?.message}
@@ -996,7 +994,7 @@ value={field.value}
               control={control}
               render={({ field }) => (
                 <FormFileUpload
-                  label="Permanent Address Proof (Upload)"
+                  label="Permanent Address Proof"
 value={field.value}
                   onChange={field.onChange}
                   error={errors.permanentAddressProofUrl?.message}
@@ -1108,7 +1106,7 @@ value={field.value}
               control={control}
               render={({ field }) => (
                 <FormFileUpload
-                  label="Salary Slips - Last three (Upload)"
+                  label="Salary Slips - Last three"
                   value={field.value}
                   onChange={field.onChange}
                   error={errors.salarySlipsUrl?.message}
@@ -1122,7 +1120,7 @@ value={field.value}
               control={control}
               render={({ field }) => (
                 <FormFileUpload
-                  label="Last Employment Offer Letter (Upload)"
+                  label="Last Employment Offer Letter"
                   value={field.value}
                   onChange={field.onChange}
                   error={errors.offerLetterUrl?.message}
@@ -1183,14 +1181,8 @@ value={field.value}
                     : "No active employees with this designation — skip or add later"
                 }
                 options={reportingManagerOptions}
-required={reportingManagerOptions.length > 0}
                 error={errors.reportingTo?.message}
-                {...register('reportingTo', {
-required:
-                    reportingManagerOptions.length > 0
-                      ? 'Reporting manager is required'
-                      : false
-                })}
+                {...register('reportingTo')}
                 disabled={isHrDisabled || reportingManagerOptions.length === 0}
               />
             )}

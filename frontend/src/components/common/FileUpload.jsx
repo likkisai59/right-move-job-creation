@@ -3,7 +3,7 @@ import { Upload, X, FileText, CheckCircle, Eye } from 'lucide-react';
 import { ALLOWED_RESUME_TYPES, MAX_RESUME_SIZE_MB } from '../../utils/constants';
 import { getSecureMediaUrl } from '../../utils/mediaUtils';
 
-const FileUpload = ({ onFileSelect, accept, maxSizeMB = MAX_RESUME_SIZE_MB, value, title = "Drag & drop your file here", subtitle = "or click to browse" }) => {
+const FileUpload = ({ onFileSelect, accept, maxSizeKB = 500, value, title = "Drag & drop your file here", subtitle = "or click to browse" }) => {
   const inputRef = useRef(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [error, setError] = useState('');
@@ -22,8 +22,8 @@ const FileUpload = ({ onFileSelect, accept, maxSizeMB = MAX_RESUME_SIZE_MB, valu
       return false;
     }
 
-    if (file.size > maxSizeMB * 1024 * 1024) {
-      setError(`File size must not exceed ${maxSizeMB}MB.`);
+    if (file.size > maxSizeKB * 1024) {
+      setError(`File size must not exceed ${maxSizeKB}KB.`);
       return false;
     }
 
@@ -156,7 +156,7 @@ const FileUpload = ({ onFileSelect, accept, maxSizeMB = MAX_RESUME_SIZE_MB, valu
                 {title}
               </p>
               <p className="text-xs text-gray-400 mt-1">
-                {subtitle} · PDF, DOC, DOCX (Max {maxSizeMB}MB)
+                {subtitle} · PDF, DOC, DOCX (Max {maxSizeKB}KB)
               </p>
             </div>
           </div>

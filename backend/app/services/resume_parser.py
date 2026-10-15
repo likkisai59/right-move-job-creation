@@ -227,7 +227,7 @@ def regex_parse(text: str) -> dict:
                 break
 
     # ── Name (first non-header, non-email line, 1-4 words of letters only) ──
-    ignored_headers = {"resume", "curriculum vitae", "cv", "profile", "bio-data", "biodata", "personal details", "contact", "summary", "contact info", "career objective"}
+    ignored_headers = {"resume", "curriculum vitae", "cv", "profile", "bio-data", "biodata", "personal details", "contact", "summary", "contact info", "career objective", "professional summary", "executive summary", "about me", "experience", "education", "skills", "projects", "certifications", "languages", "hobbies", "interests", "declaration"}
     lines = [l.strip() for l in text.splitlines() if l.strip()]
     for line in lines[:15]:
         line_clean = re.sub(r'[^A-Za-z\s\.]', '', line).strip()

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Calendar } from 'lucide-react';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import SortBy from '../common/SortBy';
+import { fetchBusinessUnits } from '../../api/businessUnitsApi';
 
 const SORT_OPTIONS = [
   { label: 'Created Date (Newest)', value: 'created_at:desc' },
@@ -25,18 +26,22 @@ const STATUS_OPTIONS = [
   { value: 'HOLD', label: 'Hold' },
 ];
 
-const BUSINESS_UNIT_OPTIONS = [
-  { value: '', label: 'All Units' },
-  { value: 'IT', label: 'IT' },
-  { value: 'ITSM', label: 'ITSM' },
-  { value: 'BPO', label: 'BPO' },
-  { value: 'ITES', label: 'ITES' },
-  { value: 'Lateral', label: 'Lateral' },
-  { value: 'FLP', label: 'FLP' },
-  { value: 'F&A', label: 'F&A' },
-];
-
 const JobFilters = ({ filters, onChange, onClear }) => {
+  const [buOptions, setBuOptions] = useState([{ value: '', label: 'All Units' }]);
+
+  useEffect(() => {
+    fetchBusinessUnits({ active_only: true })
+      .then(res => {
+        if (res && res.success && res.data) {
+          setBuOptions([
+            { value: '', label: 'All Units' },
+            ...res.data.map(bu => ({ value: bu.name, label: bu.name }))
+          ]);
+        }
+      })
+      .catch(err => console.error('Failed to load business units for job filters:', err));
+  }, []);
+
   const handleChange = (field, value) => {
     onChange({ ...filters, [field]: value });
   };
@@ -103,7 +108,7 @@ const JobFilters = ({ filters, onChange, onClear }) => {
         onChange={(e) => handleChange('businessUnit', e.target.value)}
         className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all"
       >
-        {BUSINESS_UNIT_OPTIONS.map((opt) => (
+        {buOptions.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
           </option>

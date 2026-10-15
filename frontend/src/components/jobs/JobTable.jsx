@@ -6,12 +6,27 @@ import Button from '../common/Button';
 import EmptyState from '../common/EmptyState';
 import { formatDate } from '../../utils/formatters';
 import { checkPermission } from '../../api/authApi';
+import { fetchBusinessUnits } from '../../api/businessUnitsApi';
 
 
 const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats, filters, onFilterChange }) => {
   const navigate = useNavigate();
   const [popoverId, setPopoverId] = useState(null);
   const popoverRef = useRef(null);
+  const [buOptions, setBuOptions] = useState([{ value: '', label: 'All Units' }]);
+
+  useEffect(() => {
+    fetchBusinessUnits({ active_only: true })
+      .then(res => {
+        if (res && res.success && res.data) {
+          setBuOptions([
+            { value: '', label: 'All Units' },
+            ...res.data.map(bu => ({ value: bu.name, label: bu.name }))
+          ]);
+        }
+      })
+      .catch(err => console.error('Failed to load business units for job table:', err));
+  }, []);
 
   // Close popover when clicking outside
   useEffect(() => {
@@ -74,16 +89,7 @@ const JobTable = ({ jobs = [], loading = false, onEdit, onViewStats, filters, on
       header: 'BU',
       filterKey: 'businessUnit',
       filterType: 'select',
-      filterOptions: [
-        { value: '', label: 'All Units' },
-        { value: 'IT', label: 'IT' },
-        { value: 'ITSM', label: 'ITSM' },
-        { value: 'BPO', label: 'BPO' },
-        { value: 'ITES', label: 'ITES' },
-        { value: 'Lateral', label: 'Lateral' },
-        { value: 'FLP', label: 'FLP' },
-        { value: 'F&A', label: 'F&A' },
-      ],
+      filterOptions: buOptions,
       render: (val) => (
         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
           {val || 'IT'}

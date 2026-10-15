@@ -12,6 +12,7 @@ import {
   EDUCATION_OPTIONS,
   COUNTRY_CODES,
   SOURCE_OPTIONS,
+  CANDIDATE_BUSINESS_UNIT_OPTIONS,
   getPhoneValidationRules,
 } from '../../utils/constants';
 import { fetchBusinessUnits } from '../../api/businessUnitsApi';
@@ -141,7 +142,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
   });
 
   const [resumeFile, setResumeFile] = useState(null);
-  const [businessUnits, setBusinessUnits] = useState([]);
+  const [businessUnits, setBusinessUnits] = useState(CANDIDATE_BUSINESS_UNIT_OPTIONS);
   const [warnings, setWarnings] = useState({ name: false, phone: false, email: false });
   const [ctcError, setCtcError] = useState('');
   const [recruiterOptions, setRecruiterOptions] = useState([]);
@@ -164,7 +165,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
   const fixedCTC = watch('fixedCTC');
   const selectedCountryCode = watch('countryCode') || '+91';
 
-  const isFresher = /(^fresher$|^0$|^0 years$)/i.test((totalExperience || '').trim());
+  const isFresher = /(^fresher$|^0$|^0 years$)/i.test(String(totalExperience || '').trim());
 
   useEffect(() => {
     if (isFresher) {
@@ -242,17 +243,16 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
     }
   }, [publicForm, setValue, isEdit]);
 
-  // ── Fetch active business units ────────────────────────────────────────
+  // ── Candidate business units from Settings ─────────────────────────────
   useEffect(() => {
     const loadBusinessUnits = async () => {
       try {
         const res = await fetchBusinessUnits({ active_only: true });
-        if (res.success) {
+        if (res.success && res.data && res.data.length > 0) {
           let options = res.data.map(bu => ({
             value: bu.name,
             label: bu.name
           }));
-          
           if (defaultValues?.businessUnit) {
             const hasCurrent = options.some(opt => opt.value === defaultValues.businessUnit);
             if (!hasCurrent) {
@@ -263,9 +263,12 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
             }
           }
           setBusinessUnits(options);
+        } else {
+          setBusinessUnits(CANDIDATE_BUSINESS_UNIT_OPTIONS);
         }
       } catch (err) {
-        console.error('Failed to fetch business units:', err);
+        console.error('Failed to load business units from settings:', err);
+        setBusinessUnits(CANDIDATE_BUSINESS_UNIT_OPTIONS);
       }
     };
     loadBusinessUnits();
@@ -611,11 +614,14 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           filled++;
         }
 
-        // Business Unit: auto-suggest based on parsed domain
-        if (d.business_unit) {
-          const validBUs = ['IT', 'ITES', 'BPO', 'Lateral', 'FLP', 'F&A'];
-          if (validBUs.includes(d.business_unit)) {
-            apply('businessUnit', d.business_unit);
+        // Business Unit: auto-suggest based on parsed domain matching settings options
+        if (d.business_unit && businessUnits && businessUnits.length > 0) {
+          const matchedBu = businessUnits.find(
+            bu => bu.value?.toLowerCase() === d.business_unit.toLowerCase() ||
+                  bu.label?.toLowerCase() === d.business_unit.toLowerCase()
+          );
+          if (matchedBu) {
+            apply('businessUnit', matchedBu.value);
           }
         }
 
@@ -836,7 +842,13 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
                 error={errors.phone?.message}
                 {...register('phone', {
                   required: 'Phone number is required',
-                  ...getPhoneValidationRules(selectedCountryCode),
+                  validate: (val) => {
+                    const rules = getPhoneValidationRules(getValues('countryCode'));
+                    if (val && (String(val).trim().length < rules.minLength.value || String(val).trim().length > rules.maxLength)) {
+                      return rules.minLength.message;
+                    }
+                    return rules.validate(val);
+                  },
                   onBlur: () => handleCheckDuplicates('phone'),
                 })}
               />
@@ -861,7 +873,14 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
           error={errors.alternativePhone?.message}
           {...register('alternativePhone', {
-            ...getPhoneValidationRules(selectedCountryCode)
+            validate: (val) => {
+              if (!val) return true;
+              const rules = getPhoneValidationRules(getValues('countryCode'));
+              if (String(val).trim().length < rules.minLength.value || String(val).trim().length > rules.maxLength) {
+                return rules.minLength.message;
+              }
+              return rules.validate(val);
+            }
           })}
         />
 

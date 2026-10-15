@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import SortBy from '../common/SortBy';
-import { CANDIDATE_PIPELINE_STATUSES } from '../../utils/constants';
+import { CANDIDATE_PIPELINE_STATUSES, CANDIDATE_BUSINESS_UNIT_OPTIONS } from '../../utils/constants';
+import { fetchBusinessUnits } from '../../api/businessUnitsApi';
 
 const SORT_OPTIONS = [
   { label: 'Candidate ID Ascending', value: 'candidate_code:asc' },
@@ -16,16 +17,6 @@ const SORT_OPTIONS = [
   { label: 'Location (A-Z)', value: 'current_location:asc' },
   { label: 'Created Date (Newest)', value: 'created_at:desc' },
   { label: 'Created Date (Oldest)', value: 'created_at:asc' },
-];
-
-const BUSINESS_UNIT_FILTER_OPTIONS = [
-  { value: '', label: 'All Units' },
-  { value: 'IT', label: 'IT' },
-  { value: 'ITES', label: 'ITES' },
-  { value: 'BPO', label: 'BPO' },
-  { value: 'Lateral', label: 'Lateral' },
-  { value: 'FLP', label: 'FLP' },
-  { value: 'F&A', label: 'F&A' },
 ];
 
 const NOTICE_PERIOD_OPTIONS = [
@@ -44,6 +35,24 @@ const PIPELINE_STATUS_FILTER_OPTIONS = [
 ];
 
 const CandidateFilters = ({ filters, onChange, onClear }) => {
+  const [buOptions, setBuOptions] = useState([
+    { value: '', label: 'All Units' },
+    ...CANDIDATE_BUSINESS_UNIT_OPTIONS,
+  ]);
+
+  useEffect(() => {
+    fetchBusinessUnits({ active_only: true })
+      .then(res => {
+        if (res && res.success && res.data && res.data.length > 0) {
+          setBuOptions([
+            { value: '', label: 'All Units' },
+            ...res.data.map(bu => ({ value: bu.name, label: bu.name }))
+          ]);
+        }
+      })
+      .catch(err => console.error('Failed to load business units for filters:', err));
+  }, []);
+
   const handleChange = (field, value) => {
     onChange({ ...filters, [field]: value });
   };
@@ -67,7 +76,7 @@ const CandidateFilters = ({ filters, onChange, onClear }) => {
         onChange={(e) => handleChange('businessUnit', e.target.value)}
         className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-300 transition-all"
       >
-        {BUSINESS_UNIT_FILTER_OPTIONS.map((opt) => (
+        {buOptions.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
           </option>

@@ -25,7 +25,7 @@ const SETTINGS_NAV_ITEMS = [
   { id: 'roles', label: 'Role Assignment', icon: Users, description: 'Assign system roles to employees' },
   { id: 'matrix', label: 'Permission Matrix', icon: Grid, description: 'Review 7-role access privileges' },
   { id: 'designations', label: 'Designations', icon: Briefcase, description: 'Manage employee designations' },
-  { id: 'business_units', label: 'Business Units', icon: Building, description: 'Manage department business units' },
+  { id: 'business_units', label: 'Business Units', icon: Building, description: 'Manage business units for Candidates & Jobs' },
   { id: 'work_modes', label: 'Work Modes', icon: Monitor, description: 'Manage work mode options' },
   { id: 'exit_types', label: 'Exit Types', icon: LogOut, description: 'Manage employee exit reasons' },
   { id: 'leave_types', label: 'Leave Types', icon: Calendar, description: 'Manage employee leave types' },

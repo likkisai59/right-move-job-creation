@@ -13,6 +13,7 @@ import { fetchBusinessUnits } from '../../api/businessUnitsApi';
 import { fetchWorkModes } from '../../api/workModesApi';
 import SearchableSelect from '../common/SearchableSelect';
 import CustomSelectOrInput from '../common/CustomSelectOrInput';
+import { getSecureMediaUrl } from '../../utils/mediaUtils';
 
 const JOB_STATUS_OPTIONS = [
   { value: 'ACTIVE', label: 'Active' },
@@ -455,7 +456,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
                   />
                   <input type="hidden" {...register(`requirements.${index}.jobDescription`)} />
                   {watch(`requirements.${index}.jobDescription`) && (
-                    <a href={`http://localhost:8000${watch(`requirements.${index}.jobDescription`)}`} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline mt-1">
+                    <a href={getSecureMediaUrl(watch(`requirements.${index}.jobDescription`))} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline mt-1">
                       View Uploaded File
                     </a>
                   )}

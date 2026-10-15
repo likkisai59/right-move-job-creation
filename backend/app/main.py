@@ -93,7 +93,7 @@ async def lifespan(app: FastAPI):
 
         # Seed Business Units
         if db.query(BusinessUnit).count() == 0:
-            initial_bu = ['IT', 'HR', 'Sales', 'Marketing', 'Finance', 'Operations']
+            initial_bu = ['IT', 'ITES', 'BPO', 'Lateral', 'FLP', 'F&A']
             for name in initial_bu:
                 db.add(BusinessUnit(name=name, is_active=True))
             db.commit()
@@ -128,39 +128,40 @@ async def lifespan(app: FastAPI):
         from app.models.employee import Employee
         from app.core.security import get_password_hash
 
-        super_admin = db.query(Employee).filter(Employee.email == settings.SUPER_ADMIN_EMAIL).first()
-        if not super_admin:
-            super_admin = Employee(
-                employee_id="RM_ADMIN",
-                first_name="Super",
-                last_name="Admin",
-                designation="Founder/CEO",
-                system_role="super_admin",
-                status="Active",
-                profile_status="Completed",
-                completion_percentage=100,
-                profile_status_hr="Completed",
-                completion_percentage_hr=100,
-                profile_status_admin="Completed",
-                completion_percentage_admin=100,
-                gender="Male",
-                blood_group="O+",
-                country_code="+91",
-                email=settings.SUPER_ADMIN_EMAIL,
-                contact_number="9999999999",
-                date_of_joining="2024-01-01",
-                date_of_birth="1990-01-01",
-                date="2024-01-01",
-                is_first_login=True,
-                employee_password=get_password_hash(settings.SUPER_ADMIN_PASSWORD)
-            )
-            db.add(super_admin)
-            db.commit()
-            logger.info(f"✓ Seeded Default Super Admin account: {settings.SUPER_ADMIN_EMAIL}")
-        else:
-            # Ensure super_admin role and credentials are correct if it exists
-            super_admin.system_role = "super_admin"
-            db.commit()
+        if settings.SUPER_ADMIN_EMAIL and settings.SUPER_ADMIN_EMAIL.strip():
+            super_admin = db.query(Employee).filter(Employee.email == settings.SUPER_ADMIN_EMAIL.strip()).first()
+            if not super_admin:
+                super_admin = Employee(
+                    employee_id="RM_ADMIN",
+                    first_name="Super",
+                    last_name="Admin",
+                    designation="Founder/CEO",
+                    system_role="super_admin",
+                    status="Active",
+                    profile_status="Completed",
+                    completion_percentage=100,
+                    profile_status_hr="Completed",
+                    completion_percentage_hr=100,
+                    profile_status_admin="Completed",
+                    completion_percentage_admin=100,
+                    gender="Male",
+                    blood_group="O+",
+                    country_code="+91",
+                    email=settings.SUPER_ADMIN_EMAIL.strip(),
+                    contact_number="9999999999",
+                    date_of_joining="2024-01-01",
+                    date_of_birth="1990-01-01",
+                    date="2024-01-01",
+                    is_first_login=True,
+                    employee_password=get_password_hash(settings.SUPER_ADMIN_PASSWORD or "Admin@123")
+                )
+                db.add(super_admin)
+                db.commit()
+                logger.info(f"✓ Seeded Default Super Admin account: {settings.SUPER_ADMIN_EMAIL.strip()}")
+            else:
+                # Ensure super_admin role and credentials are correct if it exists
+                super_admin.system_role = "super_admin"
+                db.commit()
             
     except Exception as e:
         db.rollback()
@@ -183,6 +184,7 @@ app = FastAPI(
 )
 
 from fastapi.exceptions import RequestValidationError
+from fastapi.encoders import jsonable_encoder
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
@@ -190,7 +192,7 @@ async def validation_exception_handler(request, exc):
     logger.error(f"422 Request body: {exc.body}")
     return JSONResponse(
         status_code=422,
-        content={"detail": exc.errors(), "body": exc.body}
+        content={"detail": jsonable_encoder(exc.errors()), "body": exc.body}
     )
 
 # ── CORS Middleware ───────────────────────────────────────────

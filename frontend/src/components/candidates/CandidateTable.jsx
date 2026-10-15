@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, Pencil, FileText, Briefcase } from 'lucide-react';
 import Table from '../common/Table';
@@ -6,11 +6,29 @@ import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
 import { Users } from 'lucide-react';
 import { checkPermission } from '../../api/authApi';
-import { PIPELINE_STATUS_COLORS, CANDIDATE_PIPELINE_STATUSES } from '../../utils/constants';
+import { PIPELINE_STATUS_COLORS, CANDIDATE_PIPELINE_STATUSES, CANDIDATE_BUSINESS_UNIT_OPTIONS } from '../../utils/constants';
 import { getSecureMediaUrl } from '../../utils/mediaUtils';
+import { fetchBusinessUnits } from '../../api/businessUnitsApi';
 
 const CandidateTable = ({ candidates = [], loading = false, filters, onFilterChange }) => {
   const navigate = useNavigate();
+  const [buFilterOptions, setBuFilterOptions] = useState([
+    { value: '', label: 'All Units' },
+    ...CANDIDATE_BUSINESS_UNIT_OPTIONS,
+  ]);
+
+  useEffect(() => {
+    fetchBusinessUnits({ active_only: true })
+      .then(res => {
+        if (res && res.success && res.data && res.data.length > 0) {
+          setBuFilterOptions([
+            { value: '', label: 'All Units' },
+            ...res.data.map(bu => ({ value: bu.name, label: bu.name }))
+          ]);
+        }
+      })
+      .catch(err => console.error('Failed to load business units for table filter:', err));
+  }, []);
 
   const columns = [
     {
@@ -44,16 +62,7 @@ const CandidateTable = ({ candidates = [], loading = false, filters, onFilterCha
       header: 'Business Unit',
       filterKey: 'businessUnit',
       filterType: 'select',
-      filterOptions: [
-        { value: '', label: 'All Units' },
-        { value: 'IT', label: 'IT' },
-        { value: 'ITSM', label: 'ITSM' },
-        { value: 'BPO', label: 'BPO' },
-        { value: 'ITES', label: 'ITES' },
-        { value: 'Lateral', label: 'Lateral' },
-        { value: 'FLP', label: 'FLP' },
-        { value: 'F&A', label: 'F&A' },
-      ],
+      filterOptions: buFilterOptions,
       render: (val) => (
         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
           {val || 'IT'}
