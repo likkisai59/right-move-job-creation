@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from app.models.account import Account
 from app.models.employee import Employee
 from app.models.leave import Leave
@@ -127,11 +127,15 @@ def list_accounts(db: Session) -> List[Account]:
         joining_date = emp.date or emp.date_of_joining
         start_date, end_date = get_current_salary_cycle_range(date.today(), joining_date)
         
-        # Calculate sum of approved unpaid leaves within current cycle
+        # Calculate sum of approved unpaid/casual/optional leaves within current cycle
         unpaid_leaves_sum = db.query(func.sum(Leave.total_leaves)).filter(
             Leave.employee_id == emp.id,
             Leave.status == "Approved",
-            Leave.leave_type.ilike("%unpaid%"),
+            or_(
+                Leave.leave_type.ilike("%unpaid%"),
+                Leave.leave_type.ilike("%casual%"),
+                Leave.leave_type.ilike("%optional%")
+            ),
             Leave.start_date >= start_date,
             Leave.start_date <= end_date
         ).scalar() or 0.0

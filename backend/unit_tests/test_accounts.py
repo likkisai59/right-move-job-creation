@@ -107,7 +107,7 @@ def test_accounts_full_flow(client: TestClient, db_session: Session):
         job_code="JOB99999",
         requisition_open_date=date.today(),
         company_name="Test Corp",
-        assigned_to="Recruiter Priya",
+        internal_spoc="Recruiter Priya",
         business_unit="IT",
         organization_id=org.id
     )
@@ -118,8 +118,8 @@ def test_accounts_full_flow(client: TestClient, db_session: Session):
     job_req = JobRequirement(
         job_id=job.id,
         job_title="Software Engineer",
-        budget="12 LPA",
-        experience="2 years",
+        budget=12.0,
+        experience=2.0,
         min_experience=2,
         max_experience=4,
         location="Pune",

@@ -134,15 +134,19 @@ def get_leaves_for_approval(db: Session, manager_name: str) -> List[dict]:
 
 def sync_employee_unpaid_leaves(db: Session, employee_id: int):
     """
-    Synchronize the sum of approved unpaid leaves with the employee's Account model unpaid_leaves.
+    Synchronize the sum of approved unpaid/casual/optional leaves with the employee's Account model unpaid_leaves.
     """
-    from sqlalchemy import func
+    from sqlalchemy import func, or_
     from app.models.account import Account
     
     total_unpaid = db.query(func.sum(Leave.total_leaves)).filter(
         Leave.employee_id == employee_id,
         Leave.status == "Approved",
-        Leave.leave_type.ilike("%unpaid%")
+        or_(
+            Leave.leave_type.ilike("%unpaid%"),
+            Leave.leave_type.ilike("%casual%"),
+            Leave.leave_type.ilike("%optional%")
+        )
     ).scalar() or 0.0
     
     account = db.query(Account).filter(Account.employee_id == employee_id).first()

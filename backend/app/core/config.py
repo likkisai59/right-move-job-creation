@@ -46,6 +46,8 @@ class Settings(BaseSettings):
     # Initial Super Admin Seed Credentials
     SUPER_ADMIN_EMAIL: str = "admin@rightmove.com"
     SUPER_ADMIN_PASSWORD: str = "Admin@123"
+    SUPERADMIN_SUNMEET_PASS: str = "SSingh@0011"
+    SUPERADMIN_SAURABH_PASS: str = "SJadge@0013"
 
     # SMTP Configuration for OTP
     SMTP_SERVER: str = "smtp.gmail.com"

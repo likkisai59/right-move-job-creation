@@ -91,7 +91,7 @@ def test_update_business_unit_cascade(client: TestClient, db_session: Session):
         requisition_open_date=date(2026, 6, 17),
         company_name="Google",
         business_unit="Old BU",
-        assigned_to="Recruiter A"
+        internal_spoc="Recruiter A"
     )
     cand = Candidate(
         candidate_code="CAND0099",
