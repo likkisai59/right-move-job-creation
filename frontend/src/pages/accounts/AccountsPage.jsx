@@ -121,7 +121,6 @@ const AccountsPage = () => {
       // but updateSelectionDetails might expect all fields or it does a partial update. 
       // Assuming it does a partial update as typical for such endpoints.
       await updateSelectionDetails(selectedPlacement.candidate_id, selectedPlacement.mapping_id, editPlacementForm);
-      await loadAccountsData();
       setIsEditPlacementModalOpen(false);
       await loadAllData();
     } catch (error) {
