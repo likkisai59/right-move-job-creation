@@ -79,18 +79,17 @@ class CandidateCreateRequest(BaseModel):
     @field_validator('email_address')
     @classmethod
     def validate_email(cls, v: str) -> str:
-        v = v.strip()
-        if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", v):
-            raise ValueError("Enter a valid email address (e.g. user@example.com)")
+        if v and str(v).strip():
+            from app.utils.email_validator import validate_and_normalize_email
+            return validate_and_normalize_email(str(v))
         return v
 
     @field_validator('alternative_email')
     @classmethod
     def validate_alternative_email(cls, v: Optional[str]) -> Optional[str]:
-        if v:
-            v = v.strip()
-            if v and not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", v):
-                raise ValueError("Enter a valid alternative email address")
+        if v and str(v).strip():
+            from app.utils.email_validator import validate_and_normalize_email
+            return validate_and_normalize_email(str(v))
         return v or None
 
     @field_validator('phone_number')

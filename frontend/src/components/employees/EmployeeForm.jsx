@@ -20,6 +20,7 @@ import { fetchDesignations } from '../../api/designationsApi';
 import { fetchWorkModes } from '../../api/workModesApi';
 import { uploadEmployeeFile, fetchEmployees } from '../../api/employeesApi';
 import { getCurrentUser, getSystemRole } from '../../api/authApi';
+import { validateEmail } from '../../utils/emailValidator';
 
 // ─────────────────────────────────────────────────────────────
 // MANDATORY_HR_FIELDS: Single source of truth for HR form validation.
@@ -718,10 +719,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
               error={errors.email?.message}
               {...register('email', {
                 required: 'Email address is required',
-                pattern: {
-                  value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-                  message: 'Enter a valid email address (e.g. user@example.com)'
-                }
+                validate: validateEmail
               })}
               disabled={isHrDisabled}
             />

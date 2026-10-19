@@ -99,6 +99,14 @@ class EmployeeBase(BaseModel):
             return None
         return v
 
+    @field_validator('email', mode='before')
+    @classmethod
+    def validate_email(cls, v):
+        if v and str(v).strip():
+            from app.utils.email_validator import validate_and_normalize_email
+            return validate_and_normalize_email(str(v))
+        return v
+
     @field_validator('contact_number', 'contact_number_office', 'emergency_contact_number', mode='before')
     @classmethod
     def validate_phone_numbers(cls, v):

@@ -14,6 +14,7 @@ import { fetchWorkModes } from '../../api/workModesApi';
 import SearchableSelect from '../common/SearchableSelect';
 import CustomSelectOrInput from '../common/CustomSelectOrInput';
 import { getSecureMediaUrl } from '../../utils/mediaUtils';
+import { validateEmail } from '../../utils/emailValidator';
 
 const JOB_STATUS_OPTIONS = [
   { value: 'ACTIVE', label: 'Active' },
@@ -314,10 +315,7 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
                   placeholder="e.g. spoc@company.com"
                   error={errors.externalSpocEmailId?.message}
                   {...register('externalSpocEmailId', {
-                    pattern: {
-                      value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-                      message: 'Enter a valid email address'
-                    }
+                    validate: (val) => !val || validateEmail(val)
                   })}
                 />
               </div>

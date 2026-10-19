@@ -123,11 +123,8 @@ class JobCreateRequest(BaseModel):
     @classmethod
     def validate_spoc_email(cls, v):
         if v and str(v).strip():
-            val = str(v).strip()
-            import re
-            if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", val):
-                raise ValueError("Enter a valid email address for External SPOC")
-            return val
+            from app.utils.email_validator import validate_and_normalize_email
+            return validate_and_normalize_email(str(v))
         return v
 
     @field_validator("company_name", "internal_spoc", mode="before")
@@ -172,6 +169,14 @@ class JobUpdateRequest(BaseModel):
     def strip_strings(cls, v: str) -> str:
         if isinstance(v, str):
             return v.strip()
+        return v
+
+    @field_validator("external_spoc_email_id", mode="before")
+    @classmethod
+    def validate_spoc_email(cls, v):
+        if v and str(v).strip():
+            from app.utils.email_validator import validate_and_normalize_email
+            return validate_and_normalize_email(str(v))
         return v
 
 

@@ -7,6 +7,7 @@ import Select from '../common/Select';
 import FileUpload from '../common/FileUpload';
 import { checkDuplicateOrganization, uploadOrganizationContract } from '../../api/organizationsApi';
 import { getPhoneValidationRules } from '../../utils/constants';
+import { validateEmail } from '../../utils/emailValidator';
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
@@ -294,12 +295,15 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
                   label="Code"
                   options={COUNTRY_CODES}
                   error={errors.country_code?.message}
-                  {...register('country_code')}
+                  {...register('country_code', {
+                    onChange: () => trigger('contact_number')
+                  })}
                 />
               </div>
               <div className="md:col-span-3">
                 <Input
                   label="Contact Number"
+                  type="tel"
                   placeholder="Enter phone number"
                   icon={Phone}
                   inputMode="numeric"
@@ -308,7 +312,15 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
                   onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
                   error={errors.contact_number?.message}
                   {...register('contact_number', {
-                    ...getPhoneValidationRules(selectedCountryCode)
+                    validate: (val) => {
+                      if (!val) return true;
+                      const code = getValues('country_code') || '+91';
+                      const rules = getPhoneValidationRules(code);
+                      if (String(val).trim().length < rules.minLength.value || String(val).trim().length > rules.maxLength) {
+                        return rules.minLength.message;
+                      }
+                      return rules.validate(val);
+                    }
                   })}
                 />
               </div>
@@ -418,7 +430,9 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
                       label="Code"
                       options={COUNTRY_CODES}
                       error={errors.pocs?.[index]?.poc_country_code?.message}
-                      {...register(`pocs.${index}.poc_country_code`)}
+                      {...register(`pocs.${index}.poc_country_code`, {
+                        onChange: () => trigger(`pocs.${index}.poc_contact`)
+                      })}
                     />
                   </div>
                   
@@ -427,10 +441,22 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
                       label="POC Contact"
                       placeholder="Phone number"
                       icon={Phone}
+                      type="tel"
                       inputMode="numeric"
+                      maxLength={getPhoneValidationRules(watch(`pocs.${index}.poc_country_code`) || '+91').maxLength}
+                      onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) e.preventDefault(); }}
+                      onPaste={(e) => { const paste = e.clipboardData.getData('text'); if (!/^\d+$/.test(paste)) e.preventDefault(); }}
                       error={errors.pocs?.[index]?.poc_contact?.message}
                       {...register(`pocs.${index}.poc_contact`, {
-                        pattern: { value: /^\d+$/, message: 'Digits only' }
+                        validate: (val) => {
+                          if (!val) return true;
+                          const code = getValues(`pocs.${index}.poc_country_code`) || '+91';
+                          const rules = getPhoneValidationRules(code);
+                          if (String(val).trim().length < rules.minLength.value || String(val).trim().length > rules.maxLength) {
+                            return rules.minLength.message;
+                          }
+                          return rules.validate(val);
+                        }
                       })}
                     />
                   </div>
@@ -443,7 +469,7 @@ const OrganizationForm = ({ initialData = {}, onSubmit, loading = false }) => {
                       icon={Mail}
                       error={errors.pocs?.[index]?.poc_email_id?.message}
                       {...register(`pocs.${index}.poc_email_id`, {
-                        pattern: { value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, message: 'Valid email required' }
+                        validate: (val) => !val || validateEmail(val)
                       })}
                     />
                     

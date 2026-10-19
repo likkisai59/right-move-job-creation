@@ -20,6 +20,7 @@ import { checkDuplicateCandidate, parseResume } from '../../api/candidatesApi';
 import { fetchRecruiters } from '../../api/employeesApi';
 import { getCurrentUser } from '../../api/authApi';
 import { fetchJobs } from '../../api/jobsApi';
+import { validateEmail } from '../../utils/emailValidator';
 
 const SectionTitle = ({ children }) => (
   <div className="mb-5">
@@ -795,7 +796,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
             error={errors.email?.message}
             {...register('email', {
               required: 'Email is required',
-              pattern: { value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, message: 'Enter a valid email address (e.g. user@example.com)' },
+              validate: validateEmail,
               onBlur: () => handleCheckDuplicates('email'),
             })}
           />
@@ -814,7 +815,7 @@ const CandidateForm = ({ defaultValues, onSubmit, onCancel, loading = false }) =
           placeholder="Enter alternative email (optional)"
           error={errors.alternativeEmail?.message}
           {...register('alternativeEmail', {
-            pattern: { value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, message: 'Enter a valid email address (e.g. user@example.com)' },
+            validate: (v) => !v || validateEmail(v),
           })}
         />
 

@@ -8,7 +8,7 @@ class OrganizationCreate(BaseModel):
     contract_signed_date: Optional[date] = None
     contract_end_date: Optional[date] = None
     contract_document_url: Optional[str] = None
-    contact_number: Optional[str] = Field(None, pattern=r'^\d*$')
+    contact_number: Optional[str] = None
     country_code: Optional[str] = Field(None)
     band: str = Field(..., min_length=1)
     rate: str = Field(..., min_length=1)
@@ -37,28 +37,42 @@ class OrganizationCreate(BaseModel):
             raise ValueError(f"Invalid status. Allowed: {', '.join(allowed)}")
         return v
 
+    @field_validator("contact_number", mode="before")
+    @classmethod
+    def validate_contact_number(cls, v):
+        if v and str(v).strip():
+            val = str(v).strip()
+            import re
+            if not re.match(r"^\d{10}$", val):
+                raise ValueError("Contact number must be exactly 10 digits")
+            return val
+        return v or None
+
     @field_validator("poc_contact", mode="before")
     @classmethod
     def validate_poc_phone(cls, v):
         if v and str(v).strip():
             val = str(v).strip()
             import re
-            for phone in val.split(','):
-                phone = phone.strip()
-                if phone and not re.match(r"^\d+$", phone):
-                    raise ValueError("Phone numbers must be digits")
-        return v
+            phones = [p.strip() for p in val.split(',') if p.strip()]
+            for phone in phones:
+                if not re.match(r"^\d{10}$", phone):
+                    raise ValueError("POC contact number must be exactly 10 digits")
+            return ', '.join(phones)
+        return v or None
 
     @field_validator("poc_email_id", mode="before")
     @classmethod
     def validate_org_email(cls, v):
         if v and str(v).strip():
             val = str(v).strip()
-            import re
+            from app.utils.email_validator import validate_and_normalize_email
+            normalized_emails = []
             for email in val.split(','):
                 email = email.strip()
-                if email and not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email):
-                    raise ValueError(f"Enter a valid email address: {email}")
+                if email:
+                    normalized_emails.append(validate_and_normalize_email(email))
+            return ', '.join(normalized_emails)
         return v
 
     @field_validator("gst_number", mode="before")
@@ -84,7 +98,7 @@ class OrganizationUpdate(BaseModel):
     contract_signed_date: Optional[date] = None
     contract_end_date: Optional[date] = None
     contract_document_url: Optional[str] = None
-    contact_number: Optional[str] = Field(None, pattern=r'^\d*$')
+    contact_number: Optional[str] = None
     country_code: Optional[str] = Field(None)
     band: Optional[str] = None
     rate: Optional[str] = None
@@ -107,6 +121,30 @@ class OrganizationUpdate(BaseModel):
                 raise ValueError(f"Invalid status. Allowed: {', '.join(allowed)}")
         return v
 
+    @field_validator("contact_number", mode="before")
+    @classmethod
+    def validate_contact_number(cls, v):
+        if v and str(v).strip():
+            val = str(v).strip()
+            import re
+            if not re.match(r"^\d{10}$", val):
+                raise ValueError("Contact number must be exactly 10 digits")
+            return val
+        return v or None
+
+    @field_validator("poc_contact", mode="before")
+    @classmethod
+    def validate_poc_phone(cls, v):
+        if v and str(v).strip():
+            val = str(v).strip()
+            import re
+            phones = [p.strip() for p in val.split(',') if p.strip()]
+            for phone in phones:
+                if not re.match(r"^\d{10}$", phone):
+                    raise ValueError("POC contact number must be exactly 10 digits")
+            return ', '.join(phones)
+        return v or None
+
     @field_validator("gst_number", mode="before")
     @classmethod
     def validate_gst(cls, v):
@@ -115,6 +153,20 @@ class OrganizationUpdate(BaseModel):
             import re
             if not re.match(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$", val):
                 raise ValueError("Invalid GST Number format (e.g. 36ABCDE1234F1Z5)")
+        return v
+
+    @field_validator("poc_email_id", mode="before")
+    @classmethod
+    def validate_org_email(cls, v):
+        if v and str(v).strip():
+            val = str(v).strip()
+            from app.utils.email_validator import validate_and_normalize_email
+            normalized_emails = []
+            for email in val.split(','):
+                email = email.strip()
+                if email:
+                    normalized_emails.append(validate_and_normalize_email(email))
+            return ', '.join(normalized_emails)
         return v
 
     @model_validator(mode='after')
