@@ -163,6 +163,11 @@ const mapToBackend = (data) => {
     }
   });
 
+  if (data.is_draft !== undefined) result.is_draft = data.is_draft;
+  if (data.isDraft !== undefined) result.is_draft = data.isDraft;
+  if (data.is_final_submit !== undefined) result.is_final_submit = data.is_final_submit;
+  if (data.isFinalSubmit !== undefined) result.is_final_submit = data.isFinalSubmit;
+
   return result;
 };
 

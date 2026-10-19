@@ -30,8 +30,12 @@ def test_candidate_crud(client: TestClient, db_session: Session):
         "skills": "Python, SQL, Linux",
         "total_experience": "3.5",
         "current_ctc": "60k",
+        "fixed_ctc": "50k",
         "expected_ctc": "80k",
         "notice_period": "30 Days",
+        "current_location": "Hyderabad",
+        "highest_qualification": "B.Tech",
+        "source": "LinkedIn",
         "profile_status": "Active"
     }
     response = client.post(

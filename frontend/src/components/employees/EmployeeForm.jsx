@@ -555,7 +555,9 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     }
     const isValid = await trigger(fieldsToValidate);
     if (isValid) {
-      onSubmit(getFilteredPayload());
+      const payload = getFilteredPayload();
+      payload.is_draft = false;
+      onSubmit(payload);
     }
   };
 
@@ -565,6 +567,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     const isValid = await trigger(fieldsToValidate);
     if (isValid) {
       const payload = getFilteredPayload();
+      payload.is_draft = false;
       payload.is_final_submit = true;
       onSubmit(payload);
     }
@@ -1367,7 +1370,9 @@ value={field.value}
             variant="secondary"
             className="border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
             onClick={() => {
-              onSubmit(getFilteredPayload());
+              const payload = getFilteredPayload();
+              payload.is_draft = true;
+              onSubmit(payload);
             }}
             disabled={isSubmitting}
           >

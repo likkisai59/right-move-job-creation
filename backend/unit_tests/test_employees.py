@@ -11,7 +11,8 @@ def test_employee_crud_and_filters(client: TestClient, db_session: Session):
         "last_name": "Doe",
         "email": "john.doe@example.com",
         "contact_number": "9999999999",
-        "designation": "Intern"
+        "designation": "Intern",
+        "is_draft": True
     }
     response = client.post("/api/employees", json=create_payload)
     assert response.status_code == 201
@@ -80,7 +81,8 @@ def test_employee_password_generation_on_100_percent_completion(client: TestClie
         "last_name": "Connor",
         "email": "sarah.connor@example.com",
         "contact_number": "9999999991",
-        "designation": "Team Lead"
+        "designation": "Team Lead",
+        "is_draft": True
     }
     response = client.post("/api/employees", json=create_payload)
     emp_id = response.json()["data"]["id"]
@@ -161,3 +163,75 @@ def test_employee_password_generation_on_100_percent_completion(client: TestClie
     digits = "".join(re.findall(r"\d+", db_emp.employee_id))
     expected_password = f"SConnor@{digits}"
     assert verify_password(expected_password, db_emp.employee_password)
+
+
+def test_employee_validation_rules(client: TestClient, db_session: Session):
+    # 1. Full submit (is_draft=False) with missing mandatory fields should fail (422)
+    incomplete_payload = {
+        "first_name": "Alice",
+        "last_name": "Smith",
+        "email": "alice@example.com",
+        "is_draft": False
+    }
+    res = client.post("/api/employees", json=incomplete_payload)
+    assert res.status_code == 422
+    err_body = str(res.json())
+    assert "Mandatory fields required" in err_body
+
+    # 2. Draft submit with only first_name should succeed (201)
+    draft_payload = {
+        "first_name": "AliceDraft",
+        "is_draft": True
+    }
+    res_draft = client.post("/api/employees", json=draft_payload)
+    assert res_draft.status_code == 201
+    assert res_draft.json()["success"] is True
+
+    # 3. Draft submit without first_name should fail (422)
+    empty_draft_payload = {
+        "last_name": "Smith",
+        "is_draft": True
+    }
+    res_empty_draft = client.post("/api/employees", json=empty_draft_payload)
+    assert res_empty_draft.status_code == 422
+
+    # 4. Full submit with Inactive status but missing last_working_date should fail (422)
+    inactive_missing_lwd = {
+        "first_name": "Inactive",
+        "last_name": "User",
+        "gender": "Male",
+        "date_of_birth": "1995-01-01",
+        "email": "inactive.user@example.com",
+        "contact_number": "9876543210",
+        "current_address": "Hyderabad",
+        "permanent_address": "Hyderabad",
+        "aadhar_number": "123456789012",
+        "pan_number": "ABCDE1234F",
+        "date_of_joining": "2024-01-01",
+        "status": "Inactive",
+        "is_draft": False
+    }
+    res_inactive_fail = client.post("/api/employees", json=inactive_missing_lwd)
+    assert res_inactive_fail.status_code == 422
+    assert "Last working date is required when status is Inactive" in str(res_inactive_fail.json())
+
+    # 5. Full submit with all 11 mandatory fields should succeed (201)
+    full_valid_payload = {
+        "first_name": "Bob",
+        "last_name": "Valid",
+        "gender": "Male",
+        "date_of_birth": "1992-03-15",
+        "email": "bob.valid@example.com",
+        "contact_number": "9123456780",
+        "current_address": "Bangalore, India",
+        "permanent_address": "Bangalore, India",
+        "aadhar_number": "987654321098",
+        "pan_number": "XYZAB5678C",
+        "date_of_joining": "2024-06-01",
+        "status": "Active",
+        "is_draft": False
+    }
+    res_valid = client.post("/api/employees", json=full_valid_payload)
+    assert res_valid.status_code == 201
+    assert res_valid.json()["success"] is True
+
