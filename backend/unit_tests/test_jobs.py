@@ -7,10 +7,17 @@ from app.models.job_candidate import JobCandidateMapping
 import io
 
 def test_job_crud_and_exports(client: TestClient, db_session: Session):
+    # 0. Create an organization
+    from app.models.organization import Organization
+    org = Organization(organization_name="Google", organization_id="ORG001", status="active")
+    db_session.add(org)
+    db_session.commit()
+
     # 1. Create a Job Requirement with nested requirements
     create_payload = {
         "requisition_open_date": "2026-06-17",
         "company_name": "Google",
+        "organization_id": org.id,
         "business_unit": "IT",
         "internal_spoc": "Recruiter Priya",
         "requirements": [
@@ -49,6 +56,7 @@ def test_job_crud_and_exports(client: TestClient, db_session: Session):
     update_payload = {
         "requisition_open_date": "2026-06-17",
         "company_name": "Google Alphabet",
+        "organization_id": org.id,
         "business_unit": "IT",
         "internal_spoc": "Recruiter Priya",
         "requirements": [

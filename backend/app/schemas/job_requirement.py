@@ -100,8 +100,8 @@ class RequirementResponse(BaseModel):
 class JobCreateRequest(BaseModel):
     requisition_open_date: date = Field(..., description="Date of the job requirement (YYYY-MM-DD)")
     company_name: str = Field(..., min_length=1, description="Name of the hiring company")
-    organization_id: Optional[int] = Field(default=None, description="Linked Organization Master ID")
-    business_unit: str = Field(default="IT", description="Options: IT, ITSM, BPO")
+    organization_id: int = Field(..., gt=0, description="Linked Organization Master ID")
+    business_unit: str = Field(..., min_length=1, description="Options: IT, ITSM, BPO")
     external_spoc: Optional[str] = Field(default=None, description="External SPOC Name")
     external_spoc_email_id: Optional[str] = Field(default=None, description="External SPOC Email ID")
     requirements: List[RequirementCreate] = Field(..., min_length=1, description="List of hiring requirements")
@@ -159,8 +159,8 @@ class JobCreateRequest(BaseModel):
 class JobUpdateRequest(BaseModel):
     requisition_open_date: date = Field(..., description="Date of the job requirement (YYYY-MM-DD)")
     company_name: str = Field(..., min_length=1, description="Name of the hiring company")
-    organization_id: Optional[int] = Field(default=None, description="Linked Organization Master ID")
-    business_unit: str = Field(default="IT", description="Options: IT, ITSM, BPO")
+    organization_id: int = Field(..., gt=0, description="Linked Organization Master ID")
+    business_unit: str = Field(..., min_length=1, description="Options: IT, ITSM, BPO")
     external_spoc: Optional[str] = Field(default=None, description="External SPOC Name")
     external_spoc_email_id: Optional[str] = Field(default=None, description="External SPOC Email ID")
     requirements: List[RequirementCreate] = Field(..., min_length=1, description="List of hiring requirements")
@@ -185,11 +185,11 @@ class JobResponse(BaseModel):
     requisition_open_date: date
     company_name: str
     organization_id: Optional[int] = None
-    business_unit: str
+    business_unit: Optional[str] = "IT"
     external_spoc: Optional[str] = None
     external_spoc_email_id: Optional[str] = None
     requirements: List[RequirementResponse]
-    internal_spoc: str
+    internal_spoc: Optional[str] = None
     created_by: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
