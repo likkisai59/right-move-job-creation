@@ -32,7 +32,7 @@ class OrganizationCreate(BaseModel):
     @field_validator("status")
     @classmethod
     def validate_status(cls, v: str) -> str:
-        allowed = {'active', 'complete', 'cancel'}
+        allowed = {'active', 'inactive'}
         if v not in allowed:
             raise ValueError(f"Invalid status. Allowed: {', '.join(allowed)}")
         return v
@@ -97,6 +97,15 @@ class OrganizationUpdate(BaseModel):
     cgst: Optional[float] = None
     sgst: Optional[float] = None
     igst: Optional[float] = None
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            allowed = {'active', 'inactive'}
+            if v not in allowed:
+                raise ValueError(f"Invalid status. Allowed: {', '.join(allowed)}")
+        return v
 
     @field_validator("gst_number", mode="before")
     @classmethod

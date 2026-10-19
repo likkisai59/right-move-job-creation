@@ -10,9 +10,8 @@ class Organization(Base):
     organization_name = Column(String(255), unique=True, nullable=False, index=True)
 
     status = Column(
-        SAEnum('active', 'complete', 'cancel', name="org_status_enum"),
+        SAEnum('active', 'inactive', name="org_status_enum"),
         nullable=False,
-        default='active',
     )
 
     contract_signed_date = Column(Date, nullable=True)

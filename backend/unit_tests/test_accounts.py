@@ -93,6 +93,7 @@ def test_accounts_full_flow(client: TestClient, db_session: Session):
     org = Organization(
         organization_id="ORG003",
         organization_name="Test Corp",
+        status="active",
         cgst=9.0,
         sgst=9.0,
         igst=0.0,

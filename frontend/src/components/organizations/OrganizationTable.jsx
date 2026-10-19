@@ -9,8 +9,7 @@ import { checkPermission } from '../../api/authApi';
 
 const STATUS_CONFIG = {
   active: { label: 'Active', classes: 'bg-blue-50 text-blue-700 border-blue-200' },
-  complete: { label: 'Complete', classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  cancel: { label: 'Cancel', classes: 'bg-gray-50 text-gray-700 border-gray-200' },
+  inactive: { label: 'Inactive', classes: 'bg-red-50 text-red-700 border-red-200' },
 };
 
 const OrganizationTable = ({ organizations = [], loading = false, onCreate, onDelete, filters, onFilterChange }) => {
@@ -103,7 +102,7 @@ const OrganizationTable = ({ organizations = [], loading = false, onCreate, onDe
       header: 'Status',
       filterKey: 'status',
       filterType: 'select',
-      filterOptions: [{value: '', label: 'All Statuses'}, {value: 'active', label: 'Active'}, {value: 'complete', label: 'Complete'}, {value: 'cancel', label: 'Cancel'}],
+      filterOptions: [{value: '', label: 'All Statuses'}, {value: 'active', label: 'Active'}, {value: 'inactive', label: 'Inactive'}],
       render: (val) => {
         const config = STATUS_CONFIG[val] || { label: val, classes: 'bg-gray-50 text-gray-500 border-gray-200' };
         return (
