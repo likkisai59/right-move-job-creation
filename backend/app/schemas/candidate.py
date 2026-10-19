@@ -35,28 +35,28 @@ class CandidateCreateRequest(BaseModel):
     phone_number: str = Field(..., min_length=1)
     country_code: str = Field("+91", min_length=1)
     alternative_contact_number: Optional[str] = None
-    current_location: Optional[str] = None
+    current_location: str = Field(..., min_length=1)
     preferred_location: Optional[str] = None
-    highest_qualification: Optional[str] = None
+    highest_qualification: str = Field(..., min_length=1)
     profile_status: Optional[str] = "Active"
 
     # ── Employee Details ──────────────────────────────────
     business_unit: str = Field(default="IT", description="Options: IT, ITES, BPO, Lateral, FLP, F&A")
     current_last_company: Optional[str] = None
     current_designation: Optional[str] = None
-    total_experience: ExperienceFloat = None
+    total_experience: ExperienceFloat = Field(...)
     relevant_experience_years: Optional[str] = None
     relevant_experience_by_skill: Optional[str] = None
     skills: Optional[str] = None
-    notice_period: Optional[str] = None
+    notice_period: str = Field(..., min_length=1)
     lwd: Optional[date] = None
     employment_location: Optional[str] = None
-    current_ctc: Optional[str] = None
-    fixed_ctc: Optional[str] = None
+    current_ctc: str = Field(..., min_length=1)
+    fixed_ctc: str = Field(..., min_length=1)
     variable_ctc: Optional[str] = None
-    expected_ctc: Optional[str] = None
+    expected_ctc: str = Field(..., min_length=1)
     reason_for_job_change: Optional[str] = None
-    source: Optional[str] = None
+    source: str = Field(..., min_length=1)
     comments: Optional[str] = None
     recruiter_name: Optional[str] = None
 
