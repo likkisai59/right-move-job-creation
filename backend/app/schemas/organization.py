@@ -4,14 +4,14 @@ from typing import Optional
 
 class OrganizationCreate(BaseModel):
     organization_name: str = Field(..., min_length=1)
-    status: str = Field(default="active")
+    status: str = Field(..., min_length=1)
     contract_signed_date: Optional[date] = None
     contract_end_date: Optional[date] = None
     contract_document_url: Optional[str] = None
     contact_number: Optional[str] = Field(None, pattern=r'^\d*$')
     country_code: Optional[str] = Field(None)
-    band: Optional[str] = None
-    rate: Optional[str] = None
+    band: str = Field(..., min_length=1)
+    rate: str = Field(..., min_length=1)
     poc_name: Optional[str] = None
     poc_country_code: Optional[str] = Field(None)
     poc_contact: Optional[str] = Field(None)

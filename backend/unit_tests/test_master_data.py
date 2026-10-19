@@ -163,7 +163,9 @@ def test_organization_crud(client: TestClient, db_session: Session):
         "primary_contact_email": "john@acme.com",
         "contract_signed_date": "2026-06-01",
         "contract_end_date": "2027-06-01",
-        "status": "active"
+        "status": "active",
+        "band": "L1",
+        "rate": "1000"
     }
     response = client.post("/api/organizations", json=payload)
     assert response.status_code == 201
