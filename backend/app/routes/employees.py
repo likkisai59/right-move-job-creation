@@ -140,7 +140,7 @@ async def upload_employee_file(file: UploadFile = File(...)):
 
 from app.core.security import require_roles
 
-@router.post("", dependencies=[Depends(require_roles(["admin", "hr", "director"]))])
+@router.post("", dependencies=[Depends(require_roles(["admin_user", "admin_admin", "super_admin", "hr", "admin", "director"]))])
 def create_employee(payload: EmployeeCreateRequest, db: Session = Depends(get_db)):
     """
     POST /api/employees

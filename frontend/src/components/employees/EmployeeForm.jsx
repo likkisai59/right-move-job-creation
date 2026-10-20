@@ -185,6 +185,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   // Access check based on System Role
   const systemRole = getSystemRole();
   const isSuperAdminOrAdminAdmin = systemRole === 'super_admin' || systemRole === 'admin_admin';
+  const isAdminUserRole = systemRole === 'admin_user';
 
   // Restrictions logic:
   // HR role can only edit HR form (Admin form disabled)
@@ -192,7 +193,7 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   // Account User cannot edit any (Both forms disabled)
   // Super Admin and Admin Admin can edit both
   const isHrDisabled = !isSuperAdminOrAdminAdmin && systemRole !== 'hr';
-  const isAdminDisabled = !isSuperAdminOrAdminAdmin && systemRole !== 'admin_user';
+  const isAdminDisabled = !isSuperAdminOrAdminAdmin && !isAdminUserRole;
 
   const {
     register,

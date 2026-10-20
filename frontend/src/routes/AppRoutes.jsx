@@ -135,36 +135,36 @@ const AppRoutes = () => {
                     <Route path="/dashboard" element={<Dashboard />} />
 
                      {/* Jobs */}
-                     <Route path="/jobs" element={<JobListPage />} />
+                     <Route path="/jobs" element={<PermissionProtectedRoute action="view_jobs"><JobListPage /></PermissionProtectedRoute>} />
                      <Route path="/jobs/create" element={<PermissionProtectedRoute action="add_job"><CreateJobPage /></PermissionProtectedRoute>} />
-                     <Route path="/jobs/:id" element={<JobDetailsPage />} />
-                     <Route path="/jobs/edit/:id" element={<EditJobPage />} />
+                     <Route path="/jobs/:id" element={<PermissionProtectedRoute action="view_jobs"><JobDetailsPage /></PermissionProtectedRoute>} />
+                     <Route path="/jobs/edit/:id" element={<PermissionProtectedRoute action="view_jobs"><EditJobPage /></PermissionProtectedRoute>} />
  
                      {/* Candidates */}
-                     <Route path="/candidates" element={<CandidateListPage />} />
+                     <Route path="/candidates" element={<PermissionProtectedRoute action="view_candidates"><CandidateListPage /></PermissionProtectedRoute>} />
                      <Route path="/candidates/create" element={<PermissionProtectedRoute action="add_candidate"><AddCandidatePage /></PermissionProtectedRoute>} />
-                     <Route path="/candidates/edit/:id" element={<EditCandidatePage />} />
-                     <Route path="/candidates/:id" element={<CandidateDetails />} />
+                     <Route path="/candidates/edit/:id" element={<PermissionProtectedRoute action="view_candidates"><EditCandidatePage /></PermissionProtectedRoute>} />
+                     <Route path="/candidates/:id" element={<PermissionProtectedRoute action="view_candidates"><CandidateDetails /></PermissionProtectedRoute>} />
  
                      {/* Global Search */}
                      <Route path="/search" element={<GlobalSearchPage />} />
  
                      {/* Organizations */}
-                     <Route path="/organizations" element={<OrganizationListPage />} />
+                     <Route path="/organizations" element={<PermissionProtectedRoute action="view_organizations"><OrganizationListPage /></PermissionProtectedRoute>} />
                      <Route path="/organizations/create" element={<PermissionProtectedRoute action="add_organization"><OrganizationCreatePage /></PermissionProtectedRoute>} />
-                     <Route path="/organizations/edit/:id" element={<OrganizationEditPage />} />
+                     <Route path="/organizations/edit/:id" element={<PermissionProtectedRoute action="view_organizations"><OrganizationEditPage /></PermissionProtectedRoute>} />
  
                      {/* Employees */}
-                     <Route path="/employees" element={<EmployeeListPage />} />
+                     <Route path="/employees" element={<PermissionProtectedRoute action="view_employees"><EmployeeListPage /></PermissionProtectedRoute>} />
                      <Route path="/employees/create" element={<PermissionProtectedRoute action="add_employee"><AddEmployeePage /></PermissionProtectedRoute>} />
-                     <Route path="/employees/edit/:id" element={<EditEmployeePage />} />
+                     <Route path="/employees/edit/:id" element={<PermissionProtectedRoute action="view_employees"><EditEmployeePage /></PermissionProtectedRoute>} />
 
                      {/* Accounts */}
-                     <Route path="/accounts" element={<AccountsPage />} />
-                     <Route path="/accounts/edit/:employeeId" element={<EditAccountPage />} />
+                     <Route path="/accounts" element={<PermissionProtectedRoute action="view_accounts"><AccountsPage /></PermissionProtectedRoute>} />
+                     <Route path="/accounts/edit/:employeeId" element={<PermissionProtectedRoute action="view_accounts"><EditAccountPage /></PermissionProtectedRoute>} />
 
                     {/* Settings */}
-                    <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/settings" element={<PermissionProtectedRoute action="view_settings"><SettingsPage /></PermissionProtectedRoute>} />
 
                     {/* Catch-all within protected area */}
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -168,6 +168,21 @@ export const checkPermission = (action) => {
     if (action === 'view_settings') {
         return ['admin_admin', 'super_admin'].includes(role);
     }
+    if (action === 'view_accounts') {
+        return ['account_user', 'admin_admin', 'super_admin'].includes(role);
+    }
+    if (action === 'view_candidates') {
+        return ['user', 'leader', 'super_admin', 'temporary'].includes(role);
+    }
+    if (action === 'view_jobs') {
+        return ['user', 'leader', 'super_admin'].includes(role);
+    }
+    if (action === 'view_organizations') {
+        return ['admin_user', 'admin_admin', 'super_admin', 'account_user'].includes(role);
+    }
+    if (action === 'view_employees') {
+        return ['hr', 'admin_user', 'admin_admin', 'super_admin', 'account_user'].includes(role);
+    }
     return true;
 };
 

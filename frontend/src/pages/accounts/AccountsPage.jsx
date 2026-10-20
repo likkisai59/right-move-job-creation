@@ -125,7 +125,7 @@ const AccountsPage = () => {
       await loadAllData();
     } catch (error) {
       console.error('Failed to update placement:', error);
-      alert('Error updating placement');
+      alert(error.response?.data?.message || 'Error updating placement');
     } finally {
       setSavingPlacement(false);
     }

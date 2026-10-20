@@ -190,9 +190,10 @@ from fastapi.encoders import jsonable_encoder
 async def validation_exception_handler(request, exc):
     logger.error(f"422 Validation Error: {exc.errors()}")
     logger.error(f"422 Request body: {exc.body}")
+    safe_body = str(exc.body) if not isinstance(exc.body, (dict, list, str, int, float, bool, type(None))) else exc.body
     return JSONResponse(
         status_code=422,
-        content={"detail": jsonable_encoder(exc.errors()), "body": exc.body}
+        content={"detail": jsonable_encoder(exc.errors()), "body": safe_body}
     )
 
 # ── CORS Middleware ───────────────────────────────────────────

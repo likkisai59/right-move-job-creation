@@ -79,7 +79,7 @@ async def parse_resume_endpoint(file: UploadFile = File(...)):
 
 from app.core.security import require_roles
 
-@router.post("", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles(["leader", "user"]))])
+@router.post("", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles(["leader", "user", "temporary", "super_admin"]))])
 async def add_candidate(
     # ── Personal Details ──────────────────────────────────
     first_name: str = Form(...),
@@ -824,12 +824,43 @@ def match_candidate_jobs(candidate_id: int, db: Session = Depends(get_db)):
         return JSONResponse(status_code=500, content=error_response("An internal server error occurred while matching jobs."))
 
 
-def get_current_user(authorization: Optional[str] = Header(None)):
+def get_current_user(
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
     if not authorization or not authorization.startswith("Bearer "):
         # In a real app, this would be 401. For mock auth, default to Recruiter if token is missing
         return {"role": "Recruiter", "id": 999}
     
-    token = authorization.split(" ")[1]
+    token = authorization.split(" ")[1].strip()
+
+    # 1. Real cryptographic JWT Token resolution
+    if token.count('.') == 2:
+        try:
+            from jose import jwt
+            from app.core.config import settings
+            from app.models.employee import Employee
+            payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+            user_sub = payload.get("sub")
+            role = payload.get("role") or payload.get("system_role") or ""
+            emp_id = 1
+            if user_sub:
+                emp = db.query(Employee).filter(
+                    (Employee.employee_id == user_sub) | (Employee.email == user_sub)
+                ).first()
+                if emp:
+                    emp_id = emp.id
+                    if emp.system_role and emp.system_role != "unassigned":
+                        role = emp.system_role
+                    elif not role and emp.designation:
+                        from app.core.security import ROLE_MAP_BY_DESIGNATION
+                        norm = emp.designation.strip().lower().replace(" ", "").replace(".", "").replace("-", "")
+                        role = ROLE_MAP_BY_DESIGNATION.get(norm, emp.designation)
+            return {"role": role, "id": emp_id}
+        except Exception as exc:
+            logger.warning(f"Failed to decode JWT token in candidates get_current_user: {exc}")
+
+    # 2. Backwards-compatible fallback for mock test tokens (e.g. "Bearer account_user", "Bearer admin", etc.)
     if "admin" in token.lower():
         return {"role": "Admin", "id": 1}
     elif "account" in token.lower():
