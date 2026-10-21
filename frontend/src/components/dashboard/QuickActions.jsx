@@ -27,6 +27,7 @@ const QuickActions = () => {
       icon: RefreshCw,
       onClick: () => navigate('/jobs'),
       variant: 'secondary',
+      permission: 'view_jobs'
     },
   ];
 

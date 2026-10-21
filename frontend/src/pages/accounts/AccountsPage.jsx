@@ -26,9 +26,11 @@ import {
   exportCreditDetails
 } from '../../api/accountsApi';
 import { updateSelectionDetails } from '../../api/candidatesApi';
+import { checkPermission } from '../../api/authApi';
 
 const AccountsPage = () => {
   const navigate = useNavigate();
+  const canEditAccounts = checkPermission('edit_accounts');
   const [activeTab, setActiveTab] = useState('baseline'); // baseline, placements, payroll, invoices
 
   // Data States
@@ -810,7 +812,7 @@ const AccountsPage = () => {
       subtitle="Manage your employee accounting details, salary baseline structure, placements, payroll runs, and invoices."
       actions={
         <div className="flex items-center gap-3">
-          {['placements', 'payroll', 'invoices'].includes(activeTab) && (
+          {canEditAccounts && ['placements', 'payroll', 'invoices'].includes(activeTab) && (
             <Button
               variant="danger"
               onClick={handleCloseMonth}
@@ -829,17 +831,19 @@ const AccountsPage = () => {
           >
             {exporting ? 'Exporting...' : 'Export Excel'}
           </Button>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setConfigForm({ pf_percentage: config.pf_percentage, tds_percentage: config.tds_percentage });
-              setConfigErrors({});
-              setIsConfigOpen(true);
-            }}
-            icon={Settings}
-          >
-            Set PF/TDS
-          </Button>
+          {canEditAccounts && (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setConfigForm({ pf_percentage: config.pf_percentage, tds_percentage: config.tds_percentage });
+                setConfigErrors({});
+                setIsConfigOpen(true);
+              }}
+              icon={Settings}
+            >
+              Set PF/TDS
+            </Button>
+          )}
         </div>
       }
     >
@@ -937,7 +941,7 @@ const AccountsPage = () => {
               setSortOrder(val.sortOrder);
             }}
           />
-          {activeTab === 'invoices' && (
+          {canEditAccounts && activeTab === 'invoices' && (
             <Button
               variant="primary"
               onClick={() => setIsGenerateInvoiceModalOpen(true)}
@@ -961,28 +965,29 @@ const AccountsPage = () => {
             data={filteredData}
             loading={loading}
             config={config}
-            onEdit={handleEditAccountClick}
+            onEdit={canEditAccounts ? handleEditAccountClick : null}
           />
         )}
         {activeTab === 'placements' && (
           <PlacementsTab
             data={filteredData}
             loading={loading}
-            onEditPlacement={handleEditPlacement}
+            onEditPlacement={canEditAccounts ? handleEditPlacement : null}
           />
         )}
         {activeTab === 'payroll' && (
           <PayrollCalculationsTab
             data={filteredData}
             loading={loading}
-            onEdit={handleEditAccountClick}
+            config={config}
+            onEdit={canEditAccounts ? handleEditAccountClick : null}
           />
         )}
         {activeTab === 'invoices' && (
           <OrganizationBillingTab
             data={filteredData}
             loading={loading}
-            onEditInvoice={handleEditInvoiceClick}
+            onEditInvoice={canEditAccounts ? handleEditInvoiceClick : null}
           />
         )}
       </div>

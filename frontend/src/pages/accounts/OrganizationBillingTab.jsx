@@ -239,7 +239,9 @@ const OrganizationBillingTab = ({ data = [], loading = false, onEditInvoice }) =
     srNo: index + 1,
   }));
 
-  return <Table columns={columns} data={processedData} loading={loading} />;
+  const finalColumns = columns.filter((col) => col.key !== 'actions' || Boolean(onEditInvoice));
+
+  return <Table columns={finalColumns} data={processedData} loading={loading} />;
 };
 
 export default OrganizationBillingTab;

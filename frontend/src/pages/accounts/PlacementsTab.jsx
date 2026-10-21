@@ -129,7 +129,9 @@ const PlacementsTab = ({ data = [], loading = false, onEditPlacement }) => {
     srNo: index + 1,
   }));
 
-  return <Table columns={columns} data={processedData} loading={loading} />;
+  const finalColumns = columns.filter((col) => col.key !== 'actions' || Boolean(onEditPlacement));
+
+  return <Table columns={finalColumns} data={processedData} loading={loading} />;
 };
 
 export default PlacementsTab;

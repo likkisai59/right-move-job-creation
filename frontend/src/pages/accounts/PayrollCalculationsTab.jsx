@@ -301,13 +301,15 @@ const PayrollCalculationsTab = ({ data = [], loading = false, onEdit }) => {
       header: 'Actions',
       render: (_, row) => (
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => onEdit && onEdit(row, 'payroll')}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
-            title="Edit salary configuration"
-          >
-            <Pencil size={15} />
-          </button>
+          {onEdit && (
+            <button
+              onClick={() => onEdit(row, 'payroll')}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+              title="Edit salary configuration"
+            >
+              <Pencil size={15} />
+            </button>
+          )}
           <button
             onClick={() => handlePrintSlip(row)}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"

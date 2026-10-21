@@ -900,7 +900,7 @@ def get_selection_details(candidate_id: int, db: Session = Depends(get_db)):
 def check_incentive_update_permission(role: str, user: dict = None) -> bool:
     """
     Hook for role-based access control on updating candidate incentives.
-    Restricted to Accounts or Admin users only.
+    Restricted to Accounts or Super Admin users only.
     """
     if user and user.get("id") == 999:
         # Compatibility for local test environment calls without explicit authorization headers
@@ -908,7 +908,7 @@ def check_incentive_update_permission(role: str, user: dict = None) -> bool:
     if not role:
         return False
     r = role.lower().strip()
-    return "account" in r or r in ["admin", "administrator", "super_admin", "admin_admin", "admin_user", "temporary"]
+    return "account" in r or r in ["super_admin", "director"]
 
 @router.put("/{candidate_id}/selection-details/{mapping_id}", status_code=status.HTTP_200_OK)
 def update_selection_details(

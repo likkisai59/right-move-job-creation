@@ -87,14 +87,19 @@ def get_current_user_system_role(
             payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
             emp_id = payload.get("sub")
             if emp_id:
-                emp = db.query(Employee).filter(Employee.employee_id == emp_id).first()
+                emp = db.query(Employee).filter(
+                    (Employee.employee_id == emp_id) | (Employee.email == emp_id)
+                ).first()
                 if emp:
                     if emp.system_role and emp.system_role != "unassigned":
                         return emp.system_role
                     if emp.designation:
                         norm = emp.designation.strip().lower().replace(" ", "").replace(".", "").replace("-", "")
                         return ROLE_MAP_BY_DESIGNATION.get(norm, "user")
-        except JWTError:
+            token_role = payload.get("role") or payload.get("system_role")
+            if token_role:
+                return token_role
+        except Exception:
             pass  # Fallback to legacy validation if token is malformed
 
     # 2. Backwards-compatible fallback: mock tokens (e.g. "mock-admin-token-1" or "token-1")
@@ -127,7 +132,7 @@ def require_roles(allowed_roles: list):
                 detail="Access Denied: Your account is pending role assignment by an Administrator."
             )
             
-        if norm == "super_admin" or norm == "admin_admin":
+        if norm == "super_admin":
             return user_role
             
         norm_allowed = [r.lower().strip() for r in allowed_roles]

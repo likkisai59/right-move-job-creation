@@ -147,11 +147,8 @@ export const getSystemRole = () => {
 export const checkPermission = (action) => {
     const role = getSystemRole();
 
-    if (role === 'unassigned') return false;
+    if (!role || role === 'unassigned') return false;
     if (role === 'super_admin') return true;
-
-    // Admin Admin has extensive rights, but no access to Candidate/Job
-    if (role === 'admin_admin' && !['add_job', 'add_candidate'].includes(action)) return true;
 
     if (action === 'add_employee') {
         return ['hr', 'admin_user', 'admin_admin', 'super_admin'].includes(role);
@@ -171,6 +168,9 @@ export const checkPermission = (action) => {
     if (action === 'view_accounts') {
         return ['account_user', 'admin_admin', 'super_admin'].includes(role);
     }
+    if (action === 'edit_accounts') {
+        return ['account_user', 'super_admin'].includes(role);
+    }
     if (action === 'view_candidates') {
         return ['user', 'leader', 'super_admin', 'temporary'].includes(role);
     }
@@ -183,6 +183,6 @@ export const checkPermission = (action) => {
     if (action === 'view_employees') {
         return ['hr', 'admin_user', 'admin_admin', 'super_admin', 'account_user'].includes(role);
     }
-    return true;
+    return false;
 };
 

@@ -306,13 +306,15 @@ const SalaryBaselineTab = ({ data = [], loading = false, config = { pf_percentag
       header: 'Actions',
       render: (_, row) => (
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => onEdit && onEdit(row, 'baseline')}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
-            title="Edit Salary Structure"
-          >
-            <Pencil size={15} />
-          </button>
+          {onEdit && (
+            <button
+              onClick={() => onEdit(row, 'baseline')}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+              title="Edit Salary Structure"
+            >
+              <Pencil size={15} />
+            </button>
+          )}
           <button
             onClick={() => handlePrintSlip(row)}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"

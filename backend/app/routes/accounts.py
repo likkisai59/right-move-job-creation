@@ -8,6 +8,8 @@ from app.schemas.payroll_config import PayrollConfigResponse, PayrollConfigUpdat
 from app.schemas.invoice import InvoiceResponse, InvoiceUpdate
 from app.services import accounts_service
 
+from app.core.security import require_roles
+
 router = APIRouter(prefix="/api/accounts", tags=["Accounts"])
 
 @router.get("/export")
@@ -37,7 +39,7 @@ def export_accounts(
 def list_accounts(db: Session = Depends(get_db)):
     return accounts_service.list_accounts(db)
 
-@router.post("/", response_model=AccountResponse)
+@router.post("/", response_model=AccountResponse, dependencies=[Depends(require_roles(["account_user", "super_admin", "director"]))])
 def create_account(payload: AccountCreate, db: Session = Depends(get_db)):
     try:
         return accounts_service.create_account(db, payload)
@@ -57,7 +59,7 @@ def get_account_by_employee(employee_id: int, db: Session = Depends(get_db)):
         )
     return account
 
-@router.put("/employee/{employee_id}", response_model=AccountResponse)
+@router.put("/employee/{employee_id}", response_model=AccountResponse, dependencies=[Depends(require_roles(["account_user", "super_admin", "director"]))])
 def update_account(employee_id: int, payload: AccountUpdate, db: Session = Depends(get_db)):
     try:
         return accounts_service.update_account(db, employee_id, payload)
@@ -70,7 +72,7 @@ def update_account(employee_id: int, payload: AccountUpdate, db: Session = Depen
 def get_payroll_config(db: Session = Depends(get_db)):
     return accounts_service.get_payroll_config(db)
 
-@router.put("/config", response_model=PayrollConfigResponse)
+@router.put("/config", response_model=PayrollConfigResponse, dependencies=[Depends(require_roles(["account_user", "super_admin", "director"]))])
 def update_payroll_config(payload: PayrollConfigUpdate, db: Session = Depends(get_db)):
     return accounts_service.update_payroll_config(
         db, 
@@ -90,7 +92,7 @@ def list_placements(db: Session = Depends(get_db)):
 def list_invoices(db: Session = Depends(get_db)):
     return accounts_service.list_invoices(db)
 
-@router.put("/invoices/{mapping_id}", response_model=InvoiceResponse)
+@router.put("/invoices/{mapping_id}", response_model=InvoiceResponse, dependencies=[Depends(require_roles(["account_user", "super_admin", "director"]))])
 def update_invoice(mapping_id: int, payload: InvoiceUpdate, db: Session = Depends(get_db)):
     accounts_service.update_invoice(db, mapping_id, payload)
     updated = accounts_service.get_invoice_by_mapping_id(db, mapping_id)
@@ -101,7 +103,7 @@ def update_invoice(mapping_id: int, payload: InvoiceUpdate, db: Session = Depend
         )
     return updated
 
-@router.post("/close-month")
+@router.post("/close-month", dependencies=[Depends(require_roles(["account_user", "super_admin", "director"]))])
 def close_month(db: Session = Depends(get_db)):
     return accounts_service.close_salary_cycle(db)
 

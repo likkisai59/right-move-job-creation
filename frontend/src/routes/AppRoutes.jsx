@@ -161,7 +161,7 @@ const AppRoutes = () => {
 
                      {/* Accounts */}
                      <Route path="/accounts" element={<PermissionProtectedRoute action="view_accounts"><AccountsPage /></PermissionProtectedRoute>} />
-                     <Route path="/accounts/edit/:employeeId" element={<PermissionProtectedRoute action="view_accounts"><EditAccountPage /></PermissionProtectedRoute>} />
+                     <Route path="/accounts/edit/:employeeId" element={<PermissionProtectedRoute action="edit_accounts"><EditAccountPage /></PermissionProtectedRoute>} />
 
                     {/* Settings */}
                     <Route path="/settings" element={<PermissionProtectedRoute action="view_settings"><SettingsPage /></PermissionProtectedRoute>} />
