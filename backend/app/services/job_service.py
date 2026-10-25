@@ -1,6 +1,6 @@
 import json
 from datetime import date
-from typing import List, Optional
+from typing import List, Optional, Union, Any
 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
@@ -335,18 +335,31 @@ def get_requirement_skills(requirement: JobRequirement) -> List[str]:
         req_skills_set.update(parse_skills(requirement.mandatory_skill))
     return list(req_skills_set)
 
-def extract_experience_years(experience_str: Optional[str]) -> int:
+def extract_experience_years(experience_val: Optional[Union[str, int, float]]) -> int:
     """
-    Extract numeric years from experience string.
-    Examples: "5 years" -> 5, "2-3 years" -> 2, "fresher" -> 0, "5" -> 5
+    Extract numeric years from experience string or numeric value.
+    Supports floats (3.5), ints (3), strings ("5 years", "2-3 years", "fresher").
     """
-    if not experience_str or experience_str.lower() == 'fresher':
+    if not experience_val:
+        return 0
+    
+    if isinstance(experience_val, (int, float)):
+        try:
+            return int(experience_val)
+        except (ValueError, TypeError):
+            return 0
+            
+    exp_str = str(experience_val).strip()
+    if not exp_str or exp_str.lower() == 'fresher':
         return 0
     
     import re
-    match = re.search(r'\d+', experience_str)
+    match = re.search(r'\d+', exp_str)
     if match:
-        return int(match.group())
+        try:
+            return int(match.group())
+        except (ValueError, TypeError):
+            return 0
     return 0
 
 def get_job_location(db: Session, job_id: int) -> Optional[str]:
@@ -617,28 +630,49 @@ def get_shortlisted_candidates(db: Session, job_id: int) -> List[dict]:
         JobCandidateMapping.status != "Matched"
     ).all()
     
+    if not mappings:
+        return []
+
     candidate_ids = [m.candidate_id for m in mappings]
     candidates = db.query(Candidate).filter(Candidate.id.in_(candidate_ids)).all()
     
     results = []
     mapping_dict = {m.candidate_id: m for m in mappings}
     
+    def format_date_val(val: Any) -> Optional[str]:
+        if not val:
+            return None
+        return val.isoformat() if hasattr(val, "isoformat") else str(val)
+
     for candidate in candidates:
-        m = mapping_dict[candidate.id]
+        m = mapping_dict.get(candidate.id)
+        if not m:
+            continue
+            
+        try:
+            exp_years = extract_experience_years(candidate.relevant_experience_years or candidate.total_experience)
+        except Exception:
+            exp_years = 0
+
+        first_name = candidate.first_name or ""
+        last_name = candidate.last_name or ""
+        candidate_name = f"{first_name} {last_name}".strip()
+
         results.append({
             "candidate_id": candidate.id,
             "candidate_code": candidate.candidate_code,
-            "name": f"{candidate.first_name} {candidate.last_name}",
+            "name": candidate_name,
             "skills": parse_skills(candidate.skills),
-            "experience": extract_experience_years(candidate.relevant_experience_years or candidate.total_experience),
+            "experience": exp_years,
             "match_score": m.match_score or 0,
             "status": m.status,
             "mapping_id": m.id,
-            "interview_date": m.interview_date.isoformat() if m.interview_date else None,
+            "interview_date": format_date_val(m.interview_date),
             "interview_time": m.interview_time,
-            "approval_date": m.approval_date.isoformat() if m.approval_date else None,
-            "rejection_date": m.rejection_date.isoformat() if m.rejection_date else None,
-            "joining_date": m.joining_date.isoformat() if m.joining_date else None,
+            "approval_date": format_date_val(m.approval_date),
+            "rejection_date": format_date_val(m.rejection_date),
+            "joining_date": format_date_val(m.joining_date),
+            "lwd": format_date_val(getattr(m, "lwd", None)),
             "band": m.band,
             "salary_offered": m.salary_offered,
             "rate_card": m.rate_card,

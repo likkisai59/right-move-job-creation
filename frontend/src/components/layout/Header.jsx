@@ -1,9 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Bell, Menu, LogOut, ChevronDown, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { logout, getCurrentUser } from '../../api/authApi';
+import { logout, getCurrentUser, getSystemRole } from '../../api/authApi';
 import { fetchUnreadNotifications, markNotificationAsRead } from '../../api/notificationsApi';
 import { getSecureMediaUrl } from '../../utils/mediaUtils';
+
+const ROLE_DISPLAY_NAMES = {
+  super_admin: 'Super Admin',
+  admin_admin: 'Admin Admin',
+  admin_user: 'Admin User',
+  account_user: 'Account User',
+  hr: 'HR',
+  leader: 'Leader',
+  user: 'Recruiter',
+  temporary: 'Temporary',
+  unassigned: 'Unassigned',
+  employee: 'Employee',
+};
 
 const Header = ({ onSidebarToggle }) => {
   const [searchValue, setSearchValue] = useState('');
@@ -12,6 +25,8 @@ const Header = ({ onSidebarToggle }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const navigate = useNavigate();
   const user = getCurrentUser() || { username: 'Admin', role: 'Administrator' };
+  const systemRole = getSystemRole();
+  const displayRole = ROLE_DISPLAY_NAMES[systemRole] || (systemRole && systemRole !== 'unassigned' ? systemRole.replace(/_/g, ' ') : (user.role || 'Employee'));
 
   useEffect(() => {
     let interval;
@@ -158,7 +173,7 @@ const Header = ({ onSidebarToggle }) => {
             <div className="hidden sm:block text-left">
               <p className="text-sm font-bold text-gray-800 leading-none">{user.username}</p>
               <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wider leading-none">
-                {user.role}
+                {displayRole}
               </p>
             </div>
             <ChevronDown size={14} className={`text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
