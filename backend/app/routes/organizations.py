@@ -18,11 +18,12 @@ from app.services.organization_service import (
     check_organization_exists,
     export_organizations_to_excel
 )
+from app.core.security import require_roles
 from app.utils.response import success_response, error_response
 
 router = APIRouter(prefix="/api/organizations", tags=["Organizations"])
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles(["admin_user", "admin_admin", "super_admin"]))])
 def add_organization(payload: OrganizationCreate, db: Session = Depends(get_db)):
     try:
         new_org = create_organization(db, payload)
@@ -118,7 +119,7 @@ def get_organization(org_id: int, db: Session = Depends(get_db)):
     except Exception as exc:
         return JSONResponse(status_code=500, content=error_response(str(exc)))
 
-@router.put("/{org_id}", status_code=status.HTTP_200_OK)
+@router.put("/{org_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(require_roles(["admin_admin", "super_admin"]))])
 def edit_organization(org_id: int, payload: OrganizationUpdate, db: Session = Depends(get_db)):
     try:
         updated_org = update_organization(db, org_id, payload)
@@ -135,7 +136,7 @@ def edit_organization(org_id: int, payload: OrganizationUpdate, db: Session = De
         db.rollback()
         return JSONResponse(status_code=500, content=error_response(str(exc)))
 
-@router.delete("/{org_id}", status_code=status.HTTP_200_OK)
+@router.delete("/{org_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(require_roles(["admin_admin", "super_admin"]))])
 def remove_organization(org_id: int, db: Session = Depends(get_db)):
     try:
         success = delete_organization(db, org_id)

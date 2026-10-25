@@ -134,55 +134,101 @@ export const getSystemRole = () => {
             if (empData.system_role) return empData.system_role.toLowerCase().trim();
         } catch (e) {}
     }
-    // 3. Fallback: derive from designation
-    const designation = getUserDesignation().toLowerCase().trim().replace(/[\s\.-]+/g, '');
-    if (designation.includes('director')) return 'super_admin';
-    if (designation.includes('admin')) return 'admin_admin';
-    if (designation.includes('hr')) return 'hr';
-    if (designation.includes('tl') || designation.includes('lead')) return 'leader';
-    if (designation.includes('executive') || designation.includes('recruiter')) return 'user';
+    // Strict RBAC: No designation fallback. Unassigned by default.
     return 'unassigned';
 };
 
-export const checkPermission = (action) => {
-    const role = getSystemRole();
+// ── Single Source of Truth for Role Permissions ─────────────────
+export const SYSTEM_ROLE_PERMISSIONS = {
+    super_admin: ['*'],
+
+    admin_admin: [
+        'view_home', 'view_dashboard',
+        'view_organizations', 'add_organization', 'edit_organization', 'delete_organization',
+        'view_employees', 'add_employee', 'edit_employee', 'delete_employee',
+        'view_accounts', // View-only in Accounts module
+        'view_settings', 'manage_settings',
+        'view_rmep', 'manage_rmep',
+    ],
+
+    admin_user: [
+        'view_home', 'view_dashboard',
+        'view_organizations', 'add_organization',
+        'view_employees', 'add_employee', 'edit_employee',
+        'view_rmep', 'manage_rmep',
+    ],
+
+    hr: [
+        'view_home', 'view_dashboard',
+        'view_employees', 'add_employee', 'edit_employee', 'delete_employee',
+        'view_rmep', 'manage_rmep',
+    ],
+
+    leader: [
+        'view_home', 'view_dashboard',
+        'view_jobs', 'add_job', 'edit_job',
+        'view_candidates', 'add_candidate', 'edit_candidate', 'delete_candidate',
+        'view_rmep', 'manage_rmep',
+    ],
+
+    user: [
+        'view_home', 'view_dashboard',
+        'view_jobs', // mapping only / view
+        'view_candidates', 'add_candidate', 'edit_candidate',
+        'view_rmep',
+    ],
+
+    account_user: [
+        'view_home', 'view_dashboard',
+        'view_organizations',
+        'view_employees',
+        'view_accounts', 'edit_accounts',
+        'view_rmep', 'manage_rmep',
+    ],
+
+    temporary: [
+        'view_home',
+        'view_candidates', 'add_candidate', 'edit_candidate',
+        'view_rmep',
+    ],
+
+    employee: [
+        'view_home',
+        'view_rmep',
+    ],
+
+    unassigned: [],
+};
+
+// ── Single Source of Truth for Navigation Access ────────────────
+export const ROLE_NAVIGATION_ACCESS = {
+    super_admin: ['Home', 'Dashboard', 'Jobs', 'Candidates', 'Organizations', 'Employees', 'RMEP', 'Accounts', 'Settings'],
+    admin_admin: ['Home', 'Dashboard', 'Organizations', 'Employees', 'RMEP', 'Accounts', 'Settings'],
+    admin_user: ['Home', 'Dashboard', 'Organizations', 'Employees', 'RMEP'],
+    hr: ['Home', 'Dashboard', 'Employees', 'RMEP'],
+    leader: ['Home', 'Dashboard', 'Jobs', 'Candidates', 'RMEP'],
+    user: ['Home', 'Dashboard', 'Jobs', 'Candidates', 'RMEP'],
+    account_user: ['Home', 'Dashboard', 'Organizations', 'Employees', 'RMEP', 'Accounts'],
+    temporary: ['Home', 'Candidates'],
+    employee: ['Home', 'RMEP'],
+    unassigned: [],
+};
+
+export const hasNavPermission = (navLabel, customRole = null) => {
+    if (navLabel === 'Home') return true;
+    const role = customRole || getSystemRole();
+    if (role === 'super_admin') return true;
+    const allowedNavs = ROLE_NAVIGATION_ACCESS[role] || [];
+    return allowedNavs.includes(navLabel);
+};
+
+export const checkPermission = (action, customRole = null) => {
+    const role = customRole || getSystemRole();
 
     if (!role || role === 'unassigned') return false;
     if (role === 'super_admin') return true;
 
-    if (action === 'add_employee') {
-        return ['hr', 'admin_user', 'admin_admin', 'super_admin'].includes(role);
-    }
-    if (action === 'add_organization') {
-        return ['admin_user', 'admin_admin', 'super_admin'].includes(role);
-    }
-    if (action === 'add_job') {
-        return ['leader', 'super_admin'].includes(role);
-    }
-    if (action === 'add_candidate') {
-        return ['user', 'leader', 'super_admin', 'temporary'].includes(role);
-    }
-    if (action === 'view_settings') {
-        return ['admin_admin', 'super_admin'].includes(role);
-    }
-    if (action === 'view_accounts') {
-        return ['account_user', 'admin_admin', 'super_admin'].includes(role);
-    }
-    if (action === 'edit_accounts') {
-        return ['account_user', 'super_admin'].includes(role);
-    }
-    if (action === 'view_candidates') {
-        return ['user', 'leader', 'super_admin', 'temporary'].includes(role);
-    }
-    if (action === 'view_jobs') {
-        return ['user', 'leader', 'super_admin'].includes(role);
-    }
-    if (action === 'view_organizations') {
-        return ['admin_user', 'admin_admin', 'super_admin', 'account_user'].includes(role);
-    }
-    if (action === 'view_employees') {
-        return ['hr', 'admin_user', 'admin_admin', 'super_admin', 'account_user'].includes(role);
-    }
-    return false;
+    const permissions = SYSTEM_ROLE_PERMISSIONS[role] || [];
+    return permissions.includes(action) || permissions.includes('*');
 };
 

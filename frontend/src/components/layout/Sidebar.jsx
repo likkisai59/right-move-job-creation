@@ -13,7 +13,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { APP_NAME, APP_SHORT } from '../../utils/constants';
-import { getSystemRole, getCurrentEmployee } from '../../api/authApi';
+import { getSystemRole, getCurrentEmployee, hasNavPermission } from '../../api/authApi';
 import { getSecureMediaUrl } from '../../utils/mediaUtils';
 
 const NAV_ITEMS = [
@@ -35,37 +35,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
   const employeeEmail = employee.official_email_id || employee.email || 'admin@rightmove.in';
   const initials = employeeName.substring(0, 2).toUpperCase();
 
-  const filteredNavItems = NAV_ITEMS.filter(({ label }) => {
-    // Everyone sees Home (or Dashboard instead, but we'll leave Home for basics)
-    if (label === 'Home') return true;
-
-    // Based on the user's explicit instructions:
-    if (role === 'super_admin') return true;
-    
-    if (role === 'admin_admin') {
-      return ['Organization', 'Organizations', 'Employees', 'RMEP', 'Settings', 'Accounts', 'Home'].includes(label);
-    }
-    
-    if (role === 'admin_user') {
-      return ['Employees', 'Organization', 'Organizations', 'RMEP', 'Home'].includes(label);
-    }
-    
-    if (role === 'hr') {
-      return ['Employees', 'RMEP', 'Home'].includes(label);
-    }
-    
-    if (role === 'account_user') {
-      return ['Employees', 'Organization', 'Organizations', 'RMEP', 'Accounts', 'Home'].includes(label);
-    }
-    
-    if (role === 'leader' || role === 'user') {
-      return ['Candidates', 'Jobs', 'RMEP', 'Home'].includes(label);
-    }
-
-    if (role === 'temporary') return ['Candidates'].includes(label);
-
-    return false;
-  });
+  const filteredNavItems = NAV_ITEMS.filter(({ label }) => hasNavPermission(label, role));
 
   return (
     <aside

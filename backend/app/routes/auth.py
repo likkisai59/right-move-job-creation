@@ -59,22 +59,17 @@ def login(payload: EmployeeLoginRequest, db: Session = Depends(get_db)):
                 })
             )
 
-        from app.core.security import ROLE_MAP_BY_DESIGNATION
-        user_system_role = target_employee.system_role
-        if not user_system_role or user_system_role == "unassigned":
-            if target_employee.designation:
-                norm = target_employee.designation.strip().lower().replace(" ", "").replace(".", "").replace("-", "")
-                user_system_role = ROLE_MAP_BY_DESIGNATION.get(norm, "unassigned")
-            else:
-                user_system_role = "unassigned"
+        user_system_role = (target_employee.system_role or "unassigned").strip().lower()
 
+        # Legacy login response format compatibility (admin vs employee UI session storage)
         desig_lower = (target_employee.designation or "").strip().lower()
         is_admin = "admin" in desig_lower or "director" in desig_lower
 
-        # Create real JWT token
+        # Create real JWT token strictly based on system_role (NEVER designation)
         token_payload = {
             "sub": target_employee.employee_id,
-            "role": user_system_role
+            "role": user_system_role,
+            "system_role": user_system_role
         }
         jwt_token = create_access_token(data=token_payload)
 

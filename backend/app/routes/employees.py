@@ -140,7 +140,7 @@ async def upload_employee_file(file: UploadFile = File(...)):
 
 from app.core.security import require_roles
 
-@router.post("", dependencies=[Depends(require_roles(["admin_user", "admin_admin", "super_admin", "hr", "admin", "director"]))])
+@router.post("", dependencies=[Depends(require_roles(["admin_user", "admin_admin", "super_admin", "hr"]))])
 def create_employee(payload: EmployeeCreateRequest, db: Session = Depends(get_db)):
     """
     POST /api/employees
@@ -295,7 +295,7 @@ def get_employee(employee_id: int, db: Session = Depends(get_db)):
 # UPDATE EMPLOYEE
 # ─────────────────────────────────────────────────────────────
 
-@router.put("/{employee_id}")
+@router.put("/{employee_id}", dependencies=[Depends(require_roles(["admin_user", "admin_admin", "super_admin", "hr"]))])
 def update_employee(
     employee_id: int, 
     payload: EmployeeUpdateRequest, 
@@ -303,7 +303,7 @@ def update_employee(
 ):
     """
     PUT /api/employees/{id}
-    Updates an existing employee.
+    Updates an existing employee. Allowed roles: HR, Admin User, Admin Admin, Super Admin.
     """
     try:
         employee = employee_service.update_employee(db, employee_id, payload)
@@ -322,7 +322,7 @@ def update_employee(
 # DELETE EMPLOYEE
 # ─────────────────────────────────────────────────────────────
 
-@router.delete("/{employee_id}")
+@router.delete("/{employee_id}", dependencies=[Depends(require_roles(["admin_admin", "super_admin", "hr"]))])
 def delete_employee(employee_id: int, db: Session = Depends(get_db)):
     """
     DELETE /api/employees/{id}

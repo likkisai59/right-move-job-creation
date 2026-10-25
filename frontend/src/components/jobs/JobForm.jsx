@@ -112,6 +112,8 @@ const JobForm = ({ defaultValues, onSubmit, loading = false, isEdit = false }) =
         const res = await fetchEmployees({ status: 'Active' });
         if (res && res.data) {
           const allowedAssignees = res.data.filter(emp => {
+            const role = (emp.systemRole || '').toLowerCase().trim();
+            if (['user', 'leader', 'temporary'].includes(role)) return true;
             if (!emp.designation) return false;
             const norm = emp.designation.toLowerCase().trim().replace(/[\s\.-]+/g, '');
             return ['atl', 'seniorexecutive', 'executive', 'trainee', 'intern'].includes(norm);

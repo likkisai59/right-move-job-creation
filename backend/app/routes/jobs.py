@@ -30,6 +30,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from pydantic import BaseModel
 from app.core.database import get_db
+from app.core.security import require_roles
 from app.utils.s3 import upload_to_s3
 from app.schemas.candidate import CandidateResponse
 from app.schemas.job_requirement import (
@@ -65,6 +66,7 @@ router = APIRouter(
     summary="Create Job Requirement",
     description="Creates a new job requirement and stores it in the database.",
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_roles(["leader", "super_admin"]))],
 )
 def create_job(
     payload: JobCreateRequest,       # Pydantic validates the request body
@@ -392,6 +394,7 @@ def get_job(
     summary="Update Job Requirement",
     description="Updates an existing job requirement.",
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["leader", "super_admin"]))],
 )
 def update_job_endpoint(
     job_id: int,
