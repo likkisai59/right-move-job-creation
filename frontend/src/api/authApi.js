@@ -209,7 +209,7 @@ export const ROLE_NAVIGATION_ACCESS = {
     leader: ['Home', 'Dashboard', 'Jobs', 'Candidates', 'RMEP'],
     user: ['Home', 'Dashboard', 'Jobs', 'Candidates', 'RMEP'],
     account_user: ['Home', 'Dashboard', 'Organizations', 'Employees', 'RMEP', 'Accounts'],
-    temporary: ['Home', 'Candidates'],
+    temporary: ['Home', 'Candidates', 'RMEP'],
     employee: ['Home', 'RMEP'],
     unassigned: [],
 };

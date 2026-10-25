@@ -33,26 +33,34 @@ const AttendancePortalLayout = () => {
     navigate('/login');
   };
 
-  const navItems = [
-    { name: 'Assigned Tasks', path: '/attendance/portal/tasks', icon: Briefcase },
-    { name: 'Leave Management', path: '/attendance/portal/leaves', icon: ClipboardList },
-    { name: 'Attendance Status', path: '/attendance/portal/status', icon: PieChart },
-    { name: 'Tickets', path: '/attendance/portal/tickets', icon: CheckSquare },
-  ];
-
   const role = getSystemRole();
-  const allowedRoles = ['leader', 'admin_user', 'admin_admin', 'super_admin'];
 
-  if (allowedRoles.includes(role)) {
-    navItems.push({ name: 'Manage Approvals', path: '/attendance/portal/approvals', icon: CheckSquare });
+  let navItems = [];
+  if (role === 'temporary') {
+    // Temporary role only has access to Leave Management in RMEP
+    navItems = [
+      { name: 'Leave Management', path: '/attendance/portal/leaves', icon: ClipboardList }
+    ];
+  } else {
+    navItems = [
+      { name: 'Assigned Tasks', path: '/attendance/portal/tasks', icon: Briefcase },
+      { name: 'Leave Management', path: '/attendance/portal/leaves', icon: ClipboardList },
+      { name: 'Attendance Status', path: '/attendance/portal/status', icon: PieChart },
+      { name: 'Tickets', path: '/attendance/portal/tickets', icon: CheckSquare },
+    ];
+
+    const allowedRoles = ['leader', 'admin_user', 'admin_admin', 'super_admin'];
+    if (allowedRoles.includes(role)) {
+      navItems.push({ name: 'Manage Approvals', path: '/attendance/portal/approvals', icon: CheckSquare });
+    }
+
+    navItems.push({
+      name: 'Attendance Marking',
+      path: '/attendance/portal/mark',
+      icon: CalendarCheck,
+      disabled: !FEATURE_FLAGS.enableAttendanceMarking
+    });
   }
-
-  navItems.push({
-    name: 'Attendance Marking',
-    path: '/attendance/portal/mark',
-    icon: CalendarCheck,
-    disabled: !FEATURE_FLAGS.enableAttendanceMarking
-  });
 
 
   return (

@@ -76,6 +76,23 @@ const ManagerProtectedRoute = ({ children }) => {
   return children;
 };
 
+// ── Temporary Role Guard for RMEP (Leaves Only) ──────────────
+const TemporaryLeaveOnlyRoute = ({ children }) => {
+  const role = getSystemRole();
+  if (role === 'temporary') {
+    return <Navigate to="/attendance/portal/leaves" replace />;
+  }
+  return children;
+};
+
+const AttendanceIndexRedirect = () => {
+  const role = getSystemRole();
+  if (role === 'temporary') {
+    return <Navigate to="leaves" replace />;
+  }
+  return <Navigate to="mark" replace />;
+};
+
 const AppRoutes = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const toggleSidebar = () => setSidebarCollapsed((prev) => !prev);
@@ -97,11 +114,11 @@ const AppRoutes = () => {
           </EmployeeProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="mark" replace />} />
-        <Route path="mark" element={<AttendanceMarking />} />
-        <Route path="tasks" element={<AssignedTasks />} />
+        <Route index element={<AttendanceIndexRedirect />} />
+        <Route path="mark" element={<TemporaryLeaveOnlyRoute><AttendanceMarking /></TemporaryLeaveOnlyRoute>} />
+        <Route path="tasks" element={<TemporaryLeaveOnlyRoute><AssignedTasks /></TemporaryLeaveOnlyRoute>} />
         <Route path="leaves" element={<LeaveManagement />} />
-        <Route path="status" element={<AttendanceStatus />} />
+        <Route path="status" element={<TemporaryLeaveOnlyRoute><AttendanceStatus /></TemporaryLeaveOnlyRoute>} />
         <Route
           path="approvals"
           element={
@@ -110,7 +127,7 @@ const AppRoutes = () => {
             </ManagerProtectedRoute>
           }
         />
-        <Route path="tickets" element={<TicketManagement />} />
+        <Route path="tickets" element={<TemporaryLeaveOnlyRoute><TicketManagement /></TemporaryLeaveOnlyRoute>} />
       </Route>
 
       {/* Admin Dashboard & CRM Routes */}
