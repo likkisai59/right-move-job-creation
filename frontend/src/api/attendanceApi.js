@@ -109,3 +109,16 @@ export const deleteOptionalHoliday = async (holidayId) => {
   const response = await axios.delete(`/attendance/optional-holidays/${holidayId}`);
   return response.data;
 };
+
+
+export const getOptionalHolidaysLimit = async () => {
+  const response = await axios.get('/attendance/optional-holidays/limit');
+  return response.data;
+};
+
+export const setOptionalHolidaysLimit = async (limit) => {
+  const response = await axios.post('/attendance/optional-holidays/limit', null, {
+    params: { limit }
+  });
+  return response.data;
+};

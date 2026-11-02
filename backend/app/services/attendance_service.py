@@ -72,11 +72,35 @@ def create_leave_request(db: Session, payload: LeaveCreate) -> Leave:
     """
     Apply for a new leave request.
     """
+    from datetime import date
+    from sqlalchemy import func
+
+    # Validate past dates: today + future dates only
+    if payload.start_date < date.today():
+        raise ValueError("Past dates are not allowed. Please select today or a future date.")
+    if payload.end_date < payload.start_date:
+        raise ValueError("Start date cannot be after end date.")
+
     # Calculate duration in days
     if payload.session_type in ["First Half", "Second Half"] or payload.leave_type.strip().lower() == "half day leave":
         num_days = 0.5
     else:
         num_days = float((payload.end_date - payload.start_date).days + 1)
+
+    # Validate Paid Leave quota against accrued available balance
+    if payload.leave_type.strip().lower() == "paid leave":
+        config = get_leave_config(db, payload.employee_id)
+        if config:
+            accrued = float(config.get("leaves", 0.0) or 0.0)
+            used = db.query(func.sum(Leave.total_leaves)).filter(
+                Leave.employee_id == payload.employee_id,
+                Leave.status == "Approved",
+                Leave.leave_type.ilike("%paid%")
+            ).scalar() or 0.0
+            available = max(0.0, accrued - float(used))
+            if num_days > available:
+                s_suffix = 's' if available != 1 else ''
+                raise ValueError(f"You have only {available:g} leave{s_suffix} available.")
     
     new_leave = Leave(
         **payload.model_dump(),
@@ -284,7 +308,8 @@ def get_leave_config(db: Session, employee_id: int) -> Optional[dict]:
         "leaves": leaves_limit,
         "monthly_leaves": monthly_quota if 'monthly_quota' in locals() else 0.0,
         "holidays": holidays_list,
-        "optional_holidays": get_all_optional_holidays(db, employee_id=employee_id)
+        "optional_holidays": get_all_optional_holidays(db, employee_id=employee_id),
+        "max_optional_holidays": get_optional_holidays_limit(db)
     }
 
 def save_designation_config(db: Session, config_data: List[dict]) -> bool:
@@ -315,6 +340,27 @@ def save_designation_config(db: Session, config_data: List[dict]) -> bool:
             raise ValueError("Database columns 'leaves' and 'holidays' are not created yet. Please run the SQL alter table commands manually in your database.")
         raise e
 
+
+def get_optional_holidays_limit(db: Session) -> int:
+    try:
+        from app.models.system_setting import SystemSetting
+        setting = db.query(SystemSetting).filter(SystemSetting.key == "max_optional_holidays_per_year").first()
+        if setting and setting.value:
+            return int(setting.value)
+    except Exception:
+        pass
+    return 2
+
+def set_optional_holidays_limit(db: Session, limit: int) -> int:
+    from app.models.system_setting import SystemSetting
+    setting = db.query(SystemSetting).filter(SystemSetting.key == "max_optional_holidays_per_year").first()
+    if setting:
+        setting.value = str(limit)
+    else:
+        setting = SystemSetting(key="max_optional_holidays_per_year", value=str(limit))
+        db.add(setting)
+    db.commit()
+    return limit
 
 # ── Optional Holidays ─────────────────────────────────────────────────────────
 
@@ -395,8 +441,9 @@ def select_optional_holiday(db: Session, employee_id: int, holiday_id: int):
         extract('year', OptionalHoliday.date) == year
     ).count()
     
-    if count >= 2:
-        raise ValueError("You have already reached the maximum limit of 2 optional holidays for this year.")
+    max_limit = get_optional_holidays_limit(db)
+    if count >= max_limit:
+        raise ValueError(f"You have already reached the maximum limit of {max_limit} optional holidays for this year.")
         
     new_selection = EmployeeOptionalHoliday(
         employee_id=employee_id,

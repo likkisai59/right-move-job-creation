@@ -3,7 +3,7 @@ import {
   ClipboardList, CheckCircle2, XCircle, Calendar,
   User, Clock, ShieldAlert, Check, X, Plus, Trash2
 } from 'lucide-react';
-import { getPendingLeaves, updateLeaveStatus, getTeamAttendance, saveApprovalsConfig, getOptionalHolidays, addOptionalHoliday, deleteOptionalHoliday } from '../../api/attendanceApi';
+import { getPendingLeaves, updateLeaveStatus, getTeamAttendance, saveApprovalsConfig, getOptionalHolidays, addOptionalHoliday, deleteOptionalHoliday, getOptionalHolidaysLimit, setOptionalHolidaysLimit } from '../../api/attendanceApi';
 import { fetchDesignations } from '../../api/designationsApi';
 import { formatDate } from '../../utils/formatters';
 
@@ -30,6 +30,8 @@ const ManageApprovals = () => {
   const [optHolDate, setOptHolDate] = useState('');
   const [optHolDesc, setOptHolDesc] = useState('');
   const [optHolSubmitting, setOptHolSubmitting] = useState(false);
+  const [maxOptHolidaysLimit, setMaxOptHolidaysLimit] = useState(2);
+  const [limitSaving, setLimitSaving] = useState(false);
 
   // Reject Modal states
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
@@ -116,10 +118,30 @@ const ManageApprovals = () => {
 
   const loadOptionalHolidays = async () => {
     try {
-      const res = await getOptionalHolidays();
+      const [res, limitRes] = await Promise.all([
+        getOptionalHolidays(),
+        getOptionalHolidaysLimit().catch(() => ({ data: { max_limit: 2 } }))
+      ]);
       setOptionalHolidays(res.data || []);
+      if (limitRes?.data?.max_limit) {
+        setMaxOptHolidaysLimit(limitRes.data.max_limit);
+      }
     } catch (err) {
       console.error('Failed to load optional holidays:', err);
+    }
+  };
+
+  const handleSaveOptionalLimit = async () => {
+    setLimitSaving(true);
+    try {
+      const val = parseInt(maxOptHolidaysLimit) || 1;
+      await setOptionalHolidaysLimit(val);
+      setSuccessMsg(`Annual optional holidays limit updated to ${val} per employee.`);
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } catch (err) {
+      setError('Failed to update optional holidays limit.');
+    } finally {
+      setLimitSaving(false);
     }
   };
 
@@ -768,6 +790,39 @@ const ManageApprovals = () => {
                   <p className="text-xs text-gray-400 font-medium">
                     Add optional holidays visible to employees under their Leave Management portal.
                   </p>
+                </div>
+              </div>
+
+              {/* Configuration Card: Max Optional Holidays per Employee */}
+              <div className="bg-violet-50/60 p-5 rounded-2xl border border-violet-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h4 className="text-xs font-bold text-violet-900 uppercase tracking-wide">
+                    Annual Employee Selection Quota
+                  </h4>
+                  <p className="text-xs text-violet-600 mt-0.5">
+                    Configure how many optional holidays each employee is allowed to select per calendar year.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 border border-violet-200 rounded-xl">
+                    <span className="text-xs text-gray-500 font-semibold">Max:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="365"
+                      value={maxOptHolidaysLimit}
+                      onChange={(e) => setMaxOptHolidaysLimit(e.target.value)}
+                      className="w-14 outline-none text-center font-bold text-violet-900 text-sm"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSaveOptionalLimit}
+                    disabled={limitSaving}
+                    className="px-4 py-2 bg-violet-600 text-white font-bold rounded-xl hover:bg-violet-700 transition-all text-xs disabled:opacity-50 shadow-xs cursor-pointer"
+                  >
+                    {limitSaving ? 'Saving...' : 'Save Quota'}
+                  </button>
                 </div>
               </div>
 

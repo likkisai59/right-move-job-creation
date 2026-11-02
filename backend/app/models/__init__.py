@@ -9,3 +9,4 @@ from .account import Account, PayrollCalculationsHistory, OrganizationBillingHis
 from .payroll_config import PayrollConfig
 from .invoice import Invoice
 from .notification import Notification
+from .system_setting import SystemSetting

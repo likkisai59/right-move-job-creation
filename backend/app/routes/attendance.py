@@ -66,7 +66,13 @@ def apply_leave(payload: LeaveCreate, db: Session = Depends(get_db)):
     """
     Apply for employee leave.
     """
-    return attendance_service.create_leave_request(db, payload)
+    try:
+        return attendance_service.create_leave_request(db, payload)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 @router.get("/leave/history/{employee_id}", response_model=List[LeaveResponse])
 def get_leave_history(employee_id: int, db: Session = Depends(get_db)):
@@ -133,6 +139,29 @@ def save_designation_config(payload: List[DesignationLeaveUpdateItem], db: Sessi
 
 
 # ── Optional Holidays ────────────────────────────────────────────────────
+
+@router.get("/optional-holidays/limit")
+def get_optional_holidays_limit(db: Session = Depends(get_db)):
+    """
+    Get the annual max optional holidays limit per employee.
+    """
+    limit = attendance_service.get_optional_holidays_limit(db)
+    return success_response("Optional holidays limit fetched", {"max_limit": limit})
+
+
+@router.post("/optional-holidays/limit")
+def set_optional_holidays_limit(limit: int, db: Session = Depends(get_db)):
+    """
+    Set the annual max optional holidays limit per employee.
+    """
+    if limit < 1 or limit > 365:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Limit must be between 1 and 365."
+        )
+    new_limit = attendance_service.set_optional_holidays_limit(db, limit)
+    return success_response("Optional holidays limit updated", {"max_limit": new_limit})
+
 
 @router.get("/optional-holidays")
 def list_optional_holidays(employee_id: str = None, db: Session = Depends(get_db)):

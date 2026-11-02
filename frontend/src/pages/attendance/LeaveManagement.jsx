@@ -13,6 +13,7 @@ const LeaveManagement = () => {
   const [monthlyQuota, setMonthlyQuota] = useState(0);
   const [holidays, setHolidays] = useState([]);
   const [optionalHolidays, setOptionalHolidays] = useState([]);
+  const [maxOptionalHolidays, setMaxOptionalHolidays] = useState(2);
   const [pendingOptionalHolidays, setPendingOptionalHolidays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -45,6 +46,9 @@ const LeaveManagement = () => {
         setMonthlyQuota(configData.monthly_leaves ?? 0);
         setHolidays(configData.holidays || []);
         setOptionalHolidays(configData.optional_holidays || []);
+        if (configData.max_optional_holidays) {
+          setMaxOptionalHolidays(configData.max_optional_holidays);
+        }
       }
       if (typesData) {
         // Exclude 'Half Day Leave' and only keep active types
@@ -94,7 +98,16 @@ const LeaveManagement = () => {
       return;
     }
 
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (startDate < todayStr) {
+      setError('Past dates are not allowed. Please select today or a future date.');
+      return;
+    }
+
     const effectiveEndDate = (sessionType === 'First Half' || sessionType === 'Second Half') ? startDate : endDate;
+    const requestedDays = (sessionType === 'First Half' || sessionType === 'Second Half')
+      ? 0.5
+      : calculateDays(startDate, effectiveEndDate);
 
     if (new Date(startDate) > new Date(effectiveEndDate)) {
       setError('Start date cannot be after end date.');
@@ -104,19 +117,16 @@ const LeaveManagement = () => {
     // Quota validation for Paid Leave
     if (leaveType === 'Paid Leave') {
       if (availableBalance <= 0) {
-        setError('You do not have enough Paid Leave quota available. Please select another leave type.');
+        setError('You have only 0 Paid Leaves available. Please select Unpaid Leave or Casual Leave.');
         return;
       }
       if (availableBalance === 0.5 && sessionType === 'Full Day') {
-        setError('You only have 0.5 Paid Leave quota remaining. Please select First Half or Second Half.');
+        setError('You have only 0.5 Paid Leave available. Please select First Half or Second Half.');
         return;
       }
-      if (sessionType === 'Full Day') {
-        const requestedDays = calculateDays(startDate, effectiveEndDate);
-        if (requestedDays > availableBalance) {
-          setError(`You only have ${availableBalance} Paid Leave(s) available, but requested ${requestedDays} day(s).`);
-          return;
-        }
+      if (requestedDays > availableBalance) {
+        setError(`You have only ${availableBalance} leave${availableBalance === 1 ? '' : 's'} available.`);
+        return;
       }
     }
 
@@ -183,9 +193,17 @@ const LeaveManagement = () => {
   };
 
   const toggleOptionalHoliday = (holidayId) => {
-    setPendingOptionalHolidays(prev => 
-      prev.includes(holidayId) ? prev.filter(id => id !== holidayId) : [...prev, holidayId]
-    );
+    setPendingOptionalHolidays(prev => {
+      if (prev.includes(holidayId)) {
+        return prev.filter(id => id !== holidayId);
+      }
+      const alreadyApproved = optionalHolidays.filter(oh => oh.is_selected).length;
+      if (alreadyApproved + prev.length >= maxOptionalHolidays) {
+        toast.error(`You can select a maximum of ${maxOptionalHolidays} optional holidays per year.`);
+        return prev;
+      }
+      return [...prev, holidayId];
+    });
   };
 
   const handleSubmitOptionalHolidays = async () => {
@@ -238,9 +256,17 @@ const LeaveManagement = () => {
           { label: 'Pending Requests', val: pendingLeavesCount, color: 'amber' },
           { label: 'Available Balance', val: availableBalance, color: 'emerald' },
         ].map(item => (
-          <div key={item.label} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">{item.label}</p>
-            <p className={`text-2xl font-black text-${item.color}-600`}>{item.val}</p>
+          <div key={item.label} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+            <div>
+              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">{item.label}</p>
+              <p className={`text-2xl font-black text-${item.color}-600`}>{item.val}</p>
+            </div>
+            {item.label === 'Available Balance' && (
+              <div className="mt-2 pt-2 border-t border-gray-100 text-[11px] font-semibold text-gray-500 flex items-center justify-between">
+                <span>Monthly Quota:</span>
+                <span className="font-bold text-blue-600">{monthlyQuota} / mo</span>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -286,10 +312,20 @@ const LeaveManagement = () => {
                   }}
                   className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-semibold text-gray-700"
                 >
-                  <option value="" disabled>Select</option>
-                  <option value="Paid Leave" disabled={availableBalance <= 0}>
-                    Paid Leave {availableBalance <= 0 ? '(No Quota Available)' : `(Balance: ${availableBalance})`}
-                  </option>
+                  {(() => {
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    const effEnd = (sessionType === 'First Half' || sessionType === 'Second Half') ? startDate : endDate;
+                    const reqDays = (sessionType === 'First Half' || sessionType === 'Second Half') ? 0.5 : (startDate && effEnd ? calculateDays(startDate, effEnd) : 0);
+                    const isExceeded = reqDays > 0 && reqDays > availableBalance;
+                    return (
+                      <>
+                        <option value="" disabled>Select</option>
+                        <option value="Paid Leave" disabled={availableBalance <= 0 || isExceeded}>
+                          Paid Leave {availableBalance <= 0 ? '(0 Leaves Available)' : (isExceeded ? `(Limit: Only ${availableBalance} Available)` : `(Balance: ${availableBalance})`)}
+                        </option>
+                      </>
+                    );
+                  })()}
                   <option value="Unpaid Leave">Unpaid Leave</option>
                   <option value="Casual Leave">Casual Leave</option>
                   <option value="Optional Leave">Optional Leave</option>
@@ -358,6 +394,7 @@ const LeaveManagement = () => {
                     <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Start Date</label>
                     <input
                       type="date"
+                      min={new Date().toISOString().split('T')[0]}
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
                       required
@@ -368,6 +405,7 @@ const LeaveManagement = () => {
                     <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">End Date</label>
                     <input
                       type="date"
+                      min={startDate || new Date().toISOString().split('T')[0]}
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
                       required
@@ -380,6 +418,7 @@ const LeaveManagement = () => {
                   <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Date</label>
                   <input
                     type="date"
+                    min={new Date().toISOString().split('T')[0]}
                     value={startDate}
                     onChange={(e) => {
                       setStartDate(e.target.value);
@@ -553,7 +592,7 @@ const LeaveManagement = () => {
                     const isAlreadySelected = h.is_selected;
                     const isPendingSelected = pendingOptionalHolidays.includes(h.id);
                     const selectedCount = optionalHolidays.filter(oh => oh.is_selected).length + pendingOptionalHolidays.length;
-                    const canSelectMore = selectedCount < 2;
+                    const canSelectMore = selectedCount < maxOptionalHolidays;
 
                     return (
                       <tr key={h.id || idx} className={`hover:bg-violet-50/30 transition-colors ${isPast && !isAlreadySelected ? 'opacity-60' : ''}`}>
@@ -600,7 +639,7 @@ const LeaveManagement = () => {
             {optionalHolidays.some(h => !h.is_selected && new Date(h.date) >= new Date(new Date().setHours(0,0,0,0))) && (
               <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
                 <span className="text-xs font-semibold text-gray-500">
-                  Selected: {optionalHolidays.filter(oh => oh.is_selected).length + pendingOptionalHolidays.length} / 2
+                  Selected: {optionalHolidays.filter(oh => oh.is_selected).length + pendingOptionalHolidays.length} / {maxOptionalHolidays}
                 </span>
                 <button
                   onClick={handleSubmitOptionalHolidays}
