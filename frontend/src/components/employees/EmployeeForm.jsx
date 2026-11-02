@@ -13,10 +13,11 @@ import {
   COUNTRY_CODES,
   EMPLOYEE_COMPLIANCE_OPTIONS,
   EMPLOYEE_YES_NO_OPTIONS,
-  EMPLOYEE_BUSINESS_UNIT_OPTIONS,
+
   getPhoneValidationRules
 } from '../../utils/constants';
 import { fetchDesignations } from '../../api/designationsApi';
+import { fetchBusinessUnits } from '../../api/businessUnitsApi';
 import { fetchWorkModes } from '../../api/workModesApi';
 import { uploadEmployeeFile, fetchEmployees } from '../../api/employeesApi';
 import { getCurrentUser, getSystemRole } from '../../api/authApi';
@@ -302,20 +303,34 @@ const EmployeeForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     loadDesignations();
   }, [initialData]);
 
-  // Set fixed employee business units: HR, Admin, Accounts
+  // Fetch active business units from Settings dynamically
   useEffect(() => {
-    let options = [...EMPLOYEE_BUSINESS_UNIT_OPTIONS];
-    if (initialData?.assignedBusinessUnit) {
-      const hasCurrent = options.some(opt => opt.value.toLowerCase() === initialData.assignedBusinessUnit.toLowerCase());
-      if (!hasCurrent) {
-        options.push({
-          value: initialData.assignedBusinessUnit,
-          label: `${initialData.assignedBusinessUnit} (Inactive)`
-        });
+    const loadBusinessUnits = async () => {
+      try {
+        const res = await fetchBusinessUnits({ active_only: true });
+        if (res.success && res.data) {
+          let options = res.data.map(bu => ({
+            value: bu.name,
+            label: bu.name
+          }));
+          if (initialData?.assignedBusinessUnit) {
+            const hasCurrent = options.some(opt => opt.value.toLowerCase() === initialData.assignedBusinessUnit.toLowerCase());
+            if (!hasCurrent) {
+              options.push({
+                value: initialData.assignedBusinessUnit,
+                label: `${initialData.assignedBusinessUnit} (Inactive)`
+              });
+            }
+          }
+          setBusinessUnits(options);
+        }
+      } catch (err) {
+        console.error('Failed to load business units for form:', err);
       }
-    }
-    setBusinessUnits(options);
-  }, [initialData]);
+    };
+
+    loadBusinessUnits();
+  }, [initialData?.assignedBusinessUnit]);
 
   // Fetch active work modes and format for select options
   useEffect(() => {

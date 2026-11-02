@@ -38,11 +38,7 @@ export const CANDIDATE_BUSINESS_UNIT_OPTIONS = [
   { value: 'F&A', label: 'F&A' },
 ];
 
-export const EMPLOYEE_BUSINESS_UNIT_OPTIONS = [
-  { value: 'HR', label: 'HR' },
-  { value: 'Admin', label: 'Admin' },
-  { value: 'Accounts', label: 'Accounts' },
-];
+// EMPLOYEE_BUSINESS_UNIT_OPTIONS removed: Employees module now uses dynamic Business Units from Settings
 
 
 export const SOURCE_OPTIONS = [
