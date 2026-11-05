@@ -62,6 +62,10 @@ class AccountResponse(AccountBase):
     }
 
 class EmployeeShortInfo(BaseModel):
+    model_config = {
+        "from_attributes": True
+    }
+
     employee_id: str
     first_name: Optional[str] = ""
     last_name: Optional[str] = ""

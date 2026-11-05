@@ -115,33 +115,95 @@ def get_recruiter_incentives_sum(db: Session, employee: Employee, start_date: Op
 # ── ACCOUNTS MODULE CRUD ──────────────────────────────────────
 
 def list_accounts(db: Session) -> List[Account]:
-    # Query all active employees
+    # 1. Query all active employees
     employees = db.query(Employee).filter(Employee.status == "Active").all()
+    if not employees:
+        return []
+
+    emp_ids = [emp.id for emp in employees]
     config = get_payroll_config(db)
     
+    # 2. Batch fetch existing accounts for all active employees
+    accounts_by_emp_id = {
+        acc.employee_id: acc 
+        for acc in db.query(Account).filter(Account.employee_id.in_(emp_ids)).all()
+    }
+
+    # 3. Batch fetch all relevant leaves within salary cycle in ONE query
+    base_start, base_end = get_current_salary_cycle_range(date.today(), None)
+
+    leaves = db.query(
+        Leave.employee_id,
+        Leave.start_date,
+        Leave.total_leaves
+    ).filter(
+        Leave.employee_id.in_(emp_ids),
+        Leave.status == "Approved",
+        or_(
+            Leave.leave_type.ilike("%unpaid%"),
+            Leave.leave_type.ilike("%casual%"),
+            Leave.leave_type.ilike("%optional%")
+        ),
+        Leave.start_date >= base_start,
+        Leave.start_date <= base_end
+    ).all()
+
+    leaves_by_emp_id = {}
+    for emp_id, start_d, total_l in leaves:
+        if emp_id not in leaves_by_emp_id:
+            leaves_by_emp_id[emp_id] = []
+        leaves_by_emp_id[emp_id].append((start_d, total_l or 0.0))
+
+    # 4. Batch fetch candidate recruiter incentives in ONE query
+    candidate_mappings = db.query(
+        func.lower(Candidate.recruiter_name),
+        JobCandidateMapping.incentive,
+        JobCandidateMapping.approval_date
+    ).join(Candidate, JobCandidateMapping.candidate_id == Candidate.id).filter(
+        JobCandidateMapping.status == "Joined",
+        JobCandidateMapping.approval_date >= base_start,
+        JobCandidateMapping.approval_date <= base_end
+    ).all()
+
+    mappings_by_recruiter = {}
+    for rec_name_lower, inc_str, app_date in candidate_mappings:
+        if not rec_name_lower:
+            continue
+        cleaned_rec = rec_name_lower.strip()
+        if cleaned_rec not in mappings_by_recruiter:
+            mappings_by_recruiter[cleaned_rec] = []
+        mappings_by_recruiter[cleaned_rec].append((app_date, inc_str))
+
     result = []
+    has_changes = False
+
     for emp in employees:
-        account = db.query(Account).filter(Account.employee_id == emp.id).first()
+        account = accounts_by_emp_id.get(emp.id)
         
-        # Determine current salary cycle dates
+        # Determine current salary cycle dates for this specific employee
         joining_date = emp.date or emp.date_of_joining
-        start_date, end_date = get_current_salary_cycle_range(date.today(), joining_date)
+        emp_start_date, emp_end_date = get_current_salary_cycle_range(date.today(), joining_date)
         
-        # Calculate sum of approved unpaid/casual/optional leaves within current cycle
-        unpaid_leaves_sum = db.query(func.sum(Leave.total_leaves)).filter(
-            Leave.employee_id == emp.id,
-            Leave.status == "Approved",
-            or_(
-                Leave.leave_type.ilike("%unpaid%"),
-                Leave.leave_type.ilike("%casual%"),
-                Leave.leave_type.ilike("%optional%")
-            ),
-            Leave.start_date >= start_date,
-            Leave.start_date <= end_date
-        ).scalar() or 0.0
+        # Calculate sum of approved unpaid/casual/optional leaves within employee cycle
+        emp_leaves = leaves_by_emp_id.get(emp.id, [])
+        unpaid_leaves_sum = sum(
+            total_l for start_d, total_l in emp_leaves
+            if start_d and emp_start_date <= start_d <= emp_end_date
+        )
         
-        # Calculate recruiter incentives within current cycle
-        total_incentives_sum = get_recruiter_incentives_sum(db, emp, start_date, end_date)
+        # Calculate recruiter incentives within employee cycle
+        emp_name_lower = f"{emp.first_name or ''} {emp.last_name or ''}".strip().lower()
+        rec_items = mappings_by_recruiter.get(emp_name_lower, [])
+        total_incentives_sum = 0
+        for app_date, inc_val in rec_items:
+            if app_date and emp_start_date <= app_date <= emp_end_date:
+                if inc_val:
+                    try:
+                        clean_inc = "".join(c for c in str(inc_val) if c.isdigit())
+                        if clean_inc:
+                            total_incentives_sum += int(clean_inc)
+                    except ValueError:
+                        pass
         
         # CTC Offered from employees table
         ctc_val = int(emp.ctc) if emp.ctc is not None else 0
@@ -205,8 +267,9 @@ def list_accounts(db: Session) -> List[Account]:
                 account.calculated_basic_pay = calculated_net_payable
                 if hasattr(account, 'baseline_status'):
                     account.baseline_status = calculated_baseline_status
-                db.commit()
-                db.refresh(account)
+                has_changes = True
+
+            account.employee = emp
             result.append(account)
         else:
             # Construct a default transient Account object linked to this employee
@@ -221,7 +284,6 @@ def list_accounts(db: Session) -> List[Account]:
             elif compliance_upper == "TDS":
                 calculated_tds = float((0 + 0) * (config.tds_percentage / 100.0))
                 
-            # Net Salary Payout = Calculated Basic Pay + HRA - PF - TDS + Additional Incentive + Client Incentive - Incentive Deducted + Candidate Incentives - Loan Deducted
             calculated_total_gross = int(
                 0 + 
                 0 - 
@@ -263,6 +325,10 @@ def list_accounts(db: Session) -> List[Account]:
             default_account.employee = emp
             result.append(default_account)
             
+    # Single batch commit if any account records were updated
+    if has_changes:
+        db.commit()
+
     return result
 
 def create_account(db: Session, payload: AccountCreate) -> Account:
@@ -365,33 +431,49 @@ def list_placements(db: Session) -> List[dict]:
         JobCandidateMapping.status == "Joined"
     ).all()
     
+    if not mappings:
+        return []
+
+    # Batch fetch organizations
+    job_org_ids = {m.job.organization_id for m in mappings if m.job and m.job.organization_id}
+    orgs_map = {}
+    if job_org_ids:
+        orgs_map = {
+            org.id: org
+            for org in db.query(Organization).filter(Organization.id.in_(job_org_ids)).all()
+        }
+
+    # Fetch ALL employees ONCE and build lookup dict
+    all_employees = db.query(Employee).all()
+    emp_lookup = {}
+    for emp in all_employees:
+        cleaned_name = f"{emp.first_name or ''}{emp.last_name or ''}".replace(" ", "").lower()
+        if cleaned_name and cleaned_name not in emp_lookup:
+            emp_lookup[cleaned_name] = (
+                emp.employee_id,
+                f"{emp.first_name or ''} {emp.last_name or ''}".strip()
+            )
+
     placements = []
     for m in mappings:
         candidate = m.candidate
         job = m.job
         
-        # Get organization details through Job
         org = None
         if job and job.organization_id:
-            org = db.query(Organization).filter(Organization.id == job.organization_id).first()
+            org = orgs_map.get(job.organization_id)
             
-        # Look up employee details for the recruiter
         rec_emp_id = "—"
-        rec_emp_name = candidate.recruiter_name or "—"
-        if candidate.recruiter_name:
+        rec_emp_name = candidate.recruiter_name or "—" if candidate else "—"
+        if candidate and candidate.recruiter_name:
             search_name = candidate.recruiter_name.strip().replace(" ", "").lower()
-            employees_list = db.query(Employee).all()
-            for emp in employees_list:
-                emp_full = f"{emp.first_name or ''}{emp.last_name or ''}".replace(" ", "").lower()
-                if emp_full == search_name:
-                    rec_emp_id = emp.employee_id
-                    rec_emp_name = f"{emp.first_name or ''} {emp.last_name or ''}".strip()
-                    break
+            if search_name in emp_lookup:
+                rec_emp_id, rec_emp_name = emp_lookup[search_name]
 
         placements.append({
             "approval_date": m.approval_date,
-            "candidate_code": candidate.candidate_code,
-            "candidate_name": f"{candidate.first_name} {candidate.last_name}".strip(),
+            "candidate_code": candidate.candidate_code if candidate else "—",
+            "candidate_name": f"{candidate.first_name} {candidate.last_name}".strip() if candidate else "—",
             "organization_id": org.organization_id if org else None,
             "organization_name": org.organization_name if org else (job.company_name if job else "-"),
             "location": org.location if org else None,
@@ -402,7 +484,7 @@ def list_placements(db: Session) -> List[dict]:
             "employee_id": rec_emp_id,
             "employee_name": rec_emp_name,
             "mapping_id": m.id,
-            "candidate_id": candidate.id
+            "candidate_id": candidate.id if candidate else None
         })
     return placements
 # ── FOURTH TAB: INVOICING & BILLING ────────────────────────────
@@ -415,15 +497,32 @@ def list_invoices(db: Session) -> List[dict]:
         JobCandidateMapping.status == "Joined"
     ).all()
     
+    if not mappings:
+        return []
+
+    mapping_ids = [m.id for m in mappings]
+    existing_invoices = db.query(Invoice).filter(Invoice.job_candidate_mapping_id.in_(mapping_ids)).all()
+    invoices_map = {inv.job_candidate_mapping_id: inv for inv in existing_invoices}
+
+    job_org_ids = {m.job.organization_id for m in mappings if m.job and m.job.organization_id}
+    orgs_map = {}
+    if job_org_ids:
+        orgs_map = {
+            org.id: org
+            for org in db.query(Organization).filter(Organization.id.in_(job_org_ids)).all()
+        }
+
     invoices_list = []
+    has_changes = False
+
     for m in mappings:
         candidate = m.candidate
         job = m.job
         org = None
         if job and job.organization_id:
-            org = db.query(Organization).filter(Organization.id == job.organization_id).first()
+            org = orgs_map.get(job.organization_id)
             
-        invoice = db.query(Invoice).filter(Invoice.job_candidate_mapping_id == m.id).first()
+        invoice = invoices_map.get(m.id)
         
         offered_ctc_val = 0.0
         if m.salary_offered:
@@ -435,7 +534,6 @@ def list_invoices(db: Session) -> List[dict]:
                 pass
                 
         if not invoice:
-            # Create a default database entry for the invoice
             org_id = org.organization_id if org and org.organization_id else "UNKNOWN"
             today = date.today()
             day_str = f"{today.day:02d}"
@@ -463,10 +561,9 @@ def list_invoices(db: Session) -> List[dict]:
                 billing_status="Pending"
             )
             db.add(invoice)
-            db.commit()
-            db.refresh(invoice)
+            invoices_map[m.id] = invoice
+            has_changes = True
             
-        # Compile response dictionary with candidate/organization details
         org_id = org.organization_id if org and org.organization_id else "UNKNOWN"
         inv_date = invoice.invoice_date or m.joining_date or date.today()
         day_str = f"{inv_date.day:02d}"
@@ -474,11 +571,9 @@ def list_invoices(db: Session) -> List[dict]:
         year_str = f"{inv_date.year}"
         display_inv_num = f"INV-{org_id}-{day_str}-{month_str}-{year_str}"
 
-        # Synchronize invoice number in DB if it was created in the old format
         if invoice.invoice_number != display_inv_num:
             invoice.invoice_number = display_inv_num
-            db.commit()
-            db.refresh(invoice)
+            has_changes = True
 
         invoices_list.append({
             "id": invoice.id,
@@ -500,10 +595,9 @@ def list_invoices(db: Session) -> List[dict]:
             "candidate_status": invoice.candidate_status,
             "billing_status": invoice.billing_status,
             
-            # Read-only fields fetched from candidate placement and org
             "candidate_joined_date": m.joining_date,
-            "candidate_code": candidate.candidate_code,
-            "candidate_name": f"{candidate.first_name} {candidate.last_name}".strip(),
+            "candidate_code": candidate.candidate_code if candidate else "—",
+            "candidate_name": f"{candidate.first_name} {candidate.last_name}".strip() if candidate else "—",
             "job_designation": job.requirements[0].job_title if (job and job.requirements) else "-",
             "organization_name": org.organization_name if org else (job.company_name if job else "-"),
             "location": org.location if org else None,
@@ -512,6 +606,9 @@ def list_invoices(db: Session) -> List[dict]:
             "organization_id": org.organization_id if org else None
         })
         
+    if has_changes:
+        db.commit()
+
     return invoices_list
 
 def update_invoice(db: Session, mapping_id: int, payload: InvoiceUpdate) -> Invoice:
